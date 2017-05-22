@@ -1,7 +1,55 @@
-﻿  Camera.cpp
+﻿  Mesh.cpp
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(25): warning C4018: '>=': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(36): warning C4018: '>=': signed/unsigned mismatch
+  Scene.cpp
+c:\program files (x86)\windows kits\10\include\10.0.14393.0\shared\minwindef.h(130): warning C4005: 'APIENTRY': macro redefinition
+  f:\personal work\vulkan experiments\baboon engine\external source\glfw\glfw3.h(98): note: see previous definition of 'APIENTRY'
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(25): warning C4018: '>=': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(36): warning C4018: '>=': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\scene.cpp(81): warning C4018: '<': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\scene.cpp(131): warning C4018: '<': signed/unsigned mismatch
+  Generating Code...
+  Compiling...
+  appmain.cpp
+c:\program files (x86)\windows kits\10\include\10.0.14393.0\shared\minwindef.h(130): warning C4005: 'APIENTRY': macro redefinition
+  f:\personal work\vulkan experiments\baboon engine\external source\glfw\glfw3.h(98): note: see previous definition of 'APIENTRY'
+c:\program files (x86)\windows kits\10\include\10.0.14393.0\um\wingdi.h(36): warning C4005: 'WINGDIAPI': macro redefinition
+  f:\personal work\vulkan experiments\baboon engine\external source\glfw\glfw3.h(107): note: see previous definition of 'WINGDIAPI'
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(25): warning C4018: '>=': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(36): warning C4018: '>=': signed/unsigned mismatch
+  VulkanIMGUI.cpp
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(25): warning C4018: '>=': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(36): warning C4018: '>=': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\ui\vulkanimgui.cpp(285): warning C4244: '=': conversion from 'float' to 'uint32_t', possible loss of data
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\ui\vulkanimgui.cpp(286): warning C4244: '=': conversion from 'float' to 'uint32_t', possible loss of data
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\ui\vulkanimgui.cpp(290): warning C4018: '<': signed/unsigned mismatch
+  RendererVulkan.cpp
+c:\program files (x86)\windows kits\10\include\10.0.14393.0\shared\minwindef.h(130): warning C4005: 'APIENTRY': macro redefinition
+  f:\personal work\vulkan experiments\baboon engine\external source\glfw\glfw3.h(98): note: see previous definition of 'APIENTRY'
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(25): warning C4018: '>=': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(36): warning C4018: '>=': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\renderer\vulkan\renderervulkan.cpp(81): warning C4244: 'return': conversion from 'uint32_t' to 'float', possible loss of data
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\renderer\vulkan\renderervulkan.cpp(84): warning C4244: 'return': conversion from 'uint32_t' to 'float', possible loss of data
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\renderer\vulkan\renderervulkan.cpp(116): warning C4244: 'argument': conversion from 'VkDeviceSize' to '::size_t', possible loss of data
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\renderer\vulkan\renderervulkan.cpp(128): warning C4244: 'argument': conversion from 'VkDeviceSize' to '::size_t', possible loss of data
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\renderer\vulkan\renderervulkan.cpp(1152): warning C4018: '<': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\renderer\vulkan\renderervulkan.cpp(1159): warning C4018: '<': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\renderer\vulkan\renderervulkan.cpp(1167): warning C4018: '<': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\renderer\vulkan\renderervulkan.cpp(1252): warning C4018: '<': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\renderer\vulkan\renderervulkan.cpp(1637): warning C4838: conversion from 'int' to 'uint32_t' requires a narrowing conversion
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\renderer\vulkan\renderervulkan.cpp(1697): warning C4244: '=': conversion from 'float' to 'uint32_t', possible loss of data
+  ServiceLocator.cpp
+c:\program files (x86)\windows kits\10\include\10.0.14393.0\shared\minwindef.h(130): warning C4005: 'APIENTRY': macro redefinition
+  f:\personal work\vulkan experiments\baboon engine\external source\glfw\glfw3.h(98): note: see previous definition of 'APIENTRY'
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(25): warning C4018: '>=': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(36): warning C4018: '>=': signed/unsigned mismatch
+  Camera.cpp
 f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(25): warning C4018: '>=': signed/unsigned mismatch
 f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(36): warning C4018: '>=': signed/unsigned mismatch
 c:\program files (x86)\windows kits\10\include\10.0.14393.0\shared\minwindef.h(130): warning C4005: 'APIENTRY': macro redefinition
   f:\personal work\vulkan experiments\baboon engine\external source\glfw\glfw3.h(98): note: see previous definition of 'APIENTRY'
+  Generating Code...
+  Skipping... (no relevant changes detected)
+  Model.cpp
   Baboon Engine.vcxproj -> F:\Personal Work\Vulkan Experiments\Baboon Engine\Debug\Baboon Engine.exe
   Baboon Engine.vcxproj -> F:\Personal Work\Vulkan Experiments\Baboon Engine\Debug\Baboon Engine.pdb (Partial PDB)

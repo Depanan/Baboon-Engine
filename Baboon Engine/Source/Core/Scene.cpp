@@ -53,7 +53,7 @@ void Scene::Init()
 	const aiScene* aScene;
 	Assimp::Importer Importer;
 	int flags = aiProcess_PreTransformVertices | aiProcess_Triangulate | aiProcess_GenNormals;
-	aScene = Importer.ReadFile("Models/teapot.obj", flags);
+	aScene = Importer.ReadFile("Models/sibenik/sibenik.dae", flags);
 	
 	const int numberTexturesInScene = aScene->mNumTextures;
 	const int numberOfModelsInScene = aScene->mNumMeshes;
@@ -84,7 +84,7 @@ void Scene::Init()
 
 			bool hasUV = aMesh->HasTextureCoords(0);
 			bool hasColor = aMesh->HasVertexColors(0);
-			//bool hasNormals = aMesh->HasNormals();
+			bool hasNormals = aMesh->HasNormals();
 
 			
 			for (uint32_t v = 0; v < aMesh->mNumVertices; v++)
@@ -93,8 +93,8 @@ void Scene::Init()
 				vertex.pos = glm::make_vec3(&aMesh->mVertices[v].x);
 				vertex.pos.y = -vertex.pos.y;
 				vertex.texCoord = hasUV ? glm::make_vec2(&aMesh->mTextureCoords[0][v].x) : glm::vec2(0.0f);
-				//vertex.normal = hasNormals ? glm::make_vec3(&aMesh->mNormals[v].x) : glm::vec3(0.0f);
-				//vertex.normal.y = -vertex.normal.y;
+				vertex.normal = hasNormals ? glm::make_vec3(&aMesh->mNormals[v].x) : glm::vec3(0.0f);
+				vertex.normal.y = -vertex.normal.y;
 				vertex.color = hasColor ? glm::make_vec3(&aMesh->mColors[0][v].r) : glm::vec3(1.0f);
 				m_Vertices.push_back(vertex);
 			}
@@ -122,8 +122,8 @@ void Scene::Init()
 
 	
 	
-	m_Models[0].Scale(glm::vec3(0.1f, 0.1f, 0.1f));
-	m_Models[0].Translate(glm::vec3(0.0f, 0.0f, 50.0f));
+	//m_Models[0].Scale(glm::vec3(0.1f, 0.1f, 0.1f));
+	//m_Models[0].Translate(glm::vec3(0.0f, 0.0f, 50.0f));
 
 	RendererAbstract* renderer = ServiceLocator::GetRenderer();
 	

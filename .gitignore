@@ -8,3 +8,5 @@ Baboon Engine/Debug/Baboon Engine.tlog/CL.write.1.tlog
 Baboon Engine/Debug/Baboon Engine.tlog/link.read.1.tlog
 *.tlog
 *.log
+*.log
+*.tlog

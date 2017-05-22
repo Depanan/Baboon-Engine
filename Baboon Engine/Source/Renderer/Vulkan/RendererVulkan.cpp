@@ -1247,7 +1247,7 @@ void RendererVulkan::recordDrawCommandBuffers()
 		VkDeviceSize offsets[] = { 0 };
 
 		vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(m_CommandBuffers[i], m_MainIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdBindIndexBuffer(m_CommandBuffers[i], m_MainIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 		vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);//TODO: Maybe one pipeline per model?? For Now use the one we have
 		for (int iModel = 0; iModel < sceneModels.size(); iModel++)
 		{
@@ -1258,7 +1258,7 @@ void RendererVulkan::recordDrawCommandBuffers()
 			uint32_t dynamicOffset = iModel * static_cast<uint32_t>(256);
 
 			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSet, 1, &dynamicOffset);
-			vkCmdDrawIndexed(m_CommandBuffers[i], nIndices, 1, indexStart, 0, 0);
+			vkCmdDrawIndexed(m_CommandBuffers[i], nIndices, 1, 0, indexStart, 0);
 		}
 
 		

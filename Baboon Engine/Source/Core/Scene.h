@@ -21,7 +21,7 @@ public:
 	const int GetVerticesNumber() { return m_Vertices.size(); }
 	const size_t GetVerticesSize() { return sizeof(m_Vertices[0]) * m_Vertices.size(); }
 
-	const uint16_t* GetIndicesData() { return m_Indices.data(); }
+	const uint32_t* GetIndicesData() { return m_Indices.data(); }
 	const int GetIndicesNumber() { return m_Indices.size(); }
 	const size_t GetIndicesSize() { return sizeof(m_Indices[0]) * m_Indices.size(); }
 
@@ -55,7 +55,7 @@ private:
 
 	//Global data for indexed meshes
 	std::vector<Vertex> m_Vertices;
-	std::vector<uint16_t> m_Indices;
+	std::vector<uint32_t> m_Indices;
 
 
 	//Textures
