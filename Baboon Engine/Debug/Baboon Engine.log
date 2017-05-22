@@ -1,27 +1,7 @@
-﻿  appmain.cpp
-c:\program files (x86)\windows kits\10\include\10.0.14393.0\shared\minwindef.h(130): warning C4005: 'APIENTRY': macro redefinition
-  f:\personal work\vulkan experiments\baboon engine\external source\glfw\glfw3.h(98): note: see previous definition of 'APIENTRY'
-c:\program files (x86)\windows kits\10\include\10.0.14393.0\um\wingdi.h(36): warning C4005: 'WINGDIAPI': macro redefinition
-  f:\personal work\vulkan experiments\baboon engine\external source\glfw\glfw3.h(107): note: see previous definition of 'WINGDIAPI'
-f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(25): warning C4018: '>=': signed/unsigned mismatch
-f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(36): warning C4018: '>=': signed/unsigned mismatch
-  Scene.cpp
-c:\program files (x86)\windows kits\10\include\10.0.14393.0\shared\minwindef.h(130): warning C4005: 'APIENTRY': macro redefinition
-  f:\personal work\vulkan experiments\baboon engine\external source\glfw\glfw3.h(98): note: see previous definition of 'APIENTRY'
-f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(25): warning C4018: '>=': signed/unsigned mismatch
-f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(36): warning C4018: '>=': signed/unsigned mismatch
-f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\scene.cpp(81): warning C4018: '<': signed/unsigned mismatch
-f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\scene.cpp(131): warning C4018: '<': signed/unsigned mismatch
-  Camera.cpp
+﻿  Camera.cpp
 f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(25): warning C4018: '>=': signed/unsigned mismatch
 f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\input.h(36): warning C4018: '>=': signed/unsigned mismatch
 c:\program files (x86)\windows kits\10\include\10.0.14393.0\shared\minwindef.h(130): warning C4005: 'APIENTRY': macro redefinition
   f:\personal work\vulkan experiments\baboon engine\external source\glfw\glfw3.h(98): note: see previous definition of 'APIENTRY'
-  Generating Code...
-  Skipping... (no relevant changes detected)
-  VulkanIMGUI.cpp
-  RendererVulkan.cpp
-  Mesh.cpp
-  ServiceLocator.cpp
   Baboon Engine.vcxproj -> F:\Personal Work\Vulkan Experiments\Baboon Engine\Debug\Baboon Engine.exe
   Baboon Engine.vcxproj -> F:\Personal Work\Vulkan Experiments\Baboon Engine\Debug\Baboon Engine.pdb (Partial PDB)
