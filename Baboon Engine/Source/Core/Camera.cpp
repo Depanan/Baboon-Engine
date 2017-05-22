@@ -6,10 +6,7 @@
 
 void Camera::Init()
 {
-	float fCurrentAspectRatio = ServiceLocator::GetRenderer()->GetMainRTAspectRatio();
-	m_ProjMat = glm::perspective(glm::radians(45.0f), fCurrentAspectRatio, 0.1f, 10.0f);
-	m_ProjMat[1][1] *= -1;//GLM was originally designed for OpenGL, where the Y coordinate of the clip coordinates is inverted.
-	
+	UpdateProjectionMatrix();
 	m_MoveSpeed = 10.0f;
 	m_RotatingSpeed = 10.0f;
 	m_bRotating = false;
@@ -31,7 +28,12 @@ void Camera::Init()
 	pInput->MapMouseMoved(Camera::rotate, this);
 	pInput->MapMouseButtonReleased(1, Camera::endRotation, this);
 }
-
+void Camera::UpdateProjectionMatrix()
+{
+	float fCurrentAspectRatio = ServiceLocator::GetRenderer()->GetMainRTAspectRatio();
+	m_ProjMat = glm::perspective(glm::radians(45.0f), fCurrentAspectRatio, 0.1f, 10.0f);
+	m_ProjMat[1][1] *= -1;//GLM was originally designed for OpenGL, where the Y coordinate of the clip coordinates is inverted.
+}
 void Camera::UpdateViewMatrix()
 {
 	glm::mat4 rotM = glm::mat4();

@@ -37,6 +37,7 @@ public:
 	//Init function likely to read from a scene file or whatever
 	void Init();
 	
+	void OnWindowResize();
 
 	std::vector <Model>* GetModels() { return &m_Models; }
 

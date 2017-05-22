@@ -165,3 +165,8 @@ void Scene::UpdateUniforms()
 	//m_Models[1].Translate(glm::vec3(0.0001f*time, 0, 0));
 
 }
+
+void Scene::OnWindowResize()
+{
+	m_Camera.UpdateProjectionMatrix();
+}

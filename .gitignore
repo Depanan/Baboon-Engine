@@ -1,1 +1,8 @@
 .vs
+Baboon Engine\Debug
+Baboon Engine\Release
+Debug
+Baboon Engine/Debug/Baboon Engine.log
+Baboon Engine/Debug/Baboon Engine.tlog/Baboon Engine.write.1u.tlog
+Baboon Engine/Debug/Baboon Engine.tlog/CL.write.1.tlog
+Baboon Engine/Debug/Baboon Engine.tlog/link.read.1.tlog

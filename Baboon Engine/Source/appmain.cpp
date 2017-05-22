@@ -55,6 +55,7 @@ private:
 
 		GraphicGLFWApp* thisPointer = reinterpret_cast<GraphicGLFWApp*>(glfwGetWindowUserPointer(window));
 		ServiceLocator::GetRenderer()->OnWindowResize(width,height);
+		ServiceLocator::GetSceneManager()->GetScene()->OnWindowResize();
 	}
 
 
