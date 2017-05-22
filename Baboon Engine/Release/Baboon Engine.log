@@ -1,0 +1,72 @@
+﻿  appmain.cpp
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\shared\minwindef.h(130): warning C4005: 'APIENTRY': macro redefinition
+  F:\Personal Work\Vulkan Experiments\Baboon Engine\External Source\GLFW/glfw3.h(98): note: see previous definition of 'APIENTRY'
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\wingdi.h(36): warning C4005: 'WINGDIAPI': macro redefinition
+  F:\Personal Work\Vulkan Experiments\Baboon Engine\External Source\GLFW/glfw3.h(107): note: see previous definition of 'WINGDIAPI'
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\Core\Input.h(25): warning C4018: '>=': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\Core\Input.h(36): warning C4018: '>=': signed/unsigned mismatch
+  Camera.cpp
+F:\Personal Work\Vulkan Experiments\Baboon Engine\Baboon Engine\Source\Core\Input.h(25): warning C4018: '>=': signed/unsigned mismatch
+F:\Personal Work\Vulkan Experiments\Baboon Engine\Baboon Engine\Source\Core\Input.h(36): warning C4018: '>=': signed/unsigned mismatch
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\shared\minwindef.h(130): warning C4005: 'APIENTRY': macro redefinition
+  F:\Personal Work\Vulkan Experiments\Baboon Engine\External Source\GLFW/glfw3.h(98): note: see previous definition of 'APIENTRY'
+  Image.cpp
+  Input.cpp
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\Input.h(25): warning C4018: '>=': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\core\Input.h(36): warning C4018: '>=': signed/unsigned mismatch
+Source\Core\Input.cpp(32): warning C4018: '<': signed/unsigned mismatch
+Source\Core\Input.cpp(45): warning C4018: '<': signed/unsigned mismatch
+  Model.cpp
+  Scene.cpp
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\shared\minwindef.h(130): warning C4005: 'APIENTRY': macro redefinition
+  F:\Personal Work\Vulkan Experiments\Baboon Engine\External Source\GLFW/glfw3.h(98): note: see previous definition of 'APIENTRY'
+F:\Personal Work\Vulkan Experiments\Baboon Engine\Baboon Engine\Source\Core\Input.h(25): warning C4018: '>=': signed/unsigned mismatch
+F:\Personal Work\Vulkan Experiments\Baboon Engine\Baboon Engine\Source\Core\Input.h(36): warning C4018: '>=': signed/unsigned mismatch
+Source\Core\Scene.cpp(81): warning C4018: '<': signed/unsigned mismatch
+Source\Core\Scene.cpp(131): warning C4018: '<': signed/unsigned mismatch
+  ServiceLocator.cpp
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\shared\minwindef.h(130): warning C4005: 'APIENTRY': macro redefinition
+  F:\Personal Work\Vulkan Experiments\Baboon Engine\External Source\GLFW/glfw3.h(98): note: see previous definition of 'APIENTRY'
+F:\Personal Work\Vulkan Experiments\Baboon Engine\Baboon Engine\Source\Core\Input.h(25): warning C4018: '>=': signed/unsigned mismatch
+F:\Personal Work\Vulkan Experiments\Baboon Engine\Baboon Engine\Source\Core\Input.h(36): warning C4018: '>=': signed/unsigned mismatch
+  Mesh.cpp
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\Core\Input.h(25): warning C4018: '>=': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\Core\Input.h(36): warning C4018: '>=': signed/unsigned mismatch
+  RendererVulkan.cpp
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\shared\minwindef.h(130): warning C4005: 'APIENTRY': macro redefinition
+  F:\Personal Work\Vulkan Experiments\Baboon Engine\External Source\GLFW/glfw3.h(98): note: see previous definition of 'APIENTRY'
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\Core\Input.h(25): warning C4018: '>=': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\Core\Input.h(36): warning C4018: '>=': signed/unsigned mismatch
+Source\Renderer\Vulkan\RendererVulkan.cpp(81): warning C4244: 'return': conversion from 'uint32_t' to 'float', possible loss of data
+Source\Renderer\Vulkan\RendererVulkan.cpp(84): warning C4244: 'return': conversion from 'uint32_t' to 'float', possible loss of data
+Source\Renderer\Vulkan\RendererVulkan.cpp(116): warning C4244: 'argument': conversion from 'VkDeviceSize' to '::size_t', possible loss of data
+Source\Renderer\Vulkan\RendererVulkan.cpp(128): warning C4244: 'argument': conversion from 'VkDeviceSize' to '::size_t', possible loss of data
+Source\Renderer\Vulkan\RendererVulkan.cpp(1152): warning C4018: '<': signed/unsigned mismatch
+Source\Renderer\Vulkan\RendererVulkan.cpp(1159): warning C4018: '<': signed/unsigned mismatch
+Source\Renderer\Vulkan\RendererVulkan.cpp(1167): warning C4018: '<': signed/unsigned mismatch
+Source\Renderer\Vulkan\RendererVulkan.cpp(1252): warning C4018: '<': signed/unsigned mismatch
+Source\Renderer\Vulkan\RendererVulkan.cpp(1637): warning C4838: conversion from 'int' to 'uint32_t' requires a narrowing conversion
+Source\Renderer\Vulkan\RendererVulkan.cpp(1697): warning C4244: '=': conversion from 'float' to 'uint32_t', possible loss of data
+  imgui.cpp
+  imgui_demo.cpp
+Source\UI\imgui\imgui_demo.cpp(1755): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+  imgui_draw.cpp
+  imgui_impl_glfw_vulkan.cpp
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\shared\minwindef.h(130): warning C4005: 'APIENTRY': macro redefinition
+  F:\Personal Work\Vulkan Experiments\Baboon Engine\External Source\GLFW/glfw3.h(98): note: see previous definition of 'APIENTRY'
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um\wingdi.h(36): warning C4005: 'WINGDIAPI': macro redefinition
+  F:\Personal Work\Vulkan Experiments\Baboon Engine\External Source\GLFW/glfw3.h(107): note: see previous definition of 'WINGDIAPI'
+Source\UI\imgui\imgui_impl_glfw_vulkan.cpp(178): warning C4244: '=': conversion from 'VkDeviceSize' to '::size_t', possible loss of data
+Source\UI\imgui\imgui_impl_glfw_vulkan.cpp(208): warning C4244: '=': conversion from 'VkDeviceSize' to '::size_t', possible loss of data
+Source\UI\imgui\imgui_impl_glfw_vulkan.cpp(441): warning C4244: '=': conversion from 'VkDeviceSize' to '::size_t', possible loss of data
+  VulkanIMGUI.cpp
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\Core\Input.h(25): warning C4018: '>=': signed/unsigned mismatch
+f:\personal work\vulkan experiments\baboon engine\baboon engine\source\Core\Input.h(36): warning C4018: '>=': signed/unsigned mismatch
+Source\UI\VulkanIMGUI.cpp(285): warning C4244: '=': conversion from 'float' to 'uint32_t', possible loss of data
+Source\UI\VulkanIMGUI.cpp(286): warning C4244: '=': conversion from 'float' to 'uint32_t', possible loss of data
+Source\UI\VulkanIMGUI.cpp(290): warning C4018: '<': signed/unsigned mismatch
+     Creating library F:\Personal Work\Vulkan Experiments\Baboon Engine\Release\Baboon Engine.lib and object F:\Personal Work\Vulkan Experiments\Baboon Engine\Release\Baboon Engine.exp
+  Generating code
+  All 4452 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  Baboon Engine.vcxproj -> F:\Personal Work\Vulkan Experiments\Baboon Engine\Release\Baboon Engine.exe

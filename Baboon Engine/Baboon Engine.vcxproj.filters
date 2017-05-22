@@ -1,0 +1,141 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{0b1a4de8-7b2e-40b2-a844-9943f7da2452}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GUI">
+      <UniqueIdentifier>{4ada8b04-21f8-458f-a25b-87d2a78e273a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GUI\ImGUI">
+      <UniqueIdentifier>{0e6b235e-9e29-4e89-bf01-5766a6e6f528}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer">
+      <UniqueIdentifier>{94f63062-5afc-4d52-85b5-ae1e08809299}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer\Common">
+      <UniqueIdentifier>{eb974164-0395-4b67-877c-f1c7eb221861}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer\Vulkan">
+      <UniqueIdentifier>{39618659-b3f3-42e0-97fe-9ca91b8c7597}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\Core\Camera.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Core\Image.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Core\Input.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Core\Model.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Core\Scene.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Core\ServiceLocator.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\VulkanIMGUI.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\imgui\imgui.cpp">
+      <Filter>GUI\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\imgui\imgui_demo.cpp">
+      <Filter>GUI\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\imgui\imgui_draw.cpp">
+      <Filter>GUI\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UI\imgui\imgui_impl_glfw_vulkan.cpp">
+      <Filter>GUI\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\appmain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\RendererVulkan.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Common\Mesh.cpp">
+      <Filter>Renderer\Common</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\Core\Camera.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Image.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Input.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Material.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Model.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Scene.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\ServiceLocator.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\VulkanIMGUI.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\imgui\imconfig.h">
+      <Filter>GUI\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\imgui\imgui.h">
+      <Filter>GUI\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\imgui\imgui_impl_glfw_vulkan.h">
+      <Filter>GUI\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\imgui\imgui_internal.h">
+      <Filter>GUI\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\imgui\MyIMGUIVulkanWrapper.h">
+      <Filter>GUI\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\imgui\stb_rect_pack.h">
+      <Filter>GUI\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\imgui\stb_textedit.h">
+      <Filter>GUI\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UI\imgui\stb_truetype.h">
+      <Filter>GUI\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\defines.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\RendererAbstract.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\RendererVulkan.h">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Common\Mesh.h">
+      <Filter>Renderer\Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
