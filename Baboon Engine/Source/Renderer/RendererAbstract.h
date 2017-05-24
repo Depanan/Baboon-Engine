@@ -1,6 +1,7 @@
 #pragma once
 #include <GLFW/glfw3.h>
 #include <chrono>
+#include <string>
 class RendererAbstract
 {
 public:
@@ -16,7 +17,8 @@ public:
 	virtual float GetMainRTWidth() = 0;
 	virtual float GetMainRTHeight() = 0;
 	virtual void UpdateTimesAndFPS(std::chrono::time_point<std::chrono::high_resolution_clock>  i_tStartTime) = 0;
-	virtual void createTexture(void*  i_data, int i_Widht, int i_Height) = 0;
+	virtual int createTexture(void*  i_data, int i_Widht, int i_Height) = 0;
+	virtual void createMaterial(std::string i_MatName, int* iTexIndices, int iNumTextures) = 0;
 	virtual void createVertexBuffer(const void*  i_data, size_t iBufferSize) = 0;
 	virtual void createIndexBuffer(const void*  i_data, size_t iBufferSize) = 0;
 	virtual void createStaticUniformBuffer(const void*  i_data, size_t iBufferSize){}

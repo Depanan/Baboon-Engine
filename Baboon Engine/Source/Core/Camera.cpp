@@ -7,7 +7,7 @@
 void Camera::Init()
 {
 	UpdateProjectionMatrix();
-	m_MoveSpeed = 10.0f;
+	m_MoveSpeed = 100.0f;
 	m_RotatingSpeed = 10.0f;
 	m_bRotating = false;
 
@@ -32,10 +32,10 @@ void Camera::UpdateProjectionMatrix()
 {
 	float fCurrentAspectRatio = ServiceLocator::GetRenderer()->GetMainRTAspectRatio();
 	float fNear = 0.1f;
-	float fFar = 1000.0f;
+	float fFar = 100000.0f;
 	float fFov = 45.0f;
 	m_ProjMat = glm::perspective(glm::radians(fFov), fCurrentAspectRatio, fNear, fFar);//TODO:: Make far near and fov config
-	//m_ProjMat[1][1] *= -1;//GLM was originally designed for OpenGL, where the Y coordinate of the clip coordinates is inverted.
+	m_ProjMat[1][1] *= -1;//GLM was originally designed for OpenGL, where the Y coordinate of the clip coordinates is inverted.
 }
 void Camera::UpdateViewMatrix()
 {

@@ -87,7 +87,7 @@ float RendererVulkan::GetMainRTHeight() {
 
 void RendererVulkan::SetupRenderCalls()
 {
-	createDescriptorSet();
+	//createDescriptorSet(m_DescriptorSet);
 	createCommandBuffers();
 	UploadSceneUniforms();
 }
@@ -217,6 +217,8 @@ int RendererVulkan::Init(const char** i_requiredExtensions, const unsigned int i
 	createSemaphores();
 	createDescriptorPool();
 
+	m_TexturesPool.resize(s_TexturePoolSize);
+	m_iUsedTextures = 0;
 
 	m_GUI.Init(i_window);
 
@@ -998,22 +1000,41 @@ void  RendererVulkan::createVulkanImage(uint32_t width, uint32_t height, VkForma
 	vkBindImageMemory(m_LogicalDevice, image, imageMemory, 0);
 }
 
+void RendererVulkan::createMaterial(std::string i_MatName,  int* iTexIndices, int iNumTextures)
+{
 
-void RendererVulkan::createTexture(void*  i_data, int i_Widht, int i_Height)
+	VKMaterial vk_mat = {};
+	VkDescriptorSet descSet = VK_NULL_HANDLE;
+	createDescriptorSet(descSet,iTexIndices,iNumTextures);
+	vk_mat.Init(m_GraphicsPipeline, descSet);
+
+ 	m_MaterialsMap[i_MatName] = vk_mat;
+	
+}
+
+int RendererVulkan::createTexture(void*  i_data, int i_Widht, int i_Height)
 {
 	
+	int iTexIndex = m_iUsedTextures;
+	VKTextureWrapper* tTexture = &m_TexturesPool[iTexIndex];
 	
-	int nTextures = m_Textures.size();
-	m_Textures.resize(m_Textures.size() + 1);
-	m_Textures[nTextures].Init(m_LogicalDevice);
 
-	createTextureImage(i_data, i_Widht, i_Height, m_Textures[nTextures].GetVKImage(), m_Textures[nTextures].GetVKImageMemory());
-	createImageView(m_Textures[nTextures].GetVKImage(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, m_Textures[nTextures].GetVKImageView());
-	createTextureSampler(m_Textures[nTextures].GetVKTextureSampler());
+	
 
-	m_Textures[nTextures].UpdateDescriptor();
+	tTexture->Init(m_LogicalDevice);
 
+	createTextureImage(i_data, i_Widht, i_Height, tTexture->GetVKImage(), tTexture->GetVKImageMemory());
+	createImageView(tTexture->GetVKImage(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, tTexture->GetVKImageView());
+	createTextureSampler(tTexture->GetVKTextureSampler());
+
+	tTexture->UpdateDescriptor();
+
+	
+	m_iUsedTextures++;
+
+	return iTexIndex;
 }
+
 
 void RendererVulkan::createTextureSampler(VKHandleWrapper<VkSampler>& i_Sampler)
 {
@@ -1113,21 +1134,23 @@ void RendererVulkan::createInstancedUniformBuffer(const void*  i_data, size_t iB
 
 }
 
+
+//TODO:: This pool should have at least count > materials/desc sets, remove magic number
 void RendererVulkan::createDescriptorPool()
 {
 	std::array<VkDescriptorPoolSize, 3> poolSizes = {};
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = 1;
+	poolSizes[0].descriptorCount = 36;
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-	poolSizes[1].descriptorCount = 1;
+	poolSizes[1].descriptorCount = 36;
 	poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[2].descriptorCount = 1;
+	poolSizes[2].descriptorCount = 36;
 
 	VkDescriptorPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolInfo.poolSizeCount = poolSizes.size();
 	poolInfo.pPoolSizes = poolSizes.data();
-	poolInfo.maxSets = 2;
+	poolInfo.maxSets = 36 +1;
 
 	if (vkCreateDescriptorPool(m_LogicalDevice, &poolInfo, nullptr, m_DescriptorPool.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create descriptor pool!");
@@ -1135,7 +1158,7 @@ void RendererVulkan::createDescriptorPool()
 
 }
 
-void RendererVulkan::createDescriptorSet()
+void RendererVulkan::createDescriptorSet(VkDescriptorSet& i_DescSet, int* iTexIndices, int iNumTextures)
 {
 	VkDescriptorSetLayout layouts[] = { m_DescriptorSetLayout };
 	VkDescriptorSetAllocateInfo allocInfo = {};
@@ -1144,7 +1167,7 @@ void RendererVulkan::createDescriptorSet()
 	allocInfo.descriptorSetCount = 1;
 	allocInfo.pSetLayouts = layouts;
 
-	if (vkAllocateDescriptorSets(m_LogicalDevice, &allocInfo, &m_DescriptorSet) != VK_SUCCESS) {
+	if (vkAllocateDescriptorSets(m_LogicalDevice, &allocInfo, &i_DescSet) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate descriptor set!");
 	}
 
@@ -1164,17 +1187,19 @@ void RendererVulkan::createDescriptorSet()
 
 	
 	std::vector<VkDescriptorImageInfo> imageInfos;
-	for (int i = 0; i < m_Textures.size(); i++)
+	for (int i = 0; i < iNumTextures; i++)
 	{
-		m_Textures[i].UpdateDescriptor();
-		imageInfos.push_back(m_Textures[i].GetDescriptor());
+
+		VKTextureWrapper* pTexture = &m_TexturesPool[iTexIndices[i]];
+		pTexture->UpdateDescriptor();
+		imageInfos.push_back(pTexture->GetDescriptor());
 	}
 
 	
 
 	std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
 	descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrites[0].dstSet = m_DescriptorSet;
+	descriptorWrites[0].dstSet = i_DescSet;
 	descriptorWrites[0].dstBinding = 0;
 	descriptorWrites[0].dstArrayElement = 0;
 	descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1184,7 +1209,7 @@ void RendererVulkan::createDescriptorSet()
 	
 
 	descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrites[1].dstSet = m_DescriptorSet;
+	descriptorWrites[1].dstSet = i_DescSet;
 	descriptorWrites[1].dstBinding = 1;
 	descriptorWrites[1].dstArrayElement = 0;
 	descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -1194,7 +1219,7 @@ void RendererVulkan::createDescriptorSet()
 
 
 	descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrites[2].dstSet = m_DescriptorSet;
+	descriptorWrites[2].dstSet = i_DescSet;
 	descriptorWrites[2].dstBinding = 2;
 	descriptorWrites[2].dstArrayElement = 0;
 	descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1254,11 +1279,13 @@ void RendererVulkan::recordDrawCommandBuffers()
 
 			int nIndices = sceneModels[iModel].GetMesh()->GetNIndices();
 			int indexStart = sceneModels[iModel].GetMesh()->GetIndexStartPosition();
+			
+			std::string m_sMaterialName = sceneModels[iModel].GetMaterial()->GetMaterialName();
 
 			uint32_t dynamicOffset = iModel * static_cast<uint32_t>(256);
 
-			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSet, 1, &dynamicOffset);
-			vkCmdDrawIndexed(m_CommandBuffers[i], nIndices, 1, 0, indexStart, 0);
+			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_MaterialsMap[m_sMaterialName].GetDescriptorSet(), 1, &dynamicOffset);//Here we bind textures
+			vkCmdDrawIndexed(m_CommandBuffers[i], nIndices, 1, indexStart, sceneModels[iModel].GetMesh()->GetVertexStartPosition(), 0);
 		}
 
 		

@@ -1,5 +1,5 @@
 #pragma once
-
+/*
 
 class Image
 {
@@ -16,3 +16,4 @@ private:
 	int m_iWidth;
 	int m_iHeight;
 };
+*/

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Renderer\Common\Mesh.h"
+#include "Core\Material.h"
 struct InstanceUBO {
 	glm::mat4 model;
 
@@ -12,6 +13,10 @@ public:
 	Model(){}
 	void SetMesh(Mesh* i_Mesh) { m_Mesh = i_Mesh; }
 	Mesh* GetMesh() { return m_Mesh; }
+
+	void SetMaterial(Material* i_Mat) { m_Material = i_Mat; }
+	Material* GetMaterial() { return m_Material; }
+
 	void SetInstanceUniforms(InstanceUBO* i_InstanceUniforms, int i_Index) {
 		m_pInstanceUniforms = i_InstanceUniforms;
 		m_pInstanceUniforms->model = glm::mat4();
@@ -24,6 +29,7 @@ public:
 
 private:
 	Mesh* m_Mesh;
+	Material* m_Material;
 
 	InstanceUBO* m_pInstanceUniforms = nullptr;
 	int m_iInstanceUniformIndex;

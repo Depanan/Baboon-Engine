@@ -2,7 +2,8 @@
 #include "Renderer\RendererAbstract.h"
 #include <vector>
 #include "Core\Model.h"
-#include "Image.h"
+#include "Core\Material.h"
+//#include "Image.h"
 #include "Camera.h"
 
 struct SceneUniforms {
@@ -11,7 +12,7 @@ struct SceneUniforms {
 };
 
 
-
+struct aiScene;
 
 class Scene {
 public:
@@ -41,7 +42,7 @@ public:
 
 	std::vector <Model>* GetModels() { return &m_Models; }
 
-	std::vector <Image>* GetTextures() { return &m_Textures; }
+	//std::vector <Image>* GetTextures() { return &m_Textures; }
 
 private:
 
@@ -51,7 +52,7 @@ private:
 
 	std::vector <Model> m_Models;
 	std::vector <Mesh> m_Meshes;
-
+	std::vector <Material> m_Materials;
 
 	//Global data for indexed meshes
 	std::vector<Vertex> m_Vertices;
@@ -59,7 +60,11 @@ private:
 
 
 	//Textures
-	std::vector<Image> m_Textures;
+	//std::vector<Image> m_Textures;
+
+	void loadAssets(const std::string i_ScenePath);
+	void loadMaterials(const aiScene* i_aScene, const std::string i_SceneTexturesPath);
+	void loadModels(const aiScene* i_aScene);
 
 };
 
