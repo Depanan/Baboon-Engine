@@ -102,7 +102,7 @@ void Scene::loadAssets(const std::string i_ScenePath)
 	
 
 	Assimp::Importer Importer;
-	int flags =   aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_GenNormals;
+	int flags =   aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_GenSmoothNormals;
 	aScene = Importer.ReadFile(i_ScenePath, flags);//TODO: Iterate filesystem and read all .obj files
 
 	///////////TODO: This has to be done before material loading breaking the nice order of materials first, models after, probably
