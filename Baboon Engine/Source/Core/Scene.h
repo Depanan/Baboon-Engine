@@ -30,9 +30,11 @@ public:
 	InstanceUBO* GetInstanceUniforms() { return m_InstanceUniforms; }
 
 
-	//Init function likely to read from a scene file or whatever
-	void Init(const std::string i_ScenePath);
 	
+	void Init(const std::string i_ScenePath);
+	void Free();
+
+
 	bool IsInit() { return m_bIsInit; }
 
 	

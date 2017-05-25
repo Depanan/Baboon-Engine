@@ -196,13 +196,18 @@ public:
 	float GetMainRTAspectRatio() override;
 	float GetMainRTWidth() override;
 	float GetMainRTHeight() override;
-	int createTexture(void*  i_data, int i_Widht, int i_Height) override;
-	void createMaterial(std::string i_MatName,  int* iTexIndices, int iNumTextures) override;
-	void createVertexBuffer(const void*  i_data, size_t iBufferSize) override;;
-	void createIndexBuffer(const void*  i_data, size_t iBufferSize) override;;
-	void createStaticUniformBuffer(const void*  i_data, size_t iBufferSize) override;;
-	void createInstancedUniformBuffer(const void*  i_data, size_t iBufferSize) override;;
-	void createDescriptorSet(VkDescriptorSet& i_DescSet, int* iTexIndices, int iNumTextures);
+	int CreateTexture(void*  i_data, int i_Widht, int i_Height) override;
+	void CreateMaterial(std::string i_MatName,  int* iTexIndices, int iNumTextures) override;
+	void DeleteMaterials() override;
+	void CreateVertexBuffer(const void*  i_data, size_t iBufferSize) override;
+	void CreateIndexBuffer(const void*  i_data, size_t iBufferSize) override;
+	void DeleteVertexBuffer() override;
+	void DeleteIndexBuffer() override;
+	void CreateStaticUniformBuffer(const void*  i_data, size_t iBufferSize) override;
+	void CreateInstancedUniformBuffer(const void*  i_data, size_t iBufferSize) override;
+	void DeleteStaticUniformBuffer() override;
+	void DeleteInstancedUniformBuffer() override;
+	void CreateDescriptorSet(VkDescriptorSet& i_DescSet, int* iTexIndices, int iNumTextures);
 	void SetupRenderCalls() override;
 
 	void UpdateTimesAndFPS(std::chrono::time_point<std::chrono::high_resolution_clock>  i_tStartTime) override;

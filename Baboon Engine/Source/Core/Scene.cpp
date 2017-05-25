@@ -51,9 +51,28 @@ Scene::~Scene()
 
 void Scene::Init(const std::string i_ScenePath)
 {
+	if (m_bIsInit)
+		Free();
 	loadAssets(i_ScenePath);
 	m_bIsInit = true;
 }
+
+void Scene::Free()
+{
+	RendererAbstract* renderer = ServiceLocator::GetRenderer();
+	renderer->DeleteMaterials();
+	m_Models.clear();
+	m_Materials.clear();
+	m_Meshes.clear();
+	m_Indices.clear();
+	m_Vertices.clear();
+	renderer->DeleteIndexBuffer();
+	renderer->DeleteVertexBuffer();
+	renderer->DeleteInstancedUniformBuffer();
+
+	m_bIsInit = false;
+}
+
 
 void Scene::UpdateUniforms()
 {
@@ -92,7 +111,7 @@ void Scene::loadAssets(const std::string i_ScenePath)
 	int dynamicAlignment = 256;//TODO: This should come from somewhere...
 	size_t dynamicBufferSize = numberOfModelsInScene * dynamicAlignment;
 	m_InstanceUniforms = (InstanceUBO*)alignedAlloc(dynamicBufferSize, dynamicAlignment);
-	renderer->createInstancedUniformBuffer(nullptr, dynamicBufferSize);
+	renderer->CreateInstancedUniformBuffer(nullptr, dynamicBufferSize);
 	/////////////////////////////////
 
 	
@@ -147,7 +166,7 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 		if (pPixels == nullptr)
 			throw std::runtime_error("Texture not found, I will handle this properly at some point shouldn't just break!");
 
-		int iTexIndex = renderer->createTexture((void*)pPixels, width, height);
+		int iTexIndex = renderer->CreateTexture((void*)pPixels, width, height);
 		i_TexIndices.push_back(iTexIndex);
 		
 		stbi_image_free(pPixels);
@@ -157,7 +176,7 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 		pMaterial->Get(AI_MATKEY_NAME, matName);
 
 
-		renderer->createMaterial(std::string(matName.C_Str()), i_TexIndices.data(),i_TexIndices.size());
+		renderer->CreateMaterial(std::string(matName.C_Str()), i_TexIndices.data(),i_TexIndices.size());
 		m_Materials[i].Init(std::string(matName.C_Str()));
 	}
 
@@ -222,6 +241,6 @@ void Scene::loadModels(const aiScene* i_aScene)
 	RendererAbstract* renderer = ServiceLocator::GetRenderer();
 	
 
-	renderer->createVertexBuffer((void*)(GetVerticesData()), GetVerticesSize());
-	renderer->createIndexBuffer((void*)(GetIndicesData()), GetIndicesSize());
+	renderer->CreateVertexBuffer((void*)(GetVerticesData()), GetVerticesSize());
+	renderer->CreateIndexBuffer((void*)(GetIndicesData()), GetIndicesSize());
 }

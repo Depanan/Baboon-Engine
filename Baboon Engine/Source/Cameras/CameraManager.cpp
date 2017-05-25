@@ -18,7 +18,7 @@ void CameraManager::Init()
 		m_Cameras[i].Init();
 	}
 	RendererAbstract* renderer = ServiceLocator::GetRenderer();
-	renderer->createStaticUniformBuffer(nullptr, sizeof(CameraUniforms));
+	renderer->CreateStaticUniformBuffer(nullptr, sizeof(CameraUniforms));
 }
 
 void CameraManager::BindCameraUniforms(eCameraType i_camType)

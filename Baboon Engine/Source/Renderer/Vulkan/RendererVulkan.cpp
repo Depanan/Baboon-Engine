@@ -1010,19 +1010,39 @@ void  RendererVulkan::createVulkanImage(uint32_t width, uint32_t height, VkForma
 	vkBindImageMemory(m_LogicalDevice, image, imageMemory, 0);
 }
 
-void RendererVulkan::createMaterial(std::string i_MatName,  int* iTexIndices, int iNumTextures)
+void RendererVulkan::CreateMaterial(std::string i_MatName,  int* iTexIndices, int iNumTextures)
 {
 
 	VKMaterial vk_mat = {};
 	VkDescriptorSet descSet = VK_NULL_HANDLE;
-	createDescriptorSet(descSet,iTexIndices,iNumTextures);
+	CreateDescriptorSet(descSet,iTexIndices,iNumTextures);
 	vk_mat.Init(m_GraphicsPipeline, descSet);
 
  	m_MaterialsMap[i_MatName] = vk_mat;
 	
 }
+void RendererVulkan::DeleteMaterials()
+{
+	//Wait for device idle we don't wanna mess here
+	vkDeviceWaitIdle(m_LogicalDevice);
 
-int RendererVulkan::createTexture(void*  i_data, int i_Widht, int i_Height)
+	m_MaterialsMap.clear();
+
+	//Reseting descriptor pool automatically delete all descriptor sets associated so no need to go one by one
+	createDescriptorPool();
+
+
+	//Reseting textures pool hopefully calls relevan destructors thru VKHandleWrapper :)
+	m_TexturesPool.clear();
+	m_TexturesPool.resize(s_TexturePoolSize);
+	/*for (int i = 0; i < m_iUsedTextures; i++)
+	{
+
+	}*/
+	m_iUsedTextures = 0;
+}
+
+int RendererVulkan::CreateTexture(void*  i_data, int i_Widht, int i_Height)
 {
 	
 	int iTexIndex = m_iUsedTextures;
@@ -1077,7 +1097,7 @@ void RendererVulkan::createTextureSampler(VKHandleWrapper<VkSampler>& i_Sampler)
 
 }
 
-void  RendererVulkan::createVertexBuffer(const void*  i_data, size_t iBufferSize)
+void  RendererVulkan::CreateVertexBuffer(const void*  i_data, size_t iBufferSize)
 {
 
 	VkDeviceSize bufferSize = iBufferSize;
@@ -1099,7 +1119,7 @@ void  RendererVulkan::createVertexBuffer(const void*  i_data, size_t iBufferSize
 	copyVKBuffer(stagingBuffer, m_MainVertexBuffer, bufferSize);
 }
 
-void RendererVulkan::createIndexBuffer(const void*  i_data, size_t iBufferSize)
+void RendererVulkan::CreateIndexBuffer(const void*  i_data, size_t iBufferSize)
 {
 	VkDeviceSize bufferSize = iBufferSize;
 
@@ -1117,7 +1137,28 @@ void RendererVulkan::createIndexBuffer(const void*  i_data, size_t iBufferSize)
 	copyVKBuffer(stagingBuffer, m_MainIndexBuffer, bufferSize);
 
 }
-void RendererVulkan::createStaticUniformBuffer(const void*  i_data, size_t iBufferSize)
+
+
+void RendererVulkan::DeleteVertexBuffer()
+{
+	//Wait for device idle we don't wanna mess here
+	vkDeviceWaitIdle(m_LogicalDevice);
+	//vkDestroyBuffer(m_LogicalDevice, m_MainVertexBuffer, nullptr);
+	m_MainVertexBuffer = VK_NULL_HANDLE;
+	//vkFreeMemory(m_LogicalDevice, m_MainVertexBufferMemory, nullptr);
+	m_MainVertexBufferMemory = VK_NULL_HANDLE;
+}
+void RendererVulkan::DeleteIndexBuffer()
+{
+	//Wait for device idle we don't wanna mess here
+	vkDeviceWaitIdle(m_LogicalDevice);
+	//vkDestroyBuffer(m_LogicalDevice, m_MainIndexBuffer, nullptr);
+	m_MainIndexBuffer = VK_NULL_HANDLE;
+	//vkFreeMemory(m_LogicalDevice, m_MainIndexBufferMemory, nullptr);
+	m_MainIndexBufferMemory = VK_NULL_HANDLE;
+}
+
+void RendererVulkan::CreateStaticUniformBuffer(const void*  i_data, size_t iBufferSize)
 {
 
 	int nUniformBuffers = m_StaticUniformBuffers.size();
@@ -1129,7 +1170,7 @@ void RendererVulkan::createStaticUniformBuffer(const void*  i_data, size_t iBuff
 	m_StaticUniformBuffers[nUniformBuffers].UpdateDescriptor();
 
 }
-void RendererVulkan::createInstancedUniformBuffer(const void*  i_data, size_t iBufferSize)
+void RendererVulkan::CreateInstancedUniformBuffer(const void*  i_data, size_t iBufferSize)
 {
 	
 
@@ -1143,6 +1184,24 @@ void RendererVulkan::createInstancedUniformBuffer(const void*  i_data, size_t iB
 	m_DynamicUniformBuffers[nUniformBuffers].UpdateDescriptor();
 
 }
+
+void RendererVulkan::DeleteStaticUniformBuffer()
+{
+	//Wait for device idle we don't wanna mess here
+	vkDeviceWaitIdle(m_LogicalDevice);
+
+	m_StaticUniformBuffers.clear();
+
+
+}
+void RendererVulkan::DeleteInstancedUniformBuffer()
+{
+	//Wait for device idle we don't wanna mess here
+	vkDeviceWaitIdle(m_LogicalDevice);
+	m_DynamicUniformBuffers.clear();
+
+}
+
 
 
 //TODO:: This pool should have at least count > materials/desc sets, remove magic number
@@ -1168,7 +1227,7 @@ void RendererVulkan::createDescriptorPool()
 
 }
 
-void RendererVulkan::createDescriptorSet(VkDescriptorSet& i_DescSet, int* iTexIndices, int iNumTextures)
+void RendererVulkan::CreateDescriptorSet(VkDescriptorSet& i_DescSet, int* iTexIndices, int iNumTextures)
 {
 	VkDescriptorSetLayout layouts[] = { m_DescriptorSetLayout };
 	VkDescriptorSetAllocateInfo allocInfo = {};
