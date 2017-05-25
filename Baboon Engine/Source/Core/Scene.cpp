@@ -53,8 +53,12 @@ void Scene::Init(const std::string i_ScenePath)
 {
 	if (m_bIsInit)
 		Free();
+
 	loadAssets(i_ScenePath);
+	//TODO: Make this work multithread
+	//ServiceLocator::GetThreadPool()->threads[0]->addJob([=] { loadAssets(i_ScenePath); });
 	m_bIsInit = true;
+	
 }
 
 void Scene::Free()
@@ -101,9 +105,14 @@ void Scene::loadAssets(const std::string i_ScenePath)
 	const aiScene* aScene;
 	
 
+	printf("\n-----------------Attempting to open scene : %s-----------------------", i_ScenePath.c_str());
+
 	Assimp::Importer Importer;
 	int flags =   aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_GenSmoothNormals;
 	aScene = Importer.ReadFile(i_ScenePath, flags);//TODO: Iterate filesystem and read all .obj files
+
+	if (aScene == nullptr)
+		throw std::runtime_error("Scene model not found, I will handle this properly at some point shouldn't just break!");
 
 	///////////TODO: This has to be done before material loading breaking the nice order of materials first, models after, probably
 	//since scene geometry is static we don't need to do this
@@ -117,14 +126,16 @@ void Scene::loadAssets(const std::string i_ScenePath)
 	
 	UpdateUniforms();
 
-	size_t scenesPos = i_ScenePath.find("Scenes");
-	std::string iRootScenePath = i_ScenePath.substr(scenesPos, i_ScenePath.find_last_of("\\/") - scenesPos)+"\\";
+	
+	std::string iRootScenePath = i_ScenePath.substr(0, i_ScenePath.find_last_of("\\/")) + "\\";
+	
 
 	loadMaterials(aScene, iRootScenePath);
 	loadModels(aScene);
 
 	
 	renderer->SetupRenderCalls();
+	
 }
 
 void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneTexturesPath)
@@ -137,6 +148,10 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 	for (int i = 0; i < numberOfMaterialsInScene; i++)
 	{
 		aiMaterial* pMaterial = i_aScene->mMaterials[i];
+		aiString matName;
+		pMaterial->Get(AI_MATKEY_NAME, matName);
+
+		printf("\n Creating material: %s", matName.C_Str());
 
 		std::vector<int> i_TexIndices;
 
@@ -155,6 +170,7 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 		{
 			pMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &texturefile);
 			std::string fileName = i_SceneTexturesPath + std::string(texturefile.C_Str());
+			printf("\n Loading texture: %s", fileName.c_str());
 			pPixels = stbi_load(fileName.c_str(), &width, &height, &texChannels, STBI_rgb_alpha);
 		}
 		if(pPixels == nullptr)
@@ -170,11 +186,6 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 		i_TexIndices.push_back(iTexIndex);
 		
 		stbi_image_free(pPixels);
-
-
-		aiString matName;
-		pMaterial->Get(AI_MATKEY_NAME, matName);
-
 
 		renderer->CreateMaterial(std::string(matName.C_Str()), i_TexIndices.data(),i_TexIndices.size());
 		m_Materials[i].Init(std::string(matName.C_Str()));
