@@ -361,7 +361,7 @@ private:
 	void createSemaphores();
 
 
-	void UploadSceneUniforms();//Sends to the device updated scene uniforms
+	void UploadUniforms();//Sends to the device updated scene uniforms
 
 	bool isDeviceSuitable(VkPhysicalDevice device);
 	bool checkDeviceExtensionSupport(VkPhysicalDevice device);

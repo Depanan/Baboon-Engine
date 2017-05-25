@@ -49,23 +49,16 @@ Scene::~Scene()
 		alignedFree(m_InstanceUniforms);
 }
 
-void Scene::Init()
+void Scene::Init(const std::string i_ScenePath)
 {
-	m_Camera.Init();
-	loadAssets("Scenes/sponza/");
+	loadAssets(i_ScenePath);
+	m_bIsInit = true;
 }
 
 void Scene::UpdateUniforms()
 {
-	static auto startTime = std::chrono::high_resolution_clock::now();
-
-	auto currentTime = std::chrono::high_resolution_clock::now();
-	float time = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count() / 1000.0f;
-
-	m_SceneUniforms.view = m_Camera.GetViewMatrix();
-	m_SceneUniforms.proj = m_Camera.GetProjMatrix();
 	
-	
+	//Maybe here moving lights and stuff....
 
 	
 	//m_Models[0].Translate(glm::vec3(0, -0.001f*time,0));
@@ -75,7 +68,10 @@ void Scene::UpdateUniforms()
 
 void Scene::OnWindowResize()
 {
-	m_Camera.UpdateProjectionMatrix();
+	if (!m_bIsInit)
+		return;
+	RendererAbstract* renderer = ServiceLocator::GetRenderer();
+	renderer->SetupRenderCalls();
 }
 
 
@@ -88,7 +84,7 @@ void Scene::loadAssets(const std::string i_ScenePath)
 
 	Assimp::Importer Importer;
 	int flags =   aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_GenNormals;
-	aScene = Importer.ReadFile(i_ScenePath + "sponza.obj", flags);//TODO: Iterate filesystem and read all .obj files
+	aScene = Importer.ReadFile(i_ScenePath, flags);//TODO: Iterate filesystem and read all .obj files
 
 	///////////TODO: This has to be done before material loading breaking the nice order of materials first, models after, probably
 	//since scene geometry is static we don't need to do this
@@ -99,11 +95,13 @@ void Scene::loadAssets(const std::string i_ScenePath)
 	renderer->createInstancedUniformBuffer(nullptr, dynamicBufferSize);
 	/////////////////////////////////
 
-	renderer->createStaticUniformBuffer(nullptr, sizeof(SceneUniforms));
+	
 	UpdateUniforms();
 
+	size_t scenesPos = i_ScenePath.find("Scenes");
+	std::string iRootScenePath = i_ScenePath.substr(scenesPos, i_ScenePath.find_last_of("\\/") - scenesPos)+"\\";
 
-	loadMaterials(aScene, i_ScenePath);
+	loadMaterials(aScene, iRootScenePath);
 	loadModels(aScene);
 
 	

@@ -20,7 +20,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\appmain.cpp" />
-    <ClCompile Include="Source\Core\Camera.cpp" />
+    <ClCompile Include="Source\Cameras\Camera.cpp" />
+    <ClCompile Include="Source\Cameras\CameraManager.cpp" />
     <ClCompile Include="Source\Core\Image.cpp" />
     <ClCompile Include="Source\Core\Input.cpp" />
     <ClCompile Include="Source\Core\Model.cpp" />
@@ -35,7 +36,8 @@
     <ClCompile Include="Source\UI\VulkanIMGUI.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Core\Camera.h" />
+    <ClInclude Include="Source\Cameras\Camera.h" />
+    <ClInclude Include="Source\Cameras\CameraManager.h" />
     <ClInclude Include="Source\Core\Image.h" />
     <ClInclude Include="Source\Core\Input.h" />
     <ClInclude Include="Source\Core\Material.h" />
@@ -68,14 +70,14 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>

@@ -8,7 +8,7 @@ public:
 	~VulkanImGUI();
 	void Init(GLFWwindow* i_window);
 	void DoUI(bool i_FirstCall = false);
-	void Draw(VkQueue i_queue, uint32_t i_bufferindex);
+	void Draw(VkQueue i_queue, uint32_t i_bufferindex, const std::vector<VkSemaphore>& i_SignalSemaphores,const std::vector<VkSemaphore>& i_WaitSemaphores , const std::vector<VkPipelineStageFlags>& i_WaitSemaphoresStages);
 	void OnWindowResize();
 private:
 	
@@ -20,6 +20,7 @@ private:
 	void CreateRenderPass();
 	void CreateDescriptorPool();
 	void CreateCommandPool();
+	void CreateCommandBuffers();
 	void CreateReSubmitFence();
 	void UpdateCommandBuffers(bool i_ForceSkipFence = false);
 

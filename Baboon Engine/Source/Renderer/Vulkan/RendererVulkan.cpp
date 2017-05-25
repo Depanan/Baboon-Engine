@@ -62,7 +62,7 @@ void RendererVulkan::OnWindowResize(int i_NewW, int i_NewH)
 	createGraphicsPipeline();
 	createDepthResources();
 	createFramebuffers();
-	createCommandBuffers();//TODO: REDO COMMANDBUFFER WHEN RESIZING?
+	createCommandBuffers();
 	m_GUI.OnWindowResize();
 }
 
@@ -87,13 +87,17 @@ float RendererVulkan::GetMainRTHeight() {
 
 void RendererVulkan::SetupRenderCalls()
 {
-	//createDescriptorSet(m_DescriptorSet);
-	createCommandBuffers();
-	UploadSceneUniforms();
+	recordDrawCommandBuffers();
+	UploadUniforms();
 }
 
-void RendererVulkan::UploadSceneUniforms()
+void RendererVulkan::UploadUniforms()
 {
+	Scene* scene = ServiceLocator::GetSceneManager()->GetScene();
+	CameraManager* pCamManager = ServiceLocator::GetCameraManager();
+	if (!scene->IsInit())
+		return;
+
 	m_UpdateUniformsTime += m_LastFrameTime;
 
 	if (m_UpdateUniformsTime < 1.0f/60.0f) {
@@ -102,8 +106,8 @@ void RendererVulkan::UploadSceneUniforms()
 	}
 	m_UpdateUniformsTime = 0.0f;
 
-	Scene* scene = ServiceLocator::GetSceneManager()->GetScene();
-	const SceneUniforms* sceneUniforms = scene->GetSceneUniforms();
+	
+	const CameraUniforms* camUniforms = pCamManager->GetCamUniforms();
 	const InstanceUBO* instanceUniforms = scene->GetInstanceUniforms();
 
 	const int iSceneUniformsIndex = 0;
@@ -113,7 +117,7 @@ void RendererVulkan::UploadSceneUniforms()
 
 	void* data;
 	vkMapMemory(m_LogicalDevice, m_StaticUniformBuffers[iSceneUniformsIndex].GetStagingMemory(), 0, uploadSize, 0, &data);
-	memcpy(data, sceneUniforms, uploadSize);
+	memcpy(data, camUniforms, uploadSize);
 	vkUnmapMemory(m_LogicalDevice, m_StaticUniformBuffers[iSceneUniformsIndex].GetStagingMemory());
 
 	copyVKBuffer(m_StaticUniformBuffers[iSceneUniformsIndex].GetStagingBuffer(), m_StaticUniformBuffers[iSceneUniformsIndex].GetBuffer(), uploadSize);
@@ -137,42 +141,48 @@ void RendererVulkan::DrawFrame()
 {
 	
 
-	UploadSceneUniforms();//TODO: DO THIS ONLY IF UNIFORMS HAVE BEEN UPDATED
+	m_GUI.DoUI();
+
+	ServiceLocator::GetCameraManager()->BindCameraUniforms(CameraManager::eCameraType_Main);
 
 
 	uint32_t imageIndex;
 	//The numeric limits integer is the timeout in nanoseconds, we are actually disabling it
-    vkAcquireNextImageKHR(m_LogicalDevice, m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+	vkAcquireNextImageKHR(m_LogicalDevice, m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+	
+	std::vector<VkSemaphore> signalSemaphores;//This are the semaphores we notify when finishing executing the cmd buffers
+	signalSemaphores.push_back(m_RenderFinishedSemaphore);
 
-	VkSubmitInfo submitInfo = {};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	std::vector<VkSemaphore> waitSemaphores;
+	std::vector<VkPipelineStageFlags> waitSemaphoresStages;
+	waitSemaphores.push_back(m_ImageAvailableSemaphore);
+	waitSemaphoresStages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);//This means the point of the pipeline we will wait for the image to be available, so we can execute ALL pipeline till here
+	
+	//TODO: Make this command buffer scene command buffer or static geometry command buffer...
+	if (m_CommandBuffers.size() > 0)
+	{
+		UploadUniforms();//TODO: DO THIS ONLY IF UNIFORMS HAVE BEEN UPDATED
 
-	VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphore };
-	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };//This means the point of the pipeline we will wait for the image to be available, so we can execute ALL pipeline till here
-	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = waitSemaphores;
-	submitInfo.pWaitDstStageMask = waitStages;
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &m_CommandBuffers[imageIndex];
 
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &m_CommandBuffers[imageIndex];
-
-	//This are the semaphores we notify when finishing executing the cmd buffers
-	VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphore };
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = signalSemaphores;
-
-	if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
-		throw std::runtime_error("failed to submit draw command buffer!");
+		if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+			throw std::runtime_error("failed to submit draw command buffer!");
+		}
 	}
+	
+	
 
-	m_GUI.Draw(m_graphicsQueue, imageIndex);
+	m_GUI.Draw(m_graphicsQueue, imageIndex,signalSemaphores,waitSemaphores, waitSemaphoresStages);
 
 	//And finally, presentation
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = signalSemaphores;//Wait for cmd pool semaphore
+	presentInfo.waitSemaphoreCount = signalSemaphores.size();
+	presentInfo.pWaitSemaphores = signalSemaphores.data();//Wait for cmd pool semaphore
 
 	VkSwapchainKHR swapChains[] = { m_SwapChain };
 	presentInfo.swapchainCount = 1;
@@ -184,7 +194,7 @@ void RendererVulkan::DrawFrame()
 
 
 
-	m_GUI.DoUI();
+	
 
 }
 
@@ -216,7 +226,7 @@ int RendererVulkan::Init(const char** i_requiredExtensions, const unsigned int i
 	createFramebuffers();
 	createSemaphores();
 	createDescriptorPool();
-
+	createCommandBuffers();
 	m_TexturesPool.resize(s_TexturePoolSize);
 	m_iUsedTextures = 0;
 
@@ -934,7 +944,7 @@ void RendererVulkan::createCommandPools()
 	VkCommandPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
-	poolInfo.flags = 0; // Optional, here we could say how often we are gonna re-record the commands
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // Optional, here we could say how often we are gonna re-record the commands
 
 	if (vkCreateCommandPool(m_LogicalDevice, &poolInfo, nullptr, m_CommandPool.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create command pool!");
@@ -1287,7 +1297,7 @@ void RendererVulkan::recordDrawCommandBuffers()
 			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_MaterialsMap[m_sMaterialName].GetDescriptorSet(), 1, &dynamicOffset);//Here we bind textures
 			vkCmdDrawIndexed(m_CommandBuffers[i], nIndices, 1, indexStart, sceneModels[iModel].GetMesh()->GetVertexStartPosition(), 0);
 		}
-
+		
 		
 
 		vkCmdEndRenderPass(m_CommandBuffers[i]);
@@ -1321,8 +1331,42 @@ void RendererVulkan::createCommandBuffers()
 		throw std::runtime_error("failed to allocate command buffers!");
 	}
 
+	//FILL WITH EMPTY DATA
+	for (size_t i = 0; i < m_CommandBuffers.size(); i++) {
+
+		VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;//Means we can submit whilst still drawing previous frame
+		beginInfo.pInheritanceInfo = nullptr; // Optional
+
+		vkBeginCommandBuffer(m_CommandBuffers[i], &beginInfo);//Calling this will delete previous content meaning we cant append to previous content
+
+		VkRenderPassBeginInfo renderPassInfo = {};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassInfo.renderPass = m_RenderPass;
+		renderPassInfo.framebuffer = m_SwapChainFramebuffers[i];
+
+		renderPassInfo.renderArea.offset = { 0, 0 };
+		renderPassInfo.renderArea.extent = m_SwapChainExtent;
+
+		std::array<VkClearValue, 2> clearValues = {};
+		clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+		clearValues[1].depthStencil = { 1.0f, 0 };
+
+		renderPassInfo.clearValueCount = clearValues.size();
+		renderPassInfo.pClearValues = clearValues.data();
+
+		vkCmdBeginRenderPass(m_CommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		vkCmdEndRenderPass(m_CommandBuffers[i]);
+
+
+		if (vkEndCommandBuffer(m_CommandBuffers[i]) != VK_SUCCESS) {
+			throw std::runtime_error("failed to record command buffer!");
+		}
+	}
 	
-	recordDrawCommandBuffers();
+	//
 }
 
 void RendererVulkan::createSemaphores()
@@ -1554,7 +1598,7 @@ void RendererVulkan::transitionImageLayout(VkImage image, VkFormat format, VkIma
 {
 	VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
-	VkImageMemoryBarrier barrier = {};
+  	VkImageMemoryBarrier barrier = {};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 	barrier.oldLayout = oldLayout;
 	barrier.newLayout = newLayout;

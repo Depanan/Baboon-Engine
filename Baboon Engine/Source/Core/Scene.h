@@ -3,13 +3,8 @@
 #include <vector>
 #include "Core\Model.h"
 #include "Core\Material.h"
-//#include "Image.h"
-#include "Camera.h"
 
-struct SceneUniforms {
-	glm::mat4 view;
-	glm::mat4 proj;
-};
+
 
 
 struct aiScene;
@@ -26,28 +21,31 @@ public:
 	const int GetIndicesNumber() { return m_Indices.size(); }
 	const size_t GetIndicesSize() { return sizeof(m_Indices[0]) * m_Indices.size(); }
 
-	const Camera& GetCamera() { return m_Camera; }
-
+	
+	void OnWindowResize();
 
 	void UpdateUniforms();
 	
-	SceneUniforms* GetSceneUniforms() { return &m_SceneUniforms; }
+	
 	InstanceUBO* GetInstanceUniforms() { return m_InstanceUniforms; }
 
 
 	//Init function likely to read from a scene file or whatever
-	void Init();
+	void Init(const std::string i_ScenePath);
 	
-	void OnWindowResize();
+	bool IsInit() { return m_bIsInit; }
+
+	
 
 	std::vector <Model>* GetModels() { return &m_Models; }
 
-	//std::vector <Image>* GetTextures() { return &m_Textures; }
+	
 
 private:
 
-	Camera m_Camera;
-	SceneUniforms m_SceneUniforms;
+	bool m_bIsInit = false;
+
+	
 	InstanceUBO* m_InstanceUniforms =nullptr;
 
 	std::vector <Model> m_Models;
@@ -58,9 +56,6 @@ private:
 	std::vector<Vertex> m_Vertices;
 	std::vector<uint32_t> m_Indices;
 
-
-	//Textures
-	//std::vector<Image> m_Textures;
 
 	void loadAssets(const std::string i_ScenePath);
 	void loadMaterials(const aiScene* i_aScene, const std::string i_SceneTexturesPath);

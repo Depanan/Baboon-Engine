@@ -12,3 +12,9 @@ Baboon Engine/Debug/Baboon Engine.tlog/link.read.1.tlog
 *.tlog
 *.tlog
 *.log
+*.vcxproj
+*.filters
+*.log
+*.tlog
+imgui.ini
+imgui.ini
