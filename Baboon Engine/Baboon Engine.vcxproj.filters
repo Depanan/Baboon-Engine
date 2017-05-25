@@ -146,5 +146,8 @@
     <ClInclude Include="Source\Cameras\CameraManager.h">
       <Filter>Cameras</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Core\ThreadPool.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -73,6 +73,7 @@ void VulkanImGUI::Draw(VkQueue i_queue, uint32_t i_bufferindex, const std::vecto
 	submitInfo.pSignalSemaphores = i_SignalSemaphores.data();
 	submitInfo.signalSemaphoreCount = i_SignalSemaphores.size();
 
+	
 	if (vkQueueSubmit(i_queue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
@@ -149,7 +150,11 @@ void VulkanImGUI::DoUI(bool i_FirstCall)
 		
 		
 		std::string filePath = BasicFileOpen();
-		ServiceLocator::GetSceneManager()->GetScene()->Init(filePath);
+		if (filePath.size() > 0)
+		{
+			ServiceLocator::GetSceneManager()->GetScene()->Init(filePath);
+		}
+		
 
 		bLoadScene = false;
 	}
