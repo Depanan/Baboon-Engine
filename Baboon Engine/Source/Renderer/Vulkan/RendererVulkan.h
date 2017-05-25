@@ -3,6 +3,7 @@
 #include "Renderer\RendererAbstract.h"
 #include "vulkan\vulkan.h"
 #include <vector>
+#include <map>
 #include <iostream>
 #include <functional>
 #include "Renderer\Common\Mesh.h"
@@ -131,6 +132,7 @@ class VKTextureWrapper
 {
 public:
 	VKTextureWrapper(){};
+	
 	void Init(VKHandleWrapper <VkDevice>& i_LogicalDevice)
 	{
 		m_Image.Init(i_LogicalDevice);
@@ -157,6 +159,26 @@ private:
 	VkImageLayout  m_Layout;
 };
 
+
+class VKMaterial
+{
+public:
+
+	void Init(const VkPipeline& i_pPipelineRef, const VkDescriptorSet& i_DescriptorSet)
+	{ 
+		m_pPipeline = i_pPipelineRef;
+		m_DescriptorSet = i_DescriptorSet;
+	}
+	const VkDescriptorSet& GetDescriptorSet()
+	{
+		return m_DescriptorSet;
+	}
+private:
+	VkDescriptorSet m_DescriptorSet;
+	VkPipeline m_pPipeline;
+};
+
+
 class VulkanImGUI;
 class RendererVulkan : public RendererAbstract
 {
@@ -174,12 +196,18 @@ public:
 	float GetMainRTAspectRatio() override;
 	float GetMainRTWidth() override;
 	float GetMainRTHeight() override;
-	void createTexture(void*  i_data, int i_Widht, int i_Height) override;
-	void createVertexBuffer(const void*  i_data, size_t iBufferSize) override;;
-	void createIndexBuffer(const void*  i_data, size_t iBufferSize) override;;
-	void createStaticUniformBuffer(const void*  i_data, size_t iBufferSize) override;;
-	void createInstancedUniformBuffer(const void*  i_data, size_t iBufferSize) override;;
-	void createDescriptorSet();
+	int CreateTexture(void*  i_data, int i_Widht, int i_Height) override;
+	void CreateMaterial(std::string i_MatName,  int* iTexIndices, int iNumTextures) override;
+	void DeleteMaterials() override;
+	void CreateVertexBuffer(const void*  i_data, size_t iBufferSize) override;
+	void CreateIndexBuffer(const void*  i_data, size_t iBufferSize) override;
+	void DeleteVertexBuffer() override;
+	void DeleteIndexBuffer() override;
+	void CreateStaticUniformBuffer(const void*  i_data, size_t iBufferSize) override;
+	void CreateInstancedUniformBuffer(const void*  i_data, size_t iBufferSize) override;
+	void DeleteStaticUniformBuffer() override;
+	void DeleteInstancedUniformBuffer() override;
+	void CreateDescriptorSet(VkDescriptorSet& i_DescSet, int* iTexIndices, int iNumTextures);
 	void SetupRenderCalls() override;
 
 	void UpdateTimesAndFPS(std::chrono::time_point<std::chrono::high_resolution_clock>  i_tStartTime) override;
@@ -247,11 +275,13 @@ private:
 	VKHandleWrapper<VkPipeline> m_GraphicsPipeline  { m_LogicalDevice,vkDestroyPipeline };
 
 	VKHandleWrapper<VkDescriptorPool> m_DescriptorPool{ m_LogicalDevice, vkDestroyDescriptorPool };
-	VkDescriptorSet m_DescriptorSet;
+	//VkDescriptorSet m_DescriptorSet;
 
-
-	//Images/Textures stuff, this is likely to evolve into a POOL of images...
-	std::vector<VKTextureWrapper> m_Textures;
+	std::map<std::string, VKMaterial> m_MaterialsMap;
+	
+	const int s_TexturePoolSize = 64;
+	int m_iUsedTextures;
+	std::vector<VKTextureWrapper> m_TexturesPool;
 
 
 	//Sync stuff
@@ -336,7 +366,7 @@ private:
 	void createSemaphores();
 
 
-	void UploadSceneUniforms();//Sends to the device updated scene uniforms
+	void UploadUniforms();//Sends to the device updated scene uniforms
 
 	bool isDeviceSuitable(VkPhysicalDevice device);
 	bool checkDeviceExtensionSupport(VkPhysicalDevice device);

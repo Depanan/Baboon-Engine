@@ -2,6 +2,11 @@
 #include "UI\imgui\imgui.h"
 #include "UI\imgui\imgui_impl_glfw_vulkan.h"
 #include "defines.h"
+#include "Cameras\CameraManager.h"
+
+#include <windows.h>
+#include <iostream>
+
 
 VulkanImGUI::~VulkanImGUI()
 {
@@ -40,20 +45,21 @@ void VulkanImGUI::Init(GLFWwindow* i_window)
 	pRenderer->endSingleTimeCommands(createFontsCommand);
 	ImGui_ImplGlfwVulkan_InvalidateFontUploadObjects();
 
-	//Create command pool + command buffers
+	
 	CreateCommandPool();
+	CreateCommandBuffers();
 }
 void VulkanImGUI::OnWindowResize()
 {
 	RendererVulkan* pRenderer = (RendererVulkan*)ServiceLocator::GetRenderer();
 	vkDestroyRenderPass(pRenderer->m_LogicalDevice, m_RenderPass, VK_NULL_HANDLE);
 	CreateRenderPass();
-	
+	CreateCommandBuffers();
 	UpdateCommandBuffers();
 	
 }
 
-void VulkanImGUI::Draw(VkQueue i_queue, uint32_t i_bufferindex)
+void VulkanImGUI::Draw(VkQueue i_queue, uint32_t i_bufferindex, const std::vector<VkSemaphore>& i_SignalSemaphores, const std::vector<VkSemaphore>& i_WaitSemaphores, const std::vector<VkPipelineStageFlags>& i_WaitSemaphoresStages)
 {
 	RendererVulkan* pRenderer = (RendererVulkan*)ServiceLocator::GetRenderer();
 
@@ -61,8 +67,15 @@ void VulkanImGUI::Draw(VkQueue i_queue, uint32_t i_bufferindex)
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &m_CmdBuffers[i_bufferindex];
+	submitInfo.pWaitSemaphores = i_WaitSemaphores.data();
+	submitInfo.waitSemaphoreCount = i_WaitSemaphores.size();
+	submitInfo.pWaitDstStageMask = i_WaitSemaphoresStages.data();
+	submitInfo.pSignalSemaphores = i_SignalSemaphores.data();
+	submitInfo.signalSemaphoreCount = i_SignalSemaphores.size();
 
-	vkQueueSubmit(i_queue, 1, &submitInfo, VK_NULL_HANDLE);
+	if (vkQueueSubmit(i_queue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+		throw std::runtime_error("failed to submit draw command buffer!");
+	}
 
 	vkQueueWaitIdle(i_queue);
 }
@@ -75,12 +88,38 @@ void VulkanImGUI::RenderStatsWindow(bool* pOpen)
 	if (ImGui::Begin("App stats", pOpen, ImGuiWindowFlags_MenuBar))
 	{
 		ImGui::Text("FPS: %d", pRenderer->m_LastFPS);
-		const Camera cam = ServiceLocator::GetSceneManager()->GetScene()->GetCamera();
-		const glm::vec3 camPos = cam.GetPosition();
+		const Camera* cam = ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main);
+		const glm::vec3 camPos = cam->GetPosition();
 		ImGui::Text("Scene cam Pos = (%.2f,%.2f,%.2f)",camPos.x,camPos.y,camPos.z);
 
+
+	
 	}
 	ImGui::End();
+}
+
+std::string BasicFileOpen()
+{
+	std::string fileOpen = "";
+	char filename[MAX_PATH];
+
+	OPENFILENAME ofn;
+	ZeroMemory(&filename, sizeof(filename));
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = NULL;  // If you have a window to center over, put its HANDLE here
+	ofn.lpstrFilter = "OBJ Files\0*.obj\0Any File\0*.*\0";
+	ofn.lpstrFile = filename;
+	ofn.nMaxFile = MAX_PATH;
+	ofn.lpstrTitle = "Select a File, yo!";
+	ofn.Flags = OFN_DONTADDTORECENT | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+	if (GetOpenFileNameA(&ofn))
+	{
+		fileOpen = std::string(filename);
+	}
+
+	return fileOpen;
 }
 
 void VulkanImGUI::DoUI(bool i_FirstCall)
@@ -99,10 +138,20 @@ void VulkanImGUI::DoUI(bool i_FirstCall)
 	ImGui_ImplGlfwVulkan_NewFrame();
 	
 	static bool bStatsWindow = false;
+	static bool bLoadScene = false;
 
 	if (bStatsWindow)
 	{
 		RenderStatsWindow(&bStatsWindow);
+	}
+	if (bLoadScene)
+	{
+		
+		
+		std::string filePath = BasicFileOpen();
+		ServiceLocator::GetSceneManager()->GetScene()->Init(filePath);
+
+		bLoadScene = false;
 	}
 
 	if (ImGui::BeginMainMenuBar())
@@ -110,6 +159,7 @@ void VulkanImGUI::DoUI(bool i_FirstCall)
 		if (ImGui::BeginMenu("Options"))
 		{
 			ImGui::MenuItem("App stats", NULL, &bStatsWindow);
+			ImGui::MenuItem("Load Scene", NULL, &bLoadScene);
 			ImGui::EndMenu();
 		}
 
@@ -145,6 +195,17 @@ void VulkanImGUI::CreateCommandPool()
 	cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	vkCreateCommandPool(pRenderer->m_LogicalDevice, &cmdPoolInfo, nullptr, &m_CommandPool);
 	
+
+}
+
+void VulkanImGUI::CreateCommandBuffers()
+{
+	RendererVulkan* pRenderer = (RendererVulkan*)ServiceLocator::GetRenderer();
+	
+	//In case we regenerated the swapchain we need to reset this...
+	if (m_CmdBuffers.size() > 0) {
+		vkFreeCommandBuffers(pRenderer->m_LogicalDevice, m_CommandPool, m_CmdBuffers.size(), m_CmdBuffers.data());
+	}
 	//Resize to match framebuffers, we will have one command buffer per framebuffer
 	m_CmdBuffers.resize(pRenderer->m_SwapChainFramebuffers.size());
 
@@ -157,8 +218,6 @@ void VulkanImGUI::CreateCommandPool()
 	if (vkAllocateCommandBuffers(pRenderer->m_LogicalDevice, &allocInfo, m_CmdBuffers.data()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate command buffers!");
 	}
-
-	DoUI(true);
 }
 
 void VulkanImGUI::CreateDescriptorPool()
@@ -275,9 +334,10 @@ void VulkanImGUI::UpdateCommandBuffers(bool i_ForceSkipFence)
 
 	VkCommandBufferBeginInfo cmdBufferBeginInfo{};
 	cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
+	cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;//Means we can submit whilst still drawing previous frame
 	VkClearValue clearValues[2];
 	clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clearValues[1].depthStencil = { 1.0f, 0 };
 
 	VkRenderPassBeginInfo renderPassBeginInfo{};
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;

@@ -62,7 +62,7 @@ void RendererVulkan::OnWindowResize(int i_NewW, int i_NewH)
 	createGraphicsPipeline();
 	createDepthResources();
 	createFramebuffers();
-	createCommandBuffers();//TODO: REDO COMMANDBUFFER WHEN RESIZING?
+	createCommandBuffers();
 	m_GUI.OnWindowResize();
 }
 
@@ -87,13 +87,17 @@ float RendererVulkan::GetMainRTHeight() {
 
 void RendererVulkan::SetupRenderCalls()
 {
-	createDescriptorSet();
-	createCommandBuffers();
-	UploadSceneUniforms();
+	recordDrawCommandBuffers();
+	UploadUniforms();
 }
 
-void RendererVulkan::UploadSceneUniforms()
+void RendererVulkan::UploadUniforms()
 {
+	Scene* scene = ServiceLocator::GetSceneManager()->GetScene();
+	CameraManager* pCamManager = ServiceLocator::GetCameraManager();
+	if (!scene->IsInit())
+		return;
+
 	m_UpdateUniformsTime += m_LastFrameTime;
 
 	if (m_UpdateUniformsTime < 1.0f/60.0f) {
@@ -102,8 +106,8 @@ void RendererVulkan::UploadSceneUniforms()
 	}
 	m_UpdateUniformsTime = 0.0f;
 
-	Scene* scene = ServiceLocator::GetSceneManager()->GetScene();
-	const SceneUniforms* sceneUniforms = scene->GetSceneUniforms();
+	
+	const CameraUniforms* camUniforms = pCamManager->GetCamUniforms();
 	const InstanceUBO* instanceUniforms = scene->GetInstanceUniforms();
 
 	const int iSceneUniformsIndex = 0;
@@ -113,7 +117,7 @@ void RendererVulkan::UploadSceneUniforms()
 
 	void* data;
 	vkMapMemory(m_LogicalDevice, m_StaticUniformBuffers[iSceneUniformsIndex].GetStagingMemory(), 0, uploadSize, 0, &data);
-	memcpy(data, sceneUniforms, uploadSize);
+	memcpy(data, camUniforms, uploadSize);
 	vkUnmapMemory(m_LogicalDevice, m_StaticUniformBuffers[iSceneUniformsIndex].GetStagingMemory());
 
 	copyVKBuffer(m_StaticUniformBuffers[iSceneUniformsIndex].GetStagingBuffer(), m_StaticUniformBuffers[iSceneUniformsIndex].GetBuffer(), uploadSize);
@@ -137,42 +141,48 @@ void RendererVulkan::DrawFrame()
 {
 	
 
-	UploadSceneUniforms();//TODO: DO THIS ONLY IF UNIFORMS HAVE BEEN UPDATED
+	m_GUI.DoUI();
+
+	ServiceLocator::GetCameraManager()->BindCameraUniforms(CameraManager::eCameraType_Main);
 
 
 	uint32_t imageIndex;
 	//The numeric limits integer is the timeout in nanoseconds, we are actually disabling it
-    vkAcquireNextImageKHR(m_LogicalDevice, m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+	vkAcquireNextImageKHR(m_LogicalDevice, m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+	
+	std::vector<VkSemaphore> signalSemaphores;//This are the semaphores we notify when finishing executing the cmd buffers
+	signalSemaphores.push_back(m_RenderFinishedSemaphore);
 
-	VkSubmitInfo submitInfo = {};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	std::vector<VkSemaphore> waitSemaphores;
+	std::vector<VkPipelineStageFlags> waitSemaphoresStages;
+	waitSemaphores.push_back(m_ImageAvailableSemaphore);
+	waitSemaphoresStages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);//This means the point of the pipeline we will wait for the image to be available, so we can execute ALL pipeline till here
+	
+	//TODO: Make this command buffer scene command buffer or static geometry command buffer...
+	if (m_CommandBuffers.size() > 0)
+	{
+		UploadUniforms();//TODO: DO THIS ONLY IF UNIFORMS HAVE BEEN UPDATED
 
-	VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphore };
-	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };//This means the point of the pipeline we will wait for the image to be available, so we can execute ALL pipeline till here
-	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = waitSemaphores;
-	submitInfo.pWaitDstStageMask = waitStages;
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &m_CommandBuffers[imageIndex];
 
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &m_CommandBuffers[imageIndex];
-
-	//This are the semaphores we notify when finishing executing the cmd buffers
-	VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphore };
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = signalSemaphores;
-
-	if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
-		throw std::runtime_error("failed to submit draw command buffer!");
+		if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+			throw std::runtime_error("failed to submit draw command buffer!");
+		}
 	}
+	
+	
 
-	m_GUI.Draw(m_graphicsQueue, imageIndex);
+	m_GUI.Draw(m_graphicsQueue, imageIndex,signalSemaphores,waitSemaphores, waitSemaphoresStages);
 
 	//And finally, presentation
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = signalSemaphores;//Wait for cmd pool semaphore
+	presentInfo.waitSemaphoreCount = signalSemaphores.size();
+	presentInfo.pWaitSemaphores = signalSemaphores.data();//Wait for cmd pool semaphore
 
 	VkSwapchainKHR swapChains[] = { m_SwapChain };
 	presentInfo.swapchainCount = 1;
@@ -184,7 +194,7 @@ void RendererVulkan::DrawFrame()
 
 
 
-	m_GUI.DoUI();
+	
 
 }
 
@@ -216,7 +226,9 @@ int RendererVulkan::Init(const char** i_requiredExtensions, const unsigned int i
 	createFramebuffers();
 	createSemaphores();
 	createDescriptorPool();
-
+	createCommandBuffers();
+	m_TexturesPool.resize(s_TexturePoolSize);
+	m_iUsedTextures = 0;
 
 	m_GUI.Init(i_window);
 
@@ -932,7 +944,7 @@ void RendererVulkan::createCommandPools()
 	VkCommandPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
-	poolInfo.flags = 0; // Optional, here we could say how often we are gonna re-record the commands
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // Optional, here we could say how often we are gonna re-record the commands
 
 	if (vkCreateCommandPool(m_LogicalDevice, &poolInfo, nullptr, m_CommandPool.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create command pool!");
@@ -998,22 +1010,61 @@ void  RendererVulkan::createVulkanImage(uint32_t width, uint32_t height, VkForma
 	vkBindImageMemory(m_LogicalDevice, image, imageMemory, 0);
 }
 
+void RendererVulkan::CreateMaterial(std::string i_MatName,  int* iTexIndices, int iNumTextures)
+{
 
-void RendererVulkan::createTexture(void*  i_data, int i_Widht, int i_Height)
+	VKMaterial vk_mat = {};
+	VkDescriptorSet descSet = VK_NULL_HANDLE;
+	CreateDescriptorSet(descSet,iTexIndices,iNumTextures);
+	vk_mat.Init(m_GraphicsPipeline, descSet);
+
+ 	m_MaterialsMap[i_MatName] = vk_mat;
+	
+}
+void RendererVulkan::DeleteMaterials()
+{
+	//Wait for device idle we don't wanna mess here
+	vkDeviceWaitIdle(m_LogicalDevice);
+
+	m_MaterialsMap.clear();
+
+	//Reseting descriptor pool automatically delete all descriptor sets associated so no need to go one by one
+	createDescriptorPool();
+
+
+	//Reseting textures pool hopefully calls relevan destructors thru VKHandleWrapper :)
+	m_TexturesPool.clear();
+	m_TexturesPool.resize(s_TexturePoolSize);
+	/*for (int i = 0; i < m_iUsedTextures; i++)
+	{
+
+	}*/
+	m_iUsedTextures = 0;
+}
+
+int RendererVulkan::CreateTexture(void*  i_data, int i_Widht, int i_Height)
 {
 	
+	int iTexIndex = m_iUsedTextures;
+	VKTextureWrapper* tTexture = &m_TexturesPool[iTexIndex];
 	
-	int nTextures = m_Textures.size();
-	m_Textures.resize(m_Textures.size() + 1);
-	m_Textures[nTextures].Init(m_LogicalDevice);
 
-	createTextureImage(i_data, i_Widht, i_Height, m_Textures[nTextures].GetVKImage(), m_Textures[nTextures].GetVKImageMemory());
-	createImageView(m_Textures[nTextures].GetVKImage(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, m_Textures[nTextures].GetVKImageView());
-	createTextureSampler(m_Textures[nTextures].GetVKTextureSampler());
+	
 
-	m_Textures[nTextures].UpdateDescriptor();
+	tTexture->Init(m_LogicalDevice);
 
+	createTextureImage(i_data, i_Widht, i_Height, tTexture->GetVKImage(), tTexture->GetVKImageMemory());
+	createImageView(tTexture->GetVKImage(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, tTexture->GetVKImageView());
+	createTextureSampler(tTexture->GetVKTextureSampler());
+
+	tTexture->UpdateDescriptor();
+
+	
+	m_iUsedTextures++;
+
+	return iTexIndex;
 }
+
 
 void RendererVulkan::createTextureSampler(VKHandleWrapper<VkSampler>& i_Sampler)
 {
@@ -1046,7 +1097,7 @@ void RendererVulkan::createTextureSampler(VKHandleWrapper<VkSampler>& i_Sampler)
 
 }
 
-void  RendererVulkan::createVertexBuffer(const void*  i_data, size_t iBufferSize)
+void  RendererVulkan::CreateVertexBuffer(const void*  i_data, size_t iBufferSize)
 {
 
 	VkDeviceSize bufferSize = iBufferSize;
@@ -1068,7 +1119,7 @@ void  RendererVulkan::createVertexBuffer(const void*  i_data, size_t iBufferSize
 	copyVKBuffer(stagingBuffer, m_MainVertexBuffer, bufferSize);
 }
 
-void RendererVulkan::createIndexBuffer(const void*  i_data, size_t iBufferSize)
+void RendererVulkan::CreateIndexBuffer(const void*  i_data, size_t iBufferSize)
 {
 	VkDeviceSize bufferSize = iBufferSize;
 
@@ -1086,7 +1137,28 @@ void RendererVulkan::createIndexBuffer(const void*  i_data, size_t iBufferSize)
 	copyVKBuffer(stagingBuffer, m_MainIndexBuffer, bufferSize);
 
 }
-void RendererVulkan::createStaticUniformBuffer(const void*  i_data, size_t iBufferSize)
+
+
+void RendererVulkan::DeleteVertexBuffer()
+{
+	//Wait for device idle we don't wanna mess here
+	vkDeviceWaitIdle(m_LogicalDevice);
+	//vkDestroyBuffer(m_LogicalDevice, m_MainVertexBuffer, nullptr);
+	m_MainVertexBuffer = VK_NULL_HANDLE;
+	//vkFreeMemory(m_LogicalDevice, m_MainVertexBufferMemory, nullptr);
+	m_MainVertexBufferMemory = VK_NULL_HANDLE;
+}
+void RendererVulkan::DeleteIndexBuffer()
+{
+	//Wait for device idle we don't wanna mess here
+	vkDeviceWaitIdle(m_LogicalDevice);
+	//vkDestroyBuffer(m_LogicalDevice, m_MainIndexBuffer, nullptr);
+	m_MainIndexBuffer = VK_NULL_HANDLE;
+	//vkFreeMemory(m_LogicalDevice, m_MainIndexBufferMemory, nullptr);
+	m_MainIndexBufferMemory = VK_NULL_HANDLE;
+}
+
+void RendererVulkan::CreateStaticUniformBuffer(const void*  i_data, size_t iBufferSize)
 {
 
 	int nUniformBuffers = m_StaticUniformBuffers.size();
@@ -1098,7 +1170,7 @@ void RendererVulkan::createStaticUniformBuffer(const void*  i_data, size_t iBuff
 	m_StaticUniformBuffers[nUniformBuffers].UpdateDescriptor();
 
 }
-void RendererVulkan::createInstancedUniformBuffer(const void*  i_data, size_t iBufferSize)
+void RendererVulkan::CreateInstancedUniformBuffer(const void*  i_data, size_t iBufferSize)
 {
 	
 
@@ -1113,21 +1185,41 @@ void RendererVulkan::createInstancedUniformBuffer(const void*  i_data, size_t iB
 
 }
 
+void RendererVulkan::DeleteStaticUniformBuffer()
+{
+	//Wait for device idle we don't wanna mess here
+	vkDeviceWaitIdle(m_LogicalDevice);
+
+	m_StaticUniformBuffers.clear();
+
+
+}
+void RendererVulkan::DeleteInstancedUniformBuffer()
+{
+	//Wait for device idle we don't wanna mess here
+	vkDeviceWaitIdle(m_LogicalDevice);
+	m_DynamicUniformBuffers.clear();
+
+}
+
+
+
+//TODO:: This pool should have at least count > materials/desc sets, remove magic number
 void RendererVulkan::createDescriptorPool()
 {
 	std::array<VkDescriptorPoolSize, 3> poolSizes = {};
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = 1;
+	poolSizes[0].descriptorCount = 36;
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-	poolSizes[1].descriptorCount = 1;
+	poolSizes[1].descriptorCount = 36;
 	poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[2].descriptorCount = 1;
+	poolSizes[2].descriptorCount = 36;
 
 	VkDescriptorPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolInfo.poolSizeCount = poolSizes.size();
 	poolInfo.pPoolSizes = poolSizes.data();
-	poolInfo.maxSets = 2;
+	poolInfo.maxSets = 36 +1;
 
 	if (vkCreateDescriptorPool(m_LogicalDevice, &poolInfo, nullptr, m_DescriptorPool.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create descriptor pool!");
@@ -1135,7 +1227,7 @@ void RendererVulkan::createDescriptorPool()
 
 }
 
-void RendererVulkan::createDescriptorSet()
+void RendererVulkan::CreateDescriptorSet(VkDescriptorSet& i_DescSet, int* iTexIndices, int iNumTextures)
 {
 	VkDescriptorSetLayout layouts[] = { m_DescriptorSetLayout };
 	VkDescriptorSetAllocateInfo allocInfo = {};
@@ -1144,7 +1236,7 @@ void RendererVulkan::createDescriptorSet()
 	allocInfo.descriptorSetCount = 1;
 	allocInfo.pSetLayouts = layouts;
 
-	if (vkAllocateDescriptorSets(m_LogicalDevice, &allocInfo, &m_DescriptorSet) != VK_SUCCESS) {
+	if (vkAllocateDescriptorSets(m_LogicalDevice, &allocInfo, &i_DescSet) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate descriptor set!");
 	}
 
@@ -1164,17 +1256,19 @@ void RendererVulkan::createDescriptorSet()
 
 	
 	std::vector<VkDescriptorImageInfo> imageInfos;
-	for (int i = 0; i < m_Textures.size(); i++)
+	for (int i = 0; i < iNumTextures; i++)
 	{
-		m_Textures[i].UpdateDescriptor();
-		imageInfos.push_back(m_Textures[i].GetDescriptor());
+
+		VKTextureWrapper* pTexture = &m_TexturesPool[iTexIndices[i]];
+		pTexture->UpdateDescriptor();
+		imageInfos.push_back(pTexture->GetDescriptor());
 	}
 
 	
 
 	std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
 	descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrites[0].dstSet = m_DescriptorSet;
+	descriptorWrites[0].dstSet = i_DescSet;
 	descriptorWrites[0].dstBinding = 0;
 	descriptorWrites[0].dstArrayElement = 0;
 	descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1184,7 +1278,7 @@ void RendererVulkan::createDescriptorSet()
 	
 
 	descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrites[1].dstSet = m_DescriptorSet;
+	descriptorWrites[1].dstSet = i_DescSet;
 	descriptorWrites[1].dstBinding = 1;
 	descriptorWrites[1].dstArrayElement = 0;
 	descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -1194,7 +1288,7 @@ void RendererVulkan::createDescriptorSet()
 
 
 	descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrites[2].dstSet = m_DescriptorSet;
+	descriptorWrites[2].dstSet = i_DescSet;
 	descriptorWrites[2].dstBinding = 2;
 	descriptorWrites[2].dstArrayElement = 0;
 	descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1247,20 +1341,22 @@ void RendererVulkan::recordDrawCommandBuffers()
 		VkDeviceSize offsets[] = { 0 };
 
 		vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(m_CommandBuffers[i], m_MainIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdBindIndexBuffer(m_CommandBuffers[i], m_MainIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 		vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);//TODO: Maybe one pipeline per model?? For Now use the one we have
 		for (int iModel = 0; iModel < sceneModels.size(); iModel++)
 		{
 
 			int nIndices = sceneModels[iModel].GetMesh()->GetNIndices();
 			int indexStart = sceneModels[iModel].GetMesh()->GetIndexStartPosition();
+			
+			std::string m_sMaterialName = sceneModels[iModel].GetMaterial()->GetMaterialName();
 
 			uint32_t dynamicOffset = iModel * static_cast<uint32_t>(256);
 
-			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSet, 1, &dynamicOffset);
-			vkCmdDrawIndexed(m_CommandBuffers[i], nIndices, 1, indexStart, 0, 0);
+			vkCmdBindDescriptorSets(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_MaterialsMap[m_sMaterialName].GetDescriptorSet(), 1, &dynamicOffset);//Here we bind textures
+			vkCmdDrawIndexed(m_CommandBuffers[i], nIndices, 1, indexStart, sceneModels[iModel].GetMesh()->GetVertexStartPosition(), 0);
 		}
-
+		
 		
 
 		vkCmdEndRenderPass(m_CommandBuffers[i]);
@@ -1294,8 +1390,42 @@ void RendererVulkan::createCommandBuffers()
 		throw std::runtime_error("failed to allocate command buffers!");
 	}
 
+	//FILL WITH EMPTY DATA
+	for (size_t i = 0; i < m_CommandBuffers.size(); i++) {
+
+		VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;//Means we can submit whilst still drawing previous frame
+		beginInfo.pInheritanceInfo = nullptr; // Optional
+
+		vkBeginCommandBuffer(m_CommandBuffers[i], &beginInfo);//Calling this will delete previous content meaning we cant append to previous content
+
+		VkRenderPassBeginInfo renderPassInfo = {};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassInfo.renderPass = m_RenderPass;
+		renderPassInfo.framebuffer = m_SwapChainFramebuffers[i];
+
+		renderPassInfo.renderArea.offset = { 0, 0 };
+		renderPassInfo.renderArea.extent = m_SwapChainExtent;
+
+		std::array<VkClearValue, 2> clearValues = {};
+		clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+		clearValues[1].depthStencil = { 1.0f, 0 };
+
+		renderPassInfo.clearValueCount = clearValues.size();
+		renderPassInfo.pClearValues = clearValues.data();
+
+		vkCmdBeginRenderPass(m_CommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		vkCmdEndRenderPass(m_CommandBuffers[i]);
+
+
+		if (vkEndCommandBuffer(m_CommandBuffers[i]) != VK_SUCCESS) {
+			throw std::runtime_error("failed to record command buffer!");
+		}
+	}
 	
-	recordDrawCommandBuffers();
+	//
 }
 
 void RendererVulkan::createSemaphores()
@@ -1527,7 +1657,7 @@ void RendererVulkan::transitionImageLayout(VkImage image, VkFormat format, VkIma
 {
 	VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
-	VkImageMemoryBarrier barrier = {};
+  	VkImageMemoryBarrier barrier = {};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 	barrier.oldLayout = oldLayout;
 	barrier.newLayout = newLayout;

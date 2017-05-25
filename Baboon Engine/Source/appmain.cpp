@@ -3,6 +3,7 @@
 #include <string>
 #include "Core\Scene.h"
 #include "Core\Input.h"
+#include "Cameras\CameraManager.h"
 
 static std::string s_Window_Title = "Baboon Engine";
 
@@ -14,7 +15,8 @@ public:
 	{
 		initWindow();
 	    initRenderer();
-		ServiceLocator::GetSceneManager()->GetScene()->Init();
+		ServiceLocator::GetCameraManager()->Init();
+		//ServiceLocator::GetSceneManager()->GetScene()->Init();
 		
 	}
 
@@ -55,6 +57,8 @@ private:
 
 		GraphicGLFWApp* thisPointer = reinterpret_cast<GraphicGLFWApp*>(glfwGetWindowUserPointer(window));
 		ServiceLocator::GetRenderer()->OnWindowResize(width,height);
+		ServiceLocator::GetCameraManager()->OnWindowResize();
+		ServiceLocator::GetSceneManager()->GetScene()->OnWindowResize();
 	}
 
 
@@ -100,18 +104,15 @@ void b()
 int main() {
 	
 	GraphicGLFWApp mainApp;
-	
 	RendererVulkan vulkanRenderer;//HERE WE COULD CREATE AN OPENGL RENDERER
 	SceneManager theSceneManager;
 	Input theInput;
-
-	
-	
-
+	CameraManager camManager;
 
 	ServiceLocator::Provide(&theSceneManager);
 	ServiceLocator::Provide(&vulkanRenderer);
 	ServiceLocator::Provide(&theInput);
+	ServiceLocator::Provide(&camManager);
 	
 	try {
 		mainApp.init();

@@ -31,11 +31,11 @@
     <Filter Include="Renderer\Vulkan">
       <UniqueIdentifier>{39618659-b3f3-42e0-97fe-9ca91b8c7597}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Cameras">
+      <UniqueIdentifier>{3d961cc6-1372-4e63-a0ce-cc778785b551}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Core\Camera.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Core\Image.cpp">
       <Filter>Core</Filter>
     </ClCompile>
@@ -75,11 +75,14 @@
     <ClCompile Include="Source\Renderer\Common\Mesh.cpp">
       <Filter>Renderer\Common</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Cameras\Camera.cpp">
+      <Filter>Cameras</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Cameras\CameraManager.cpp">
+      <Filter>Cameras</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Core\Camera.h">
-      <Filter>Core</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Core\Image.h">
       <Filter>Core</Filter>
     </ClInclude>
@@ -136,6 +139,12 @@
     </ClInclude>
     <ClInclude Include="Source\Renderer\Common\Mesh.h">
       <Filter>Renderer\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Cameras\Camera.h">
+      <Filter>Cameras</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Cameras\CameraManager.h">
+      <Filter>Cameras</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
