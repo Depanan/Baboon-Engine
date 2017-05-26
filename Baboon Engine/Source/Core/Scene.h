@@ -41,7 +41,7 @@ public:
 
 	std::vector <Model>* GetModels() { return &m_Models; }
 
-	
+	int GetVertexBufferIndex() { return m_iVertexBufferIndex; }
 
 private:
 
@@ -57,7 +57,7 @@ private:
 	//Global data for indexed meshes
 	std::vector<Vertex> m_Vertices;
 	std::vector<uint32_t> m_Indices;
-
+	int m_iVertexBufferIndex = -1;//In the renderer internal storage
 
 	void loadAssets(const std::string i_ScenePath);
 	void loadMaterials(const aiScene* i_aScene, const std::string i_SceneTexturesPath);

@@ -5,105 +5,17 @@
 #include <vector>
 #include <map>
 #include <iostream>
-#include <functional>
 #include "Renderer\Common\Mesh.h"
 #include "UI\VulkanIMGUI.h"
+#include "VKBuffer.h"
+#include "VKTypes.h"
 
-template <typename T>
-class VKHandleWrapper {
 
-public:
-	VKHandleWrapper() : VKHandleWrapper([](T, VkAllocationCallbacks*) {}) {}
 
-	VKHandleWrapper(std::function<void(T, VkAllocationCallbacks*)> deletef) {
-		m_DeleterFunction = [=](T handle) { deletef(handle, nullptr); };
-	}
-
-	VKHandleWrapper(const VKHandleWrapper<VkInstance>& instance, std::function<void(VkInstance, T, VkAllocationCallbacks*)> deletef) {
-		m_DeleterFunction = [&instance, deletef](T handle) { deletef(instance, handle, nullptr); };
-	}
-
-	VKHandleWrapper(const VKHandleWrapper<VkDevice>& device, std::function<void(VkDevice, T, VkAllocationCallbacks*)> deletef) {
-		m_DeleterFunction = [&device, deletef](T handle) { deletef(device, handle, nullptr); };
-	}
-
-	~VKHandleWrapper() {
-		cleanup();
-	}
-
-	const T* operator &() const {
-		return &m_VKHandle;
-	}
-
-	T* replace() {
-		cleanup();
-		return &m_VKHandle;
-	}
-
-	operator T() const {
-		return m_VKHandle;
-	}
-
-	void operator=(T handle) {
-		if (handle != m_VKHandle) {
-			cleanup();
-			m_VKHandle = handle;
-		}
-	}
-
-	template<typename V>
-	bool operator==(V handle) {
-		return m_VKHandle == T(handle);
-	}
-
-private:
-	T m_VKHandle{ VK_NULL_HANDLE };
-	std::function<void(T)> m_DeleterFunction;
-
-	void cleanup() {
-		if (m_VKHandle != VK_NULL_HANDLE) {
-				m_DeleterFunction(m_VKHandle);
-		}
-		m_VKHandle = VK_NULL_HANDLE;
-	}
-};
-
-class VKUniformBufferWrapper
+struct VKIndexedVertexBuffer
 {
-public:
-	VKUniformBufferWrapper(){}
-	void Init(VKHandleWrapper <VkDevice>& i_LogicalDevice, VkDeviceSize i_BufferSize)
-	{
-		m_UniformStagingBuffer= { i_LogicalDevice, vkDestroyBuffer };
-		m_UniformStagingBufferMemory= { i_LogicalDevice, vkFreeMemory };
-		m_UniformBuffer= { i_LogicalDevice, vkDestroyBuffer };
-		m_UniformBufferMemory={ i_LogicalDevice, vkFreeMemory };
-		m_BufferSize = i_BufferSize;
-	}
-
-	void UpdateDescriptor()
-	{
-		m_Descriptor.buffer = m_UniformBuffer;
-		m_Descriptor.offset = 0;
-		m_Descriptor.range = VK_WHOLE_SIZE;
-
-
-	}
-
-	VKHandleWrapper<VkBuffer>& GetStagingBuffer() { return m_UniformStagingBuffer; }
-	VKHandleWrapper<VkDeviceMemory>& GetStagingMemory(){ return m_UniformStagingBufferMemory; }
-	VKHandleWrapper<VkBuffer>&GetBuffer(){ return m_UniformBuffer; }
-	VKHandleWrapper<VkDeviceMemory>&GetMemory(){ return m_UniformBufferMemory; }
-	VkDescriptorBufferInfo& GetDescriptor() { return m_Descriptor; }
-	VkDeviceSize GetBufferSize() { return m_BufferSize; }
-private:
-
-	VKHandleWrapper<VkBuffer>		m_UniformStagingBuffer = VK_NULL_HANDLE;
-	VKHandleWrapper<VkDeviceMemory> m_UniformStagingBufferMemory = VK_NULL_HANDLE;
-	VKHandleWrapper<VkBuffer>		m_UniformBuffer = VK_NULL_HANDLE;
-	VKHandleWrapper<VkDeviceMemory> m_UniformBufferMemory = VK_NULL_HANDLE;
-	VkDescriptorBufferInfo m_Descriptor;
-	VkDeviceSize m_BufferSize;
+	VKBuffer m_VertexBuffer;
+	VKBuffer m_IndexBuffer;
 };
 
 
@@ -179,10 +91,14 @@ private:
 };
 
 
+
+
+
 class VulkanImGUI;
 class RendererVulkan : public RendererAbstract
 {
 	friend class VulkanImGUI;
+	friend class VKBuffer;
 public:
 	
 
@@ -199,10 +115,8 @@ public:
 	int CreateTexture(void*  i_data, int i_Widht, int i_Height) override;
 	void CreateMaterial(std::string i_MatName,  int* iTexIndices, int iNumTextures) override;
 	void DeleteMaterials() override;
-	void CreateVertexBuffer(const void*  i_data, size_t iBufferSize) override;
-	void CreateIndexBuffer(const void*  i_data, size_t iBufferSize) override;
-	void DeleteVertexBuffer() override;
-	void DeleteIndexBuffer() override;
+	int CreateIndexedVertexBuffer(const void*  i_VertexData, size_t iVertexSize, const void*  i_IndexData, size_t iIndexSize) override;
+	void DeleteIndexedVertexBuffer()override;
 	void CreateStaticUniformBuffer(const void*  i_data, size_t iBufferSize) override;
 	void CreateInstancedUniformBuffer(const void*  i_data, size_t iBufferSize) override;
 	void DeleteStaticUniformBuffer() override;
@@ -258,14 +172,22 @@ private:
 
 	VKImageWrapper m_DepthImage;
 
-	VKHandleWrapper<VkBuffer> m_MainVertexBuffer{ m_LogicalDevice, vkDestroyBuffer };
+	/*VKHandleWrapper<VkBuffer> m_MainVertexBuffer{ m_LogicalDevice, vkDestroyBuffer };
 	VKHandleWrapper<VkDeviceMemory>  m_MainVertexBufferMemory{ m_LogicalDevice, vkFreeMemory };
 	VKHandleWrapper<VkBuffer> m_MainIndexBuffer{ m_LogicalDevice, vkDestroyBuffer };
 	VKHandleWrapper<VkDeviceMemory> m_MainIndexBufferMemory{ m_LogicalDevice, vkFreeMemory };
+	*/
+
+	const int s_IndexedVertexBufferPoolSize = 8;
+	int m_iUsedIndexedVertexBuffers;
+	std::vector<VKIndexedVertexBuffer> m_IndexedVertexBufferPool;
+	//VKBuffer m_MainVertexBuffer;
+	//VKBuffer m_MainIndexBuffer;
+
 
 	//Uniform buffer stuff, we keep the staging buffer as we will update uniforms every frame
-	std::vector<VKUniformBufferWrapper> m_StaticUniformBuffers;
-	std::vector<VKUniformBufferWrapper> m_DynamicUniformBuffers;
+	std::vector<VKBuffer> m_StaticUniformBuffers;
+	std::vector<VKBuffer> m_DynamicUniformBuffers;
 
 
 	VkFormat m_SwapChainImageFormat;

@@ -243,8 +243,12 @@ int RendererVulkan::Init(const char** i_requiredExtensions, const unsigned int i
 	createSemaphores();
 	createDescriptorPool();
 	createCommandBuffers();
+	
 	m_TexturesPool.resize(s_TexturePoolSize);
 	m_iUsedTextures = 0;
+
+	m_IndexedVertexBufferPool.resize(s_IndexedVertexBufferPoolSize);
+	m_iUsedIndexedVertexBuffers = 0;
 
 	m_GUI.Init(i_window);
 
@@ -1123,77 +1127,29 @@ void RendererVulkan::createTextureSampler(VKHandleWrapper<VkSampler>& i_Sampler)
 
 }
 
-void  RendererVulkan::CreateVertexBuffer(const void*  i_data, size_t iBufferSize)
+int  RendererVulkan::CreateIndexedVertexBuffer(const void*  i_VertexData, size_t iVertexSize, const void*  i_IndexData, size_t iIndexSize)
 {
+	int iIndex = m_iUsedIndexedVertexBuffers;
+	m_IndexedVertexBufferPool[iIndex].m_VertexBuffer.Create(i_VertexData, iVertexSize, false);
+	m_IndexedVertexBufferPool[iIndex].m_IndexBuffer.Create(i_IndexData, iIndexSize, false);
+	m_iUsedIndexedVertexBuffers++;
+	return iIndex;
 
-	VkDeviceSize bufferSize = iBufferSize;
-
-
-	VKHandleWrapper<VkBuffer> stagingBuffer{ m_LogicalDevice, vkDestroyBuffer };
-	VKHandleWrapper<VkDeviceMemory> stagingBufferMemory{ m_LogicalDevice, vkFreeMemory };
-
-	createVKBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-	void* data;
-	vkMapMemory(m_LogicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);//Get a pointer to the device memory
-	memcpy(data, i_data, iBufferSize);//Copy our vertex data there
-	vkUnmapMemory(m_LogicalDevice, stagingBufferMemory);//Unmap the memory
-
-	createVKBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_MainVertexBuffer, m_MainVertexBufferMemory);
-
-	
-	copyVKBuffer(stagingBuffer, m_MainVertexBuffer, bufferSize);
 }
-
-void RendererVulkan::CreateIndexBuffer(const void*  i_data, size_t iBufferSize)
+void  RendererVulkan::DeleteIndexedVertexBuffer()//TODO: This potentially invalidate the stored indices for other geometry
 {
-	VkDeviceSize bufferSize = iBufferSize;
-
-	VKHandleWrapper<VkBuffer> stagingBuffer{ m_LogicalDevice, vkDestroyBuffer };
-	VKHandleWrapper<VkDeviceMemory> stagingBufferMemory{ m_LogicalDevice, vkFreeMemory };
-	createVKBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-	void* data;
-	vkMapMemory(m_LogicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);//Get a pointer to the device memory
-	memcpy(data, i_data, iBufferSize);//Copy our index data there
-	vkUnmapMemory(m_LogicalDevice, stagingBufferMemory);//Unmap the memory
-
-	createVKBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_MainIndexBuffer, m_MainIndexBufferMemory);
-
-	copyVKBuffer(stagingBuffer, m_MainIndexBuffer, bufferSize);
-
+	m_iUsedIndexedVertexBuffers--;
 }
 
 
-void RendererVulkan::DeleteVertexBuffer()
-{
-	//Wait for device idle we don't wanna mess here
-	//vkDeviceWaitIdle(m_LogicalDevice);
-	//vkDestroyBuffer(m_LogicalDevice, m_MainVertexBuffer, nullptr);
-	m_MainVertexBuffer = VK_NULL_HANDLE;
-	//vkFreeMemory(m_LogicalDevice, m_MainVertexBufferMemory, nullptr);
-	m_MainVertexBufferMemory = VK_NULL_HANDLE;
-}
-void RendererVulkan::DeleteIndexBuffer()
-{
-	//Wait for device idle we don't wanna mess here
-	vkDeviceWaitIdle(m_LogicalDevice);
-	//vkDestroyBuffer(m_LogicalDevice, m_MainIndexBuffer, nullptr);
-	m_MainIndexBuffer = VK_NULL_HANDLE;
-	//vkFreeMemory(m_LogicalDevice, m_MainIndexBufferMemory, nullptr);
-	m_MainIndexBufferMemory = VK_NULL_HANDLE;
-}
+
 
 void RendererVulkan::CreateStaticUniformBuffer(const void*  i_data, size_t iBufferSize)
 {
 
 	int nUniformBuffers = m_StaticUniformBuffers.size();
 	m_StaticUniformBuffers.resize(m_StaticUniformBuffers.size() + 1);
-	m_StaticUniformBuffers[nUniformBuffers].Init(m_LogicalDevice, iBufferSize);
-
-	createVKBuffer(iBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_StaticUniformBuffers[nUniformBuffers].GetStagingBuffer(), m_StaticUniformBuffers[nUniformBuffers].GetStagingMemory());
-	createVKBuffer(iBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_StaticUniformBuffers[nUniformBuffers].GetBuffer(), m_StaticUniformBuffers[nUniformBuffers].GetMemory());
-	m_StaticUniformBuffers[nUniformBuffers].UpdateDescriptor();
+	m_StaticUniformBuffers[nUniformBuffers].Create(i_data, iBufferSize);
 
 }
 void RendererVulkan::CreateInstancedUniformBuffer(const void*  i_data, size_t iBufferSize)
@@ -1203,12 +1159,9 @@ void RendererVulkan::CreateInstancedUniformBuffer(const void*  i_data, size_t iB
 
 	int nUniformBuffers = m_DynamicUniformBuffers.size();
 	m_DynamicUniformBuffers.resize(m_DynamicUniformBuffers.size() + 1);
-	m_DynamicUniformBuffers[nUniformBuffers].Init(m_LogicalDevice, iBufferSize);
+	m_DynamicUniformBuffers[nUniformBuffers].Create(i_data, iBufferSize);
 
-	createVKBuffer(iBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_DynamicUniformBuffers[nUniformBuffers].GetStagingBuffer(), m_DynamicUniformBuffers[nUniformBuffers].GetStagingMemory());
-	createVKBuffer(iBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DynamicUniformBuffers[nUniformBuffers].GetBuffer(), m_DynamicUniformBuffers[nUniformBuffers].GetMemory());
-	m_DynamicUniformBuffers[nUniformBuffers].UpdateDescriptor();
-
+	
 }
 
 void RendererVulkan::DeleteStaticUniformBuffer()
@@ -1363,11 +1316,12 @@ void RendererVulkan::recordDrawCommandBuffers()
 
 		std::vector <Model> sceneModels = *(scene->GetModels());
 
-		VkBuffer vertexBuffers[] = { m_MainVertexBuffer };
+		int iVBOIndex = scene->GetVertexBufferIndex();
+		VkBuffer vertexBuffers[] = { m_IndexedVertexBufferPool[iVBOIndex].m_VertexBuffer.GetBuffer() };
 		VkDeviceSize offsets[] = { 0 };
 
 		vkCmdBindVertexBuffers(m_CommandBuffers[i], 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(m_CommandBuffers[i], m_MainIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(m_CommandBuffers[i], m_IndexedVertexBufferPool[iVBOIndex].m_IndexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 		vkCmdBindPipeline(m_CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);//TODO: Maybe one pipeline per model?? For Now use the one we have
 		for (int iModel = 0; iModel < sceneModels.size(); iModel++)
 		{

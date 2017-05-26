@@ -29,6 +29,7 @@
     <ClCompile Include="Source\Core\ServiceLocator.cpp" />
     <ClCompile Include="Source\Renderer\Common\Mesh.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\RendererVulkan.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\VKBuffer.cpp" />
     <ClCompile Include="Source\UI\imgui\imgui.cpp" />
     <ClCompile Include="Source\UI\imgui\imgui_demo.cpp" />
     <ClCompile Include="Source\UI\imgui\imgui_draw.cpp" />
@@ -49,6 +50,8 @@
     <ClInclude Include="Source\Renderer\Common\Mesh.h" />
     <ClInclude Include="Source\Renderer\RendererAbstract.h" />
     <ClInclude Include="Source\Renderer\Vulkan\RendererVulkan.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\VKBuffer.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\VKTypes.h" />
     <ClInclude Include="Source\UI\imgui\imconfig.h" />
     <ClInclude Include="Source\UI\imgui\imgui.h" />
     <ClInclude Include="Source\UI\imgui\imgui_impl_glfw_vulkan.h" />

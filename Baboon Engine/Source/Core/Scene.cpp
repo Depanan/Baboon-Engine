@@ -71,8 +71,10 @@ void Scene::Free()
 	m_Meshes.clear();
 	m_Indices.clear();
 	m_Vertices.clear();
-	renderer->DeleteIndexBuffer();
-	renderer->DeleteVertexBuffer();
+	//renderer->DeleteIndexBuffer();
+	renderer->DeleteIndexedVertexBuffer();
+	m_iVertexBufferIndex = -1;
+
 	renderer->DeleteInstancedUniformBuffer();
 
 	m_bIsInit = false;
@@ -256,8 +258,7 @@ void Scene::loadModels(const aiScene* i_aScene)
 	}
 
 	RendererAbstract* renderer = ServiceLocator::GetRenderer();
-	
+	m_iVertexBufferIndex = renderer->CreateIndexedVertexBuffer((void*)(GetVerticesData()), GetVerticesSize(), (void*)(GetIndicesData()), GetIndicesSize());
 
-	renderer->CreateVertexBuffer((void*)(GetVerticesData()), GetVerticesSize());
-	renderer->CreateIndexBuffer((void*)(GetIndicesData()), GetIndicesSize());
+
 }

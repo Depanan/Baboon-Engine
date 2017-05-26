@@ -81,6 +81,9 @@
     <ClCompile Include="Source\Cameras\CameraManager.cpp">
       <Filter>Cameras</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\VKBuffer.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Core\Image.h">
@@ -148,6 +151,12 @@
     </ClInclude>
     <ClInclude Include="Source\Core\ThreadPool.h">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\VKBuffer.h">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\VKTypes.h">
+      <Filter>Renderer\Vulkan</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

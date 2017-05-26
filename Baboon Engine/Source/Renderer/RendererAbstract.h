@@ -20,10 +20,9 @@ public:
 	virtual int CreateTexture(void*  i_data, int i_Widht, int i_Height) = 0;
 	virtual void CreateMaterial(std::string i_MatName, int* iTexIndices, int iNumTextures) = 0;
 	virtual void DeleteMaterials() = 0;
-	virtual void CreateVertexBuffer(const void*  i_data, size_t iBufferSize) = 0;
-	virtual void CreateIndexBuffer(const void*  i_data, size_t iBufferSize) = 0;
-	virtual void DeleteVertexBuffer() = 0;
-	virtual void DeleteIndexBuffer() = 0;
+	virtual int CreateIndexedVertexBuffer(const void*  i_VertexData, size_t iVertexSize, const void*  i_IndexData, size_t iIndexSize) = 0;
+	virtual void DeleteIndexedVertexBuffer() = 0;
+	
 	virtual void CreateStaticUniformBuffer(const void*  i_data, size_t iBufferSize){}
 	virtual void CreateInstancedUniformBuffer(const void*  i_data, size_t iBufferSize){}
 	virtual void DeleteStaticUniformBuffer() {}
