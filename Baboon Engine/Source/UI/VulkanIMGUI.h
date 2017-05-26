@@ -15,13 +15,14 @@ private:
 	VkCommandPool m_CommandPool;
 	std::vector<VkCommandBuffer> m_CmdBuffers;
 	VkRenderPass m_RenderPass;
-	VkFence m_ReSubmitFence;
+	
 	VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
+	
 	void CreateRenderPass();
 	void CreateDescriptorPool();
 	void CreateCommandPool();
 	void CreateCommandBuffers();
-	void CreateReSubmitFence();
+	
 	void UpdateCommandBuffers(bool i_ForceSkipFence = false);
 
 

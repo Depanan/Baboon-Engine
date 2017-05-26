@@ -123,18 +123,16 @@ void RendererVulkan::UploadUniforms()
 	copyVKBuffer(m_StaticUniformBuffers[iSceneUniformsIndex].GetStagingBuffer(), m_StaticUniformBuffers[iSceneUniformsIndex].GetBuffer(), uploadSize);
 	
 	
-	
-	
-	uploadSize = m_DynamicUniformBuffers[iInstanceUBOIndex].GetBufferSize();
+	if (ServiceLocator::GetSceneManager()->GetScene()->IsInit())
+	{ 
+		uploadSize = m_DynamicUniformBuffers[iInstanceUBOIndex].GetBufferSize();
 
-	
-	vkMapMemory(m_LogicalDevice, m_DynamicUniformBuffers[iInstanceUBOIndex].GetStagingMemory(), 0, uploadSize, 0, &data);
-	memcpy(data, instanceUniforms, uploadSize);
-	vkUnmapMemory(m_LogicalDevice, m_DynamicUniformBuffers[iInstanceUBOIndex].GetStagingMemory());
+		vkMapMemory(m_LogicalDevice, m_DynamicUniformBuffers[iInstanceUBOIndex].GetStagingMemory(), 0, uploadSize, 0, &data);
+		memcpy(data, instanceUniforms, uploadSize);
+		vkUnmapMemory(m_LogicalDevice, m_DynamicUniformBuffers[iInstanceUBOIndex].GetStagingMemory());
 
-	copyVKBuffer(m_DynamicUniformBuffers[iInstanceUBOIndex].GetStagingBuffer(), m_DynamicUniformBuffers[iInstanceUBOIndex].GetBuffer(), uploadSize);
-	
-
+		copyVKBuffer(m_DynamicUniformBuffers[iInstanceUBOIndex].GetStagingBuffer(), m_DynamicUniformBuffers[iInstanceUBOIndex].GetBuffer(), uploadSize);
+	}
 }
 
 void RendererVulkan::DrawFrame()
@@ -143,10 +141,14 @@ void RendererVulkan::DrawFrame()
 
 	m_GUI.DoUI();
 
+	UploadUniforms();//TODO: DO THIS ONLY IF UNIFORMS HAVE BEEN UPDATED
+
 	ServiceLocator::GetCameraManager()->BindCameraUniforms(CameraManager::eCameraType_Main);
 
 
 	uint32_t imageIndex;
+	
+	
 	//The numeric limits integer is the timeout in nanoseconds, we are actually disabling it
 	vkAcquireNextImageKHR(m_LogicalDevice, m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 	
@@ -158,19 +160,33 @@ void RendererVulkan::DrawFrame()
 	waitSemaphores.push_back(m_ImageAvailableSemaphore);
 	waitSemaphoresStages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);//This means the point of the pipeline we will wait for the image to be available, so we can execute ALL pipeline till here
 	
+
 	//TODO: Make this command buffer scene command buffer or static geometry command buffer...
-	if (m_CommandBuffers.size() > 0)
+	if (ServiceLocator::GetSceneManager()->GetScene()->IsInit())
 	{
-		UploadUniforms();//TODO: DO THIS ONLY IF UNIFORMS HAVE BEEN UPDATED
 
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &m_CommandBuffers[imageIndex];
 
+	
 		if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
 			throw std::runtime_error("failed to submit draw command buffer!");
 		}
+	}
+	else
+	{
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &m_FakeCommandBuffers[imageIndex];;
+
+
+		if (vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+			throw std::runtime_error("failed to submit draw command buffer!");
+		}
+
 	}
 	
 	
@@ -192,7 +208,7 @@ void RendererVulkan::DrawFrame()
 
 	vkQueuePresentKHR(m_PresentQueue, &presentInfo);
 
-
+	
 
 	
 
@@ -345,6 +361,11 @@ RendererVulkan::QueueFamilyIndices  RendererVulkan::findQueueFamilies(VkPhysical
 		if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
 			indices.graphicsFamily = i;
 		}
+
+		//Transfer only support
+		if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT && !(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+			indices.transferFamily = i;
+		}
 		
 		
 		//Present suppoort
@@ -470,7 +491,7 @@ void  RendererVulkan::createLogicalDevice()
 	QueueFamilyIndices indices = findQueueFamilies(m_PhysicalDevice);
 
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	std::set<int> uniqueQueueFamilies = { indices.graphicsFamily, indices.presentFamily };
+	std::set<int> uniqueQueueFamilies = { indices.graphicsFamily, indices.presentFamily, indices.transferFamily };
 
 	float queuePriority = 1.0f;
 	for (int queueFamily : uniqueQueueFamilies) {
@@ -508,6 +529,7 @@ void  RendererVulkan::createLogicalDevice()
 
 	vkGetDeviceQueue(m_LogicalDevice, indices.graphicsFamily, 0, &m_graphicsQueue);
 	vkGetDeviceQueue(m_LogicalDevice, indices.presentFamily, 0, &m_PresentQueue);
+	vkGetDeviceQueue(m_LogicalDevice, indices.transferFamily, 0, &m_TransferQueue);
 	
 }
 
@@ -571,12 +593,16 @@ void RendererVulkan::createSwapChain(int width, int height)
 
 	m_SwapChain = newSwapChain;
 	
-
 	//Retrieving images from swapchain for use during rendering
-	vkGetSwapchainImagesKHR(m_LogicalDevice, m_SwapChain, &imageCount, nullptr);
-	m_SwapChainImages.resize(imageCount);
-	vkGetSwapchainImagesKHR(m_LogicalDevice, m_SwapChain, &imageCount, m_SwapChainImages.data());
 
+	if (oldSwapChain == VK_NULL_HANDLE)//First time -> not a resize, validation will complain but we don't care
+	{
+		vkGetSwapchainImagesKHR(m_LogicalDevice, m_SwapChain, &imageCount, nullptr);
+		m_SwapChainImages.resize(imageCount);
+	}
+
+	vkGetSwapchainImagesKHR(m_LogicalDevice, m_SwapChain, &imageCount, m_SwapChainImages.data());
+	
 	m_SwapChainImageFormat = surfaceFormat.format;
 	m_SwapChainExtent = extent;
 }
@@ -953,9 +979,9 @@ void RendererVulkan::createCommandPools()
 	//Special Command pool for short lived command buffers like the ones for mem transfer. They die once their job is done
 	VkCommandPoolCreateInfo poolInfoMemTransfers = {};
 	poolInfoMemTransfers.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolInfoMemTransfers.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
+	poolInfoMemTransfers.queueFamilyIndex = queueFamilyIndices.transferFamily;
 	poolInfoMemTransfers.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT ;
-
+	
 	if (vkCreateCommandPool(m_LogicalDevice, &poolInfoMemTransfers, nullptr, m_MemTransferCommandPool.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create command pool!");
 	}
@@ -970,7 +996,7 @@ void RendererVulkan::createDepthResources()
 	createVulkanImage(m_SwapChainExtent.width, m_SwapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DepthImage.GetVKImage(), m_DepthImage.GetVKImageMemory());
 	createImageView(m_DepthImage.GetVKImage(), depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, m_DepthImage.GetVKImageView());
 
-	transitionImageLayout(m_DepthImage.GetVKImage(), depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+	transitionImageLayout(m_DepthImage.GetVKImage(), depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,m_graphicsQueue,m_CommandPool);
 }
 
 
@@ -1024,7 +1050,7 @@ void RendererVulkan::CreateMaterial(std::string i_MatName,  int* iTexIndices, in
 void RendererVulkan::DeleteMaterials()
 {
 	//Wait for device idle we don't wanna mess here
-	vkDeviceWaitIdle(m_LogicalDevice);
+	//vkDeviceWaitIdle(m_LogicalDevice);
 
 	m_MaterialsMap.clear();
 
@@ -1142,7 +1168,7 @@ void RendererVulkan::CreateIndexBuffer(const void*  i_data, size_t iBufferSize)
 void RendererVulkan::DeleteVertexBuffer()
 {
 	//Wait for device idle we don't wanna mess here
-	vkDeviceWaitIdle(m_LogicalDevice);
+	//vkDeviceWaitIdle(m_LogicalDevice);
 	//vkDestroyBuffer(m_LogicalDevice, m_MainVertexBuffer, nullptr);
 	m_MainVertexBuffer = VK_NULL_HANDLE;
 	//vkFreeMemory(m_LogicalDevice, m_MainVertexBufferMemory, nullptr);
@@ -1188,7 +1214,7 @@ void RendererVulkan::CreateInstancedUniformBuffer(const void*  i_data, size_t iB
 void RendererVulkan::DeleteStaticUniformBuffer()
 {
 	//Wait for device idle we don't wanna mess here
-	vkDeviceWaitIdle(m_LogicalDevice);
+	//vkDeviceWaitIdle(m_LogicalDevice);
 
 	m_StaticUniformBuffers.clear();
 
@@ -1377,6 +1403,7 @@ void RendererVulkan::createCommandBuffers()
 		vkFreeCommandBuffers(m_LogicalDevice, m_CommandPool, m_CommandBuffers.size(), m_CommandBuffers.data());
 	}
 
+
 	//Resize to match framebuffers, we will have one command buffer per framebuffer
 	m_CommandBuffers.resize(m_SwapChainFramebuffers.size());
 
@@ -1390,15 +1417,31 @@ void RendererVulkan::createCommandBuffers()
 		throw std::runtime_error("failed to allocate command buffers!");
 	}
 
+
+	/////////////////////////////FAKE ONES////////////////////////////////
+	if (m_FakeCommandBuffers.size() > 0) {
+		vkFreeCommandBuffers(m_LogicalDevice, m_CommandPool, m_FakeCommandBuffers.size(), m_FakeCommandBuffers.data());
+	}
+
+
+	//Resize to match framebuffers, we will have one command buffer per framebuffer
+	m_FakeCommandBuffers.resize(m_SwapChainFramebuffers.size());
+
+	
+
+	if (vkAllocateCommandBuffers(m_LogicalDevice, &allocInfo, m_FakeCommandBuffers.data()) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate command buffers!");
+	}
+
 	//FILL WITH EMPTY DATA
-	for (size_t i = 0; i < m_CommandBuffers.size(); i++) {
+	for (size_t i = 0; i < m_FakeCommandBuffers.size(); i++) {
 
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;//Means we can submit whilst still drawing previous frame
 		beginInfo.pInheritanceInfo = nullptr; // Optional
 
-		vkBeginCommandBuffer(m_CommandBuffers[i], &beginInfo);//Calling this will delete previous content meaning we cant append to previous content
+		vkBeginCommandBuffer(m_FakeCommandBuffers[i], &beginInfo);//Calling this will delete previous content meaning we cant append to previous content
 
 		VkRenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -1415,12 +1458,12 @@ void RendererVulkan::createCommandBuffers()
 		renderPassInfo.clearValueCount = clearValues.size();
 		renderPassInfo.pClearValues = clearValues.data();
 
-		vkCmdBeginRenderPass(m_CommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(m_FakeCommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdEndRenderPass(m_CommandBuffers[i]);
+		vkCmdEndRenderPass(m_FakeCommandBuffers[i]);
 
 
-		if (vkEndCommandBuffer(m_CommandBuffers[i]) != VK_SUCCESS) {
+		if (vkEndCommandBuffer(m_FakeCommandBuffers[i]) != VK_SUCCESS) {
 			throw std::runtime_error("failed to record command buffer!");
 		}
 	}
@@ -1503,7 +1546,7 @@ void RendererVulkan::createVKBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
 
 void RendererVulkan::copyImage(VkImage srcImage, VkImage dstImage, uint32_t width, uint32_t height)
 {
-	VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+	VkCommandBuffer commandBuffer = beginSingleTimeCommands(m_MemTransferCommandPool);
 
 	VkImageSubresourceLayers subResource = {};
 	subResource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1527,7 +1570,7 @@ void RendererVulkan::copyImage(VkImage srcImage, VkImage dstImage, uint32_t widt
 		1, &region
 	);
 
-	endSingleTimeCommands(commandBuffer);
+	endSingleTimeCommands(commandBuffer,m_TransferQueue, m_MemTransferCommandPool);
 
 }
 
@@ -1574,12 +1617,12 @@ void RendererVulkan::createTextureImage(void*  i_data, int i_Widht, int i_Height
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, io_Image, io_Memory);
 
 	//Before anything images should transition to its optimal transfer states
-	transitionImageLayout(stagingImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_PREINITIALIZED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-	transitionImageLayout(io_Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_PREINITIALIZED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	transitionImageLayout(stagingImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_PREINITIALIZED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,m_TransferQueue,m_MemTransferCommandPool);
+	transitionImageLayout(io_Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_PREINITIALIZED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_TransferQueue, m_MemTransferCommandPool);
 	copyImage(stagingImage, io_Image, i_Widht, i_Height);
 
-	transitionImageLayout(io_Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
+	transitionImageLayout(io_Image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_TransferQueue, m_MemTransferCommandPool);
+	
 
 
 }
@@ -1605,25 +1648,25 @@ void RendererVulkan::createImageView(VkImage image, VkFormat format, VkImageAspe
 
 void RendererVulkan::copyVKBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
-	VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+	VkCommandBuffer commandBuffer = beginSingleTimeCommands(m_MemTransferCommandPool);
 
 	VkBufferCopy copyRegion = {};
 	copyRegion.size = size;
 	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-	endSingleTimeCommands(commandBuffer);
+	endSingleTimeCommands(commandBuffer,m_TransferQueue,m_MemTransferCommandPool);
 
 
 }
 
 
 
-VkCommandBuffer RendererVulkan::beginSingleTimeCommands()
+VkCommandBuffer RendererVulkan::beginSingleTimeCommands(VkCommandPool pool)
 {
 	VkCommandBufferAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandPool = m_CommandPool;
+	allocInfo.commandPool = pool;
 	allocInfo.commandBufferCount = 1;
 
 	VkCommandBuffer commandBuffer;
@@ -1637,7 +1680,7 @@ VkCommandBuffer RendererVulkan::beginSingleTimeCommands()
 
 	return commandBuffer;
 }
-void RendererVulkan::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+void RendererVulkan::endSingleTimeCommands(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool)
 {
 	vkEndCommandBuffer(commandBuffer);
 
@@ -1646,16 +1689,27 @@ void RendererVulkan::endSingleTimeCommands(VkCommandBuffer commandBuffer)
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &commandBuffer;
 
-	vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-	vkQueueWaitIdle(m_graphicsQueue);
+	// Create fence to ensure that the command buffer has finished executing
+	VkFenceCreateInfo fenceInfo;
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = 0;
+	fenceInfo.pNext = nullptr;
+	VkFence fence;
+	vkCreateFence(m_LogicalDevice, &fenceInfo, nullptr, &fence);
 
-	vkFreeCommandBuffers(m_LogicalDevice, m_CommandPool, 1, &commandBuffer);
+	
+	vkQueueSubmit(queue, 1, &submitInfo, fence);
+	
+	vkWaitForFences(m_LogicalDevice, 1, &fence, VK_TRUE, 100000000000);
+	vkDestroyFence(m_LogicalDevice, fence, nullptr);
+
+	vkFreeCommandBuffers(m_LogicalDevice, pool, 1, &commandBuffer);
 
 }
 
-void RendererVulkan::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+void RendererVulkan::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkQueue queue, VkCommandPool pool)
 {
-	VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+	VkCommandBuffer commandBuffer = beginSingleTimeCommands(pool);
 
   	VkImageMemoryBarrier barrier = {};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -1664,7 +1718,7 @@ void RendererVulkan::transitionImageLayout(VkImage image, VkFormat format, VkIma
 	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.image = image;
-
+	
 
 
 	if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
@@ -1707,7 +1761,7 @@ void RendererVulkan::transitionImageLayout(VkImage image, VkFormat format, VkIma
 
 	vkCmdPipelineBarrier(
 		commandBuffer,
-		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+		VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 		0,
 		0, nullptr,
 		0, nullptr,
@@ -1719,7 +1773,7 @@ void RendererVulkan::transitionImageLayout(VkImage image, VkFormat format, VkIma
 
 
 
-	endSingleTimeCommands(commandBuffer);
+	endSingleTimeCommands(commandBuffer,queue,pool);
 }
 
 VkSurfaceFormatKHR RendererVulkan::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)

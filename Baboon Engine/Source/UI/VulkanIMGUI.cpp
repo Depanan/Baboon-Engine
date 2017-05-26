@@ -12,7 +12,6 @@ VulkanImGUI::~VulkanImGUI()
 {
 	ImGui_ImplGlfwVulkan_Shutdown();
 	RendererVulkan* pRenderer = (RendererVulkan*)ServiceLocator::GetRenderer();
-	vkDestroyFence(pRenderer->m_LogicalDevice, m_ReSubmitFence, VK_NULL_HANDLE);
 	vkDestroyCommandPool(pRenderer->m_LogicalDevice, m_CommandPool, VK_NULL_HANDLE);
 	vkDestroyRenderPass(pRenderer->m_LogicalDevice, m_RenderPass,VK_NULL_HANDLE);
 	vkDestroyDescriptorPool(pRenderer->m_LogicalDevice, m_DescriptorPool, VK_NULL_HANDLE);
@@ -21,12 +20,14 @@ VulkanImGUI::~VulkanImGUI()
 void VulkanImGUI::Init(GLFWwindow* i_window)
 {
 	//Init Fence
-	CreateReSubmitFence();
+	//CreateReSubmitFence();
 
 	//Init renderpass
 	CreateRenderPass();
 	//Init descriptor pool
 	CreateDescriptorPool();
+
+	CreateCommandPool();
 
 	RendererVulkan* pRenderer = (RendererVulkan*)ServiceLocator::GetRenderer();
 
@@ -40,13 +41,45 @@ void VulkanImGUI::Init(GLFWwindow* i_window)
 	init_data.check_vk_result = VK_NULL_HANDLE;
 	ImGui_ImplGlfwVulkan_Init(i_window, true, &init_data);//This function creates descriptor sets and all the stuff needed with the provided init data struct
 
-	VkCommandBuffer createFontsCommand = pRenderer->beginSingleTimeCommands();
-	ImGui_ImplGlfwVulkan_CreateFontsTexture(createFontsCommand);
-	pRenderer->endSingleTimeCommands(createFontsCommand);
+	//VkCommandBuffer createFontsCommand = pRenderer->beginSingleTimeCommands();
+	//////////////////
+	VkCommandBufferAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandPool = m_CommandPool;
+	allocInfo.commandBufferCount = 1;
+
+	VkCommandBuffer commandBuffer;
+	vkAllocateCommandBuffers(pRenderer->m_LogicalDevice, &allocInfo, &commandBuffer);
+
+	VkCommandBufferBeginInfo beginInfo = {};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+	//////////////////
+
+	ImGui_ImplGlfwVulkan_CreateFontsTexture(commandBuffer);
+	
+	//////////////////
+	vkEndCommandBuffer(commandBuffer);
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+
+	vkQueueSubmit(pRenderer->m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(pRenderer->m_graphicsQueue);
+
+	vkFreeCommandBuffers(pRenderer->m_LogicalDevice, m_CommandPool, 1, &commandBuffer);
+	////////////////////
+	
 	ImGui_ImplGlfwVulkan_InvalidateFontUploadObjects();
 
 	
-	CreateCommandPool();
+	
 	CreateCommandBuffers();
 }
 void VulkanImGUI::OnWindowResize()
@@ -180,15 +213,7 @@ void VulkanImGUI::DoUI(bool i_FirstCall)
 
 	UpdateCommandBuffers(i_FirstCall);
 }
-void VulkanImGUI::CreateReSubmitFence()
-{
-	RendererVulkan* pRenderer = (RendererVulkan*)ServiceLocator::GetRenderer();
-	VkFenceCreateInfo fenceCreateInfo;
-	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceCreateInfo.flags = 0;
-	fenceCreateInfo.pNext = VK_NULL_HANDLE;
-	vkCreateFence(pRenderer->m_LogicalDevice, &fenceCreateInfo, NULL, &m_ReSubmitFence);
-}
+
 void VulkanImGUI::CreateCommandPool()
 {
 	RendererVulkan* pRenderer = (RendererVulkan*)ServiceLocator::GetRenderer();

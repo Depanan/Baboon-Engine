@@ -10,7 +10,7 @@ void Camera::Init()
 	m_MoveSpeed = 100.0f;
 	m_RotatingSpeed = 10.0f;
 	m_bRotating = false;
-
+	m_Position = glm::vec3(0.0f, 0.0f, -100.0f);
 	
 	
 	m_ViewMat = glm::mat4();
@@ -27,6 +27,8 @@ void Camera::Init()
 	pInput->MapMouseButtonClicked(1, Camera::startRotation, this);
 	pInput->MapMouseMoved(Camera::rotate, this);
 	pInput->MapMouseButtonReleased(1, Camera::endRotation, this);
+
+	UpdateViewMatrix();
 }
 void Camera::UpdateProjectionMatrix()
 {

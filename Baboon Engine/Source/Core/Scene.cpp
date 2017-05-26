@@ -54,10 +54,11 @@ void Scene::Init(const std::string i_ScenePath)
 	if (m_bIsInit)
 		Free();
 
-	loadAssets(i_ScenePath);
+	
 	//TODO: Make this work multithread
-	//ServiceLocator::GetThreadPool()->threads[0]->addJob([=] { loadAssets(i_ScenePath); });
-	m_bIsInit = true;
+	ServiceLocator::GetThreadPool()->threads[0]->addJob([=] { loadAssets(i_ScenePath); });
+	
+	//loadAssets(i_ScenePath);
 	
 }
 
@@ -135,7 +136,7 @@ void Scene::loadAssets(const std::string i_ScenePath)
 
 	
 	renderer->SetupRenderCalls();
-	
+	m_bIsInit = true;
 }
 
 void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneTexturesPath)
@@ -151,7 +152,7 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 		aiString matName;
 		pMaterial->Get(AI_MATKEY_NAME, matName);
 
-		printf("\n Creating material: %s", matName.C_Str());
+		printf("\n Creating material: %s \n", matName.C_Str());
 
 		std::vector<int> i_TexIndices;
 
@@ -170,7 +171,7 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 		{
 			pMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &texturefile);
 			std::string fileName = i_SceneTexturesPath + std::string(texturefile.C_Str());
-			printf("\n Loading texture: %s", fileName.c_str());
+			printf("\n Loading texture: %s\n", fileName.c_str());
 			pPixels = stbi_load(fileName.c_str(), &width, &height, &texChannels, STBI_rgb_alpha);
 		}
 		if(pPixels == nullptr)
@@ -182,10 +183,15 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 		if (pPixels == nullptr)
 			throw std::runtime_error("Texture not found, I will handle this properly at some point shouldn't just break!");
 
+
 		int iTexIndex = renderer->CreateTexture((void*)pPixels, width, height);
+		
+		
 		i_TexIndices.push_back(iTexIndex);
 		
+
 		stbi_image_free(pPixels);
+		
 
 		renderer->CreateMaterial(std::string(matName.C_Str()), i_TexIndices.data(),i_TexIndices.size());
 		m_Materials[i].Init(std::string(matName.C_Str()));

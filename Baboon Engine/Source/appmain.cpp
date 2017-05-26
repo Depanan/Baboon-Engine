@@ -4,6 +4,7 @@
 #include "Core\Scene.h"
 #include "Core\Input.h"
 #include "Cameras\CameraManager.h"
+#include "Core\ThreadPool.h"
 
 static std::string s_Window_Title = "Baboon Engine";
 
@@ -16,7 +17,7 @@ public:
 		initWindow();
 	    initRenderer();
 		ServiceLocator::GetCameraManager()->Init();
-		//ServiceLocator::GetSceneManager()->GetScene()->Init();
+		ServiceLocator::GetSceneManager()->GetScene()->Init("F:\\Personal Work\\Vulkan Experiments\\Baboon Engine\\Scenes\\box.obj");
 		
 	}
 
@@ -91,24 +92,20 @@ private:
 };
 
 
-void a()
-{
-	printf("\nKey A");
-}
-void b()
-{
-	printf("\nKey B");
-}
-
 
 int main() {
 	
+
+	ThreadPool threadPool;
+	threadPool.setThreadCount(2);
+
 	GraphicGLFWApp mainApp;
 	RendererVulkan vulkanRenderer;//HERE WE COULD CREATE AN OPENGL RENDERER
 	SceneManager theSceneManager;
 	Input theInput;
 	CameraManager camManager;
 
+	ServiceLocator::Provide(&threadPool);
 	ServiceLocator::Provide(&theSceneManager);
 	ServiceLocator::Provide(&vulkanRenderer);
 	ServiceLocator::Provide(&theInput);

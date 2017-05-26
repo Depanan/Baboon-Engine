@@ -212,8 +212,8 @@ public:
 
 	void UpdateTimesAndFPS(std::chrono::time_point<std::chrono::high_resolution_clock>  i_tStartTime) override;
 	
-	VkCommandBuffer beginSingleTimeCommands();
-	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+	VkCommandBuffer beginSingleTimeCommands(VkCommandPool pool);
+	void endSingleTimeCommands(VkCommandBuffer commandBuffer ,VkQueue queue, VkCommandPool pool);
 	VkFormat GetMainRTColorFormat() {return m_SwapChainImageFormat;}
 	VkFormat GetMainRTDepthFormat() { return m_SwapChainDepthFormat; }
 private:
@@ -222,9 +222,10 @@ private:
 	struct QueueFamilyIndices {
 		int graphicsFamily = -1;
 		int presentFamily = -1;
+		int transferFamily = -1;
 
 		bool isComplete() {
-			return graphicsFamily >= 0 && presentFamily >= 0;
+			return graphicsFamily >= 0 && presentFamily >= 0 && transferFamily >= 0;
 		}
 	};
 
@@ -242,6 +243,7 @@ private:
 	
 	VkQueue m_graphicsQueue;
 	VkQueue m_PresentQueue;
+	VkQueue m_TransferQueue;
 	VKHandleWrapper <VkSurfaceKHR> m_Surface  { m_Instance,vkDestroySurfaceKHR };
 	VKHandleWrapper <VkSwapchainKHR> m_SwapChain  { m_LogicalDevice,vkDestroySwapchainKHR };
 	VKHandleWrapper<VkRenderPass> m_RenderPass  { m_LogicalDevice,vkDestroyRenderPass };
@@ -252,6 +254,7 @@ private:
 	std::vector<VKHandleWrapper<VkImageView>> m_SwapChainImageViews; //views to the images above
 	std::vector<VKHandleWrapper<VkFramebuffer>> m_SwapChainFramebuffers;
 	std::vector<VkCommandBuffer> m_CommandBuffers;
+	std::vector<VkCommandBuffer> m_FakeCommandBuffers;
 
 	VKImageWrapper m_DepthImage;
 
@@ -306,7 +309,7 @@ private:
 
 	#ifdef NDEBUG
 		const bool m_bEnableValidationLayers = false;
-	#else
+	#else	
 		const bool m_bEnableValidationLayers = true;
 
 
@@ -389,7 +392,7 @@ private:
 
 	
 
-	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,  VkQueue queue , VkCommandPool pool);
 
 	int32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
