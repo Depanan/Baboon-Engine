@@ -69,8 +69,7 @@ void Scene::Free()
 	m_Models.clear();
 	m_Materials.clear();
 	m_Meshes.clear();
-	m_Indices.clear();
-	m_Vertices.clear();
+	
 	//renderer->DeleteIndexBuffer();
 	renderer->DeleteIndexedVertexBuffer();
 	m_iVertexBufferIndex = -1;
@@ -203,6 +202,9 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 }
 void Scene::loadModels(const aiScene* i_aScene)
 {
+	std::vector<Vertex> vertices;
+	std::vector<uint32_t> indices;
+
 	int numberOfModelsInScene = i_aScene->mNumMeshes;
 
 	int dynamicAlignment = 256;//TODO: This should come from somewhere...
@@ -229,7 +231,7 @@ void Scene::loadModels(const aiScene* i_aScene)
 			vertex.texCoord = hasUV ? glm::vec2(aMesh->mTextureCoords[0][v].x, 1.0f - aMesh->mTextureCoords[0][v].y) : glm::vec2(0.0f);
 			vertex.normal = hasNormals ? glm::make_vec3(&aMesh->mNormals[v].x) : glm::vec3(0.0f);
 			vertex.color = hasColor ? glm::make_vec3(&aMesh->mColors[0][v].r) : glm::vec3(1.0f);
-			m_Vertices.push_back(vertex);
+			vertices.push_back(vertex);
 		}
 		
 
@@ -243,7 +245,7 @@ void Scene::loadModels(const aiScene* i_aScene)
 			}
 			for (uint32_t j = 0; j < pFace->mNumIndices; j++)
 			{
-				m_Indices.push_back(pFace->mIndices[j]);
+				indices.push_back(pFace->mIndices[j]);
 				iNIndices++;
 			}
 		}
@@ -258,7 +260,8 @@ void Scene::loadModels(const aiScene* i_aScene)
 	}
 
 	RendererAbstract* renderer = ServiceLocator::GetRenderer();
-	m_iVertexBufferIndex = renderer->CreateIndexedVertexBuffer((void*)(GetVerticesData()), GetVerticesSize(), (void*)(GetIndicesData()), GetIndicesSize());
-
+	m_iVertexBufferIndex = renderer->CreateIndexedVertexBuffer((void*)(vertices.data()), sizeof(vertices[0]) * vertices.size(), (void*)(indices.data()), sizeof(indices[0]) * indices.size());
+	vertices.clear();
+	indices.clear();
 
 }

@@ -13,13 +13,7 @@ class Scene {
 public:
 	Scene();
 	~Scene();
-	const Vertex* GetVerticesData() { return m_Vertices.data(); }
-	const int GetVerticesNumber() { return m_Vertices.size(); }
-	const size_t GetVerticesSize() { return sizeof(m_Vertices[0]) * m_Vertices.size(); }
-
-	const uint32_t* GetIndicesData() { return m_Indices.data(); }
-	const int GetIndicesNumber() { return m_Indices.size(); }
-	const size_t GetIndicesSize() { return sizeof(m_Indices[0]) * m_Indices.size(); }
+	
 
 	
 	void OnWindowResize();
@@ -50,13 +44,10 @@ private:
 	
 	InstanceUBO* m_InstanceUniforms =nullptr;
 
+
 	std::vector <Model> m_Models;
 	std::vector <Mesh> m_Meshes;
 	std::vector <Material> m_Materials;
-
-	//Global data for indexed meshes
-	std::vector<Vertex> m_Vertices;
-	std::vector<uint32_t> m_Indices;
 	int m_iVertexBufferIndex = -1;//In the renderer internal storage
 
 	void loadAssets(const std::string i_ScenePath);
