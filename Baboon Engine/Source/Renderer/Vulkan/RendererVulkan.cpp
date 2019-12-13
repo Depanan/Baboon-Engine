@@ -615,7 +615,7 @@ void RendererVulkan::createRenderPass() {
 	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; //We don't care about the content the previous frame
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;//Here we declare the intention this colorAttachment will be used for
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;//Here we declare the intention this colorAttachment will be used for
 
 	VkAttachmentReference colorAttachmentRef = {};
 	colorAttachmentRef.attachment = 0;
@@ -1090,6 +1090,7 @@ void RendererVulkan::createTextureSampler(VKHandleWrapper<VkSampler>& i_Sampler)
 	samplerInfo.mipLodBias = 0.0f;
 	samplerInfo.minLod = 0.0f;
 	samplerInfo.maxLod = 0.0f;
+  samplerInfo.anisotropyEnable = VK_FALSE;
 
 	if (vkCreateSampler(m_LogicalDevice, &samplerInfo, nullptr, i_Sampler.replace()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create texture sampler!");
@@ -1684,22 +1685,37 @@ void RendererVulkan::transitionImageLayout(VkImage image, VkFormat format, VkIma
 	barrier.subresourceRange.baseArrayLayer = 0;
 	barrier.subresourceRange.layerCount = 1;
 
+  VkPipelineStageFlags sourceStage;
+  VkPipelineStageFlags destinationStage;
+
 
 	if (oldLayout == VK_IMAGE_LAYOUT_PREINITIALIZED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL) {
 		barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
 		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+    sourceStage = VK_PIPELINE_STAGE_HOST_BIT;
+    destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 	}
 	else if (oldLayout == VK_IMAGE_LAYOUT_PREINITIALIZED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-		barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+		barrier.srcAccessMask = 0;
 		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+    sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 	}
 	else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
 		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+    sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 	}
 	else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
 		barrier.srcAccessMask = 0;
 		barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+    sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 	}
 	else {
 		throw std::invalid_argument("unsupported layout transition!");
@@ -1707,7 +1723,7 @@ void RendererVulkan::transitionImageLayout(VkImage image, VkFormat format, VkIma
 
 	vkCmdPipelineBarrier(
 		commandBuffer,
-		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+    sourceStage, destinationStage,
 		0,
 		0, nullptr,
 		0, nullptr,
