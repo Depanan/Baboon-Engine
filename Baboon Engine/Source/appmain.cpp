@@ -37,6 +37,8 @@ public:
 			
 			pRenderer->UpdateTimesAndFPS(tStart);
 			
+      ServiceLocator::GetLogger()->process();
+
 		}
 		pRenderer->WaitToDestroy();
 
@@ -77,13 +79,17 @@ private:
 	{
 		
 
-		unsigned int glfwExtensionCount = 0;
-		const char** glfwExtensions;
+    std::vector<const char*> extensions;
 
-		glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-		
+    unsigned int glfwExtensionCount = 0;
+    const char** glfwExtensions;
 
-		return ServiceLocator::GetRenderer()->Init(glfwExtensions, glfwExtensionCount,m_window);
+    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    extensions.insert(extensions.begin(), glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+    
+
+		return ServiceLocator::GetRenderer()->Init(extensions,m_window);
 
 	}
 	
@@ -91,14 +97,6 @@ private:
 };
 
 
-void a()
-{
-	printf("\nKey A");
-}
-void b()
-{
-	printf("\nKey B");
-}
 
 
 int main() {
@@ -108,11 +106,13 @@ int main() {
 	SceneManager theSceneManager;
 	Input theInput;
 	CameraManager camManager;
+  Logger logger;
 
 	ServiceLocator::Provide(&theSceneManager);
 	ServiceLocator::Provide(&vulkanRenderer);
 	ServiceLocator::Provide(&theInput);
 	ServiceLocator::Provide(&camManager);
+  ServiceLocator::Provide(&logger);
 	
 	try {
 		mainApp.init();

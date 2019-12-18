@@ -4,10 +4,14 @@
 #include "vulkan\vulkan.h"
 #include <vector>
 #include <map>
-#include <iostream>
+#include <memory>
 #include <functional>
 #include "Renderer\Common\Mesh.h"
 #include "UI\VulkanIMGUI.h"
+#include "Instance.h"
+
+
+
 
 template <typename T>
 class VKHandleWrapper {
@@ -187,7 +191,7 @@ public:
 	
 
 	
-	int Init(const char** i_requiredExtensions, const unsigned int i_nExtensions,  GLFWwindow* i_window) override;
+	int Init(std::vector<const char*>& required_extensions,  GLFWwindow* i_window) override;
 	void Destroy() override;
 	void DrawFrame() override;
 	void OnWindowResize(int i_NewW, int i_NewH) override;
@@ -233,16 +237,17 @@ private:
 		std::vector<VkSurfaceFormatKHR> formats;
 		std::vector<VkPresentModeKHR> presentModes;
 	};
-	VKHandleWrapper<VkInstance> m_Instance{ vkDestroyInstance };
 
-	VkApplicationInfo m_applicationInfo;
-	VkInstanceCreateInfo m_instanceInfo;
+  std::unique_ptr<Instance> m_Instance{ nullptr };
+  VkSurfaceKHR m_Surface{ VK_NULL_HANDLE };
+
+
 	VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
 	VKHandleWrapper <VkDevice> m_LogicalDevice{ vkDestroyDevice };
 	
 	VkQueue m_graphicsQueue;
 	VkQueue m_PresentQueue;
-	VKHandleWrapper <VkSurfaceKHR> m_Surface  { m_Instance,vkDestroySurfaceKHR };
+
 	VKHandleWrapper <VkSwapchainKHR> m_SwapChain  { m_LogicalDevice,vkDestroySwapchainKHR };
 	VKHandleWrapper<VkRenderPass> m_RenderPass  { m_LogicalDevice,vkDestroyRenderPass };
 	VKHandleWrapper<VkCommandPool> m_CommandPool  { m_LogicalDevice,vkDestroyCommandPool };
@@ -310,38 +315,15 @@ private:
 		const bool m_bEnableValidationLayers = true;
 
 
-		static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-			VkDebugReportFlagsEXT flags,
-			VkDebugReportObjectTypeEXT objType,
-			uint64_t obj,
-			size_t location,
-			int32_t code,
-			const char* layerPrefix,
-			const char* msg,
-			void* userData) {
-
-			std::cerr << "validation layer: " << msg << std::endl;
-
-			return VK_FALSE;
-		}
-
-		static void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback, const VkAllocationCallbacks* pAllocator) {
-			auto func = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
-			if (func != nullptr) {
-				func(instance, callback, pAllocator);
-			}
-		}
-
-		VKHandleWrapper<VkDebugReportCallbackEXT> m_Debugcallback{m_Instance,DestroyDebugReportCallbackEXT };
+		
 
 
-		void setupDebugCallback();
+	
 
 	#endif
 
 	
 
-	VkResult createInstance(const char** i_requiredExtensions, const unsigned int i_nExtensions);
 	void createSurface( GLFWwindow* i_window);
 	void pickPhysicalDevice();
 	void createLogicalDevice();

@@ -103,9 +103,8 @@ void Scene::loadAssets(const std::string i_ScenePath)
 	RendererAbstract* renderer = ServiceLocator::GetRenderer();
 
 	const aiScene* aScene;
-	
 
-	printf("\n-----------------Attempting to open scene : %s-----------------------", i_ScenePath.c_str());
+  LOGINFO("\n-----------------Attempting to open scene : "+ i_ScenePath + "-----------------------");
 
 	Assimp::Importer Importer;
 	int flags =   aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_GenSmoothNormals;
@@ -151,7 +150,7 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 		aiString matName;
 		pMaterial->Get(AI_MATKEY_NAME, matName);
 
-		printf("\n Creating material: %s", matName.C_Str());
+    LOGINFO("\n Creating material: " + matName.C_Str());
 
 		std::vector<int> i_TexIndices;
 
@@ -170,7 +169,8 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 		{
 			pMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &texturefile);
 			std::string fileName = i_SceneTexturesPath + std::string(texturefile.C_Str());
-			printf("\n Loading texture: %s", fileName.c_str());
+      LOGINFO("\n Loading texture: " + fileName);
+
 			pPixels = stbi_load(fileName.c_str(), &width, &height, &texChannels, STBI_rgb_alpha);
 		}
 		if(pPixels == nullptr)

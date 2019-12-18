@@ -2,12 +2,13 @@
 #include <GLFW/glfw3.h>
 #include <chrono>
 #include <string>
+#include <vector>
 class RendererAbstract
 {
 public:
 	
 	virtual ~RendererAbstract(){}
-	virtual int Init(const char** i_requiredExtensions, const unsigned int i_nExtensions,  GLFWwindow* i_window) = 0;
+	virtual int Init(std::vector<const char*>& required_extensions,  GLFWwindow* i_window) = 0;
 	virtual void Destroy() = 0;
 	virtual void DrawFrame() = 0;
 	virtual void OnWindowResize(int i_NewW, int i_NewH) = 0;

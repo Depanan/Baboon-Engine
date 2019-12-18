@@ -81,6 +81,15 @@
     <ClCompile Include="Source\Cameras\CameraManager.cpp">
       <Filter>Cameras</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\Instance.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\Device.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Core\Logger.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Core\Image.h">
@@ -146,7 +155,13 @@
     <ClInclude Include="Source\Cameras\CameraManager.h">
       <Filter>Cameras</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Core\ThreadPool.h">
+    <ClInclude Include="Source\Renderer\Vulkan\Instance.h">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\Device.h">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Core\Logger.h">
       <Filter>Core</Filter>
     </ClInclude>
   </ItemGroup>

@@ -45,10 +45,9 @@ void PrintVulkanSupportedExtensions()
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 	std::vector<VkExtensionProperties> extensions(extensionCount);
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-	std::cout << "available extensions:" << std::endl;
-
+  LOGINFO("available extensions:");
 	for (const auto& extension : extensions) {
-		std::cout << "\t" << extension.extensionName << std::endl;
+    LOGINFO("\t" + extension.extensionName);
 	}
 }
 
@@ -198,15 +197,17 @@ void RendererVulkan::DrawFrame()
 
 }
 
-int RendererVulkan::Init(const char** i_requiredExtensions, const unsigned int i_nExtensions, GLFWwindow* i_window)
+int RendererVulkan::Init(std::vector<const char*>& required_extensions, GLFWwindow* i_window)
 {
 	
 	PrintVulkanSupportedExtensions();
-	VkResult result = createInstance(i_requiredExtensions, i_nExtensions);
+  if(m_bEnableValidationLayers)
+    required_extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 	
-#ifndef NDEBUG
-		setupDebugCallback();
-#endif
+
+  m_Instance = std::make_unique<Instance>(required_extensions,m_bEnableValidationLayers);
+
+
 
 
 	createSurface(i_window);
@@ -232,71 +233,19 @@ int RendererVulkan::Init(const char** i_requiredExtensions, const unsigned int i
 
 	m_GUI.Init(i_window);
 
-
-	return (result == VK_SUCCESS);
+  return true;
+	//return (result == VK_SUCCESS);
 
 }
 void RendererVulkan::Destroy()	
 {
-
+    if (m_Surface != VK_NULL_HANDLE)
+    {
+        vkDestroySurfaceKHR(m_Instance->get_handle(), m_Surface, nullptr);
+    }
 }
 
-VkResult RendererVulkan::createInstance(const char** i_requiredExtensions, const unsigned int i_nExtensions)
-{
 
-	std::vector<const char*> extensions;
-	for (unsigned int i = 0; i < i_nExtensions; i++) 
-	{
-		extensions.push_back(i_requiredExtensions[i]);
-	}
-
-	if (m_bEnableValidationLayers)
-	{
-		if(!checkValidationLayerSupport(m_VvalidationLayers))
-			throw std::runtime_error("validation layers requested, but not available!");
-
-		extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-	}
-
-	m_applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	m_applicationInfo.pApplicationName = "Hello Triangle";
-	m_applicationInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-	m_applicationInfo.pEngineName = "No Engine";
-	m_applicationInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	m_applicationInfo.apiVersion = VK_API_VERSION_1_0;
-
-
-	
-
-	m_instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	m_instanceInfo.pApplicationInfo = &m_applicationInfo;
-	m_instanceInfo.enabledExtensionCount = extensions.size();
-	m_instanceInfo.ppEnabledExtensionNames = extensions.data();
-	m_instanceInfo.flags = 0;
-	
-	if (m_bEnableValidationLayers)
-	{
-		m_instanceInfo.enabledLayerCount = m_VvalidationLayers.size();
-		m_instanceInfo.ppEnabledLayerNames = m_VvalidationLayers.data();
-	}
-	else
-	{
-		m_instanceInfo.enabledLayerCount = 0;
-	}
-	
-	
-	m_instanceInfo.pNext = nullptr;
-
-
-	
-	VkResult result = vkCreateInstance(&m_instanceInfo, nullptr, m_Instance.replace());
-
-	if (result != VK_SUCCESS) {
-		throw std::runtime_error("failed to create instance!");
-	}
-	
-	return result;
-}
 
 
 void RendererVulkan::createSurface( GLFWwindow* i_window)
@@ -306,10 +255,11 @@ void RendererVulkan::createSurface( GLFWwindow* i_window)
 	createInfo.hwnd = glfwGetWin32Window(i_window);
 	createInfo.hinstance = GetModuleHandle(nullptr);
 
-	auto CreateWin32SurfaceKHR = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr(m_Instance, "vkCreateWin32SurfaceKHR");
+  
+	auto CreateWin32SurfaceKHR = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr(m_Instance->get_handle(), "vkCreateWin32SurfaceKHR");
 
-	if (!CreateWin32SurfaceKHR || CreateWin32SurfaceKHR(m_Instance, &createInfo,
-		nullptr, m_Surface.replace()) != VK_SUCCESS) {
+	if (!CreateWin32SurfaceKHR || CreateWin32SurfaceKHR(m_Instance->get_handle(), &createInfo,
+		nullptr, &m_Surface) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create window surface!");
 	}
 	
@@ -320,8 +270,7 @@ static void printPhysicalDeviceInfo(VkPhysicalDevice device)
 {
 	VkPhysicalDeviceProperties deviceProperties;
 	vkGetPhysicalDeviceProperties(device, &deviceProperties);
-
-	std::cout << "\n*Device Name = " << deviceProperties.deviceName<<  std::endl;
+  LOGINFO("\n*Device Name = " + deviceProperties.deviceName);
 }
 
 
@@ -437,7 +386,7 @@ bool  RendererVulkan::checkDeviceExtensionSupport(VkPhysicalDevice device)
 void  RendererVulkan::pickPhysicalDevice()
 {
 	uint32_t deviceCount = 0;
-	vkEnumeratePhysicalDevices(m_Instance, &deviceCount, nullptr);
+	vkEnumeratePhysicalDevices(m_Instance->get_handle(), &deviceCount, nullptr);
 
 
 	if (deviceCount == 0) 
@@ -447,13 +396,13 @@ void  RendererVulkan::pickPhysicalDevice()
 
 
 	std::vector<VkPhysicalDevice> devices(deviceCount);
-	vkEnumeratePhysicalDevices(m_Instance, &deviceCount, devices.data());
+	vkEnumeratePhysicalDevices(m_Instance->get_handle(), &deviceCount, devices.data());
 
 
 	for (const auto& device : devices) {
 		if (isDeviceSuitable(device)) {
 			m_PhysicalDevice = device;
-			std::cout << "\nUsing phys device " << std::endl;
+      LOGINFO("\nUsing phys device ");
 			printPhysicalDeviceInfo(m_PhysicalDevice);
 			break;
 		}
@@ -1446,16 +1395,16 @@ void RendererVulkan::createSemaphores()
 void RendererVulkan::createShaderModule(const std::string & filename, VkShaderModule & shaderModule)
 {
 
-	std::cout << "*Attempting to load" << filename.c_str() <<":" << std::endl;
+  LOGINFO("*Attempting to load: " + filename.c_str() + ": ");
 	auto shaderCode = readFile(filename);
 
 	if (shaderCode.size() != 0)
 	{
-		std::cout << "SUCCESS" << std::endl;
+    LOGINFO("SUCCESS");
 	}
 	else
 	{
-		std::cout << "FAIL" << std::endl;
+    LOGINFO("FAIL");
 		return;
 	}
 
@@ -1846,26 +1795,4 @@ void RendererVulkan::UpdateTimesAndFPS(std::chrono::time_point<std::chrono::high
 }
 
 
-#ifndef NDEBUG
-void  RendererVulkan::setupDebugCallback() 
-{
-	VkDebugReportCallbackCreateInfoEXT createInfo = {};
-	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
-	createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
-	createInfo.pfnCallback = debugCallback;
 
-	auto func = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(m_Instance, "vkCreateDebugReportCallbackEXT");
-	if (func != nullptr) {
-		VkResult  res = func(m_Instance, &createInfo, nullptr, m_Debugcallback.replace());
-		if(res != VK_SUCCESS)
-			throw std::runtime_error("failed to set up debug callback!");
-	}
-	else {
-		throw std::runtime_error("failed to set up debug callback!");
-	}
-
-}
-
-
-
-#endif
