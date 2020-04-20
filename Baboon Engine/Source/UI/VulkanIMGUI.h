@@ -1,32 +1,80 @@
 #pragma once
-#include "vulkan\vulkan.h"
-#include <GLFW/glfw3.h>
-#include <vector>
+#include "../Renderer/Vulkan/Common.h"
+#include "../Renderer/Vulkan/VulkanImage.h"
+#include "../Renderer/Vulkan/VulkanImageView.h"
+#include "../Renderer/Vulkan/VulkanSampler.h"
+#include "../Renderer/Vulkan/Buffer.h"
+#include "../Renderer/Vulkan/resources/Shader.h"
+
+#include <memory>
+
+class VulkanContext;
+class PipelineLayout;
+class CommandBuffer;
+
+
+struct ImFont;
+class Font
+{
+public:
+    /**
+     * @brief Constructor
+     * @param name The name of the font file that exists within 'assets/fonts' (without extension)
+     * @param size The font size, scaled by DPI
+     */
+    Font(const std::string& name, float size);
+
+    ImFont* handle{ nullptr };
+
+    std::string name;
+
+    std::vector<uint32_t> data;
+
+    float size{};
+};
+
+struct GLFWwindow;
+
 class VulkanImGUI
 {
 public:
 	~VulkanImGUI();
+
+  VulkanImGUI(VulkanContext& i_context);
 	void Init(GLFWwindow* i_window);
 	void DoUI(bool i_FirstCall = false);
-	void Draw(VkQueue i_queue, uint32_t i_bufferindex, const std::vector<VkSemaphore>& i_SignalSemaphores,const std::vector<VkSemaphore>& i_WaitSemaphores , const std::vector<VkPipelineStageFlags>& i_WaitSemaphoresStages);
+	void Draw(CommandBuffer& m_Command);
 	void OnWindowResize();
 private:
 	
-	VkCommandPool m_CommandPool;
-	std::vector<VkCommandBuffer> m_CmdBuffers;
-	VkRenderPass m_RenderPass;
-	VkFence m_ReSubmitFence;
-	VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
-	void CreateRenderPass();
-	void CreateDescriptorPool();
-	void CreateCommandPool();
-	void CreateCommandBuffers();
-	void CreateReSubmitFence();
-	void UpdateCommandBuffers(bool i_ForceSkipFence = false);
+  void newFrame();
+	
+	void UpdateDrawBuffers(bool i_ForceSkipFence = false);
 
 
 	void RenderStatsWindow(bool* pOpen);
 
 	float m_UpdateTimer = 0.0f;
+
+  VulkanContext& m_VulkanContext;
+  std::unique_ptr<VulkanImage> m_FontImage;
+  std::unique_ptr<VulkanImageView> m_FontImageView;
+
+  std::unique_ptr<VulkanSampler> m_Sampler{ nullptr };
+
+  PipelineLayout* m_PipelineLayout{ nullptr };
+
+  std::unique_ptr<Buffer> m_VertexBuffer;
+  std::unique_ptr<Buffer> m_IndexBuffer;
+
+  size_t m_LastVertexBufferSize;
+  size_t m_LastIndexBufferSize;
+
+  ShaderSource m_VertexShader;
+  ShaderSource m_FragmentShader;
+
+  std::vector<Font> m_Fonts;
+
+
 
 };

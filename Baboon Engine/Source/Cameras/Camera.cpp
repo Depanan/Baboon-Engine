@@ -1,12 +1,15 @@
 #include "Camera.h"
 #include "Core\Input.h"
 #include "Core\ServiceLocator.h"
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 
 void Camera::Init()
 {
-	UpdateProjectionMatrix();
+   
+	UpdateProjectionMatrix(ServiceLocator::GetRenderer()->GetMainRTWidth() / ServiceLocator::GetRenderer()->GetMainRTHeight());
 	m_MoveSpeed = 100.0f;
 	m_RotatingSpeed = 10.0f;
 	m_bRotating = false;
@@ -28,13 +31,16 @@ void Camera::Init()
 	pInput->MapMouseMoved(Camera::rotate, this);
 	pInput->MapMouseButtonReleased(1, Camera::endRotation, this);
 }
-void Camera::UpdateProjectionMatrix()
+void Camera::UpdateProjectionMatrix(float newAspectRatio)
 {
-	float fCurrentAspectRatio = ServiceLocator::GetRenderer()->GetMainRTAspectRatio();
 	float fNear = 0.1f;
-	float fFar = 100000.0f;
-	float fFov = 45.0f;
-	m_ProjMat = glm::perspective(glm::radians(fFov), fCurrentAspectRatio, fNear, fFar);//TODO:: Make far near and fov config
+	float fFar = 10.0f;
+	float fFov = glm::radians(60.0f);
+
+  auto vfov = static_cast<float>(2 * atan(tan(fFov / 2) * (1.0 / newAspectRatio)));
+  fFov = newAspectRatio > 1.0f ? fFov : vfov;
+
+	m_ProjMat = glm::perspective(fFov, newAspectRatio, fNear, fFar);//TODO:: Make far near and fov config
 	m_ProjMat[1][1] *= -1;//GLM was originally designed for OpenGL, where the Y coordinate of the clip coordinates is inverted.
 }
 void Camera::UpdateViewMatrix()

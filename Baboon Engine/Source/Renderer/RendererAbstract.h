@@ -3,14 +3,17 @@
 #include <chrono>
 #include <string>
 #include <vector>
+
+class Camera;
 class RendererAbstract
 {
 public:
 	
 	virtual ~RendererAbstract(){}
-	virtual int Init(std::vector<const char*>& required_extensions,  GLFWwindow* i_window) = 0;
+	virtual int Init(std::vector<const char*>& required_extensions,  GLFWwindow* i_window, const Camera* p_Camera) = 0;
 	virtual void Destroy() = 0;
 	virtual void DrawFrame() = 0;
+  virtual void Update() = 0;
 	virtual void OnWindowResize(int i_NewW, int i_NewH) = 0;
 	virtual void WaitToDestroy() {}//Function to wait till we can delete renderer stuff, like in vulkan we have to wait for vkDeviceWaitIdle(device);
 	virtual void SetupRenderCalls(){}

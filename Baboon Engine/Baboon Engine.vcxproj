@@ -19,29 +19,60 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\External Source\imgui\imgui.cpp" />
+    <ClCompile Include="..\External Source\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\External Source\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\External Source\imgui\imgui_widgets.cpp" />
     <ClCompile Include="Source\appmain.cpp" />
     <ClCompile Include="Source\Cameras\Camera.cpp" />
     <ClCompile Include="Source\Cameras\CameraManager.cpp" />
-    <ClCompile Include="Source\Core\Image.cpp" />
     <ClCompile Include="Source\Core\Input.cpp" />
     <ClCompile Include="Source\Core\Logger.cpp" />
     <ClCompile Include="Source\Core\Model.cpp" />
     <ClCompile Include="Source\Core\Scene.cpp" />
     <ClCompile Include="Source\Core\ServiceLocator.cpp" />
     <ClCompile Include="Source\Renderer\Common\Mesh.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\Buffer.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\CommandBuffer.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\CommandPool.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\Common.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\Device.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\FencePool.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\Instance.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\RenderPath.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\PipelineState.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\Queue.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\RendererVulkan.cpp" />
-    <ClCompile Include="Source\UI\imgui\imgui.cpp" />
-    <ClCompile Include="Source\UI\imgui\imgui_demo.cpp" />
-    <ClCompile Include="Source\UI\imgui\imgui_draw.cpp" />
-    <ClCompile Include="Source\UI\imgui\imgui_impl_glfw_vulkan.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\RenderFrame.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\ResourceBindingState.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\resources\DescriptorPool.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\resources\DescriptorSet.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\resources\DescriptorSetLayout.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\resources\FrameBuffer.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\resources\Pipeline.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\resources\PipelineLayout.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\resources\RenderPass.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\resources\RenderTarget.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\resources\Shader.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\SemaphorePool.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\Subpass.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\SwapChain.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\VulkanContext.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\VulkanImage.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\VulkanImageView.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\VulkanResources.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\VulkanSampler.cpp" />
     <ClCompile Include="Source\UI\VulkanIMGUI.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\External Source\imgui\imconfig.h" />
+    <ClInclude Include="..\External Source\imgui\imgui.h" />
+    <ClInclude Include="..\External Source\imgui\imgui_internal.h" />
+    <ClInclude Include="..\External Source\imgui\imstb_rectpack.h" />
+    <ClInclude Include="..\External Source\imgui\imstb_textedit.h" />
+    <ClInclude Include="..\External Source\imgui\imstb_truetype.h" />
     <ClInclude Include="Source\Cameras\Camera.h" />
     <ClInclude Include="Source\Cameras\CameraManager.h" />
-    <ClInclude Include="Source\Core\Image.h" />
     <ClInclude Include="Source\Core\Input.h" />
     <ClInclude Include="Source\Core\Logger.h" />
     <ClInclude Include="Source\Core\Material.h" />
@@ -51,17 +82,36 @@
     <ClInclude Include="Source\defines.h" />
     <ClInclude Include="Source\Renderer\Common\Mesh.h" />
     <ClInclude Include="Source\Renderer\RendererAbstract.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\Buffer.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\CommandBuffer.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\CommandPool.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\Common.h" />
     <ClInclude Include="Source\Renderer\Vulkan\Device.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\FencePool.h" />
     <ClInclude Include="Source\Renderer\Vulkan\Instance.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\RenderPath.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\PipelineState.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\Queue.h" />
     <ClInclude Include="Source\Renderer\Vulkan\RendererVulkan.h" />
-    <ClInclude Include="Source\UI\imgui\imconfig.h" />
-    <ClInclude Include="Source\UI\imgui\imgui.h" />
-    <ClInclude Include="Source\UI\imgui\imgui_impl_glfw_vulkan.h" />
-    <ClInclude Include="Source\UI\imgui\imgui_internal.h" />
-    <ClInclude Include="Source\UI\imgui\MyIMGUIVulkanWrapper.h" />
-    <ClInclude Include="Source\UI\imgui\stb_rect_pack.h" />
-    <ClInclude Include="Source\UI\imgui\stb_textedit.h" />
-    <ClInclude Include="Source\UI\imgui\stb_truetype.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\RenderFrame.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\ResourceBindingState.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\resources\DescriptorPool.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\resources\DescriptorSet.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\resources\DescriptorSetLayout.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\resources\FrameBuffer.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\resources\Pipeline.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\resources\PipelineLayout.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\resources\RenderPass.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\resources\RenderTarget.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\resources\Shader.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\SemaphorePool.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\Subpass.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\SwapChain.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\VulkanContext.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\VulkanImage.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\VulkanImageView.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\VulkanResources.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\VulkanSampler.h" />
     <ClInclude Include="Source\UI\VulkanIMGUI.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -134,13 +184,13 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;VK_USE_PLATFORM_WIN32_KHR;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\Baboon Engine\Source;$(SolutionDir)\External Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;VK_USE_PLATFORM_WIN32_KHR;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);GLM_ENABLE_EXPERIMENTAL</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\Baboon Engine\Source;$(SolutionDir)\External Source;E:\PersonalWork\BaboonEngine\trunk\External Source\vma\src;E:\PersonalWork\BaboonEngine\trunk\External Source\spirv-cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>$(SolutionDir)\libs\lib32\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp.lib;vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp.lib;vulkan-1.lib;glfw3.lib;spirv-cross-core.lib;spirv-cross-glsl.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -149,13 +199,13 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);VK_USE_PLATFORM_WIN32_KHR</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\Baboon Engine\Source;$(SolutionDir)\External Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);VK_USE_PLATFORM_WIN32_KHR;GLM_ENABLE_EXPERIMENTAL</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\Baboon Engine\Source;$(SolutionDir)\External Source;E:\PersonalWork\BaboonEngine\trunk\External Source\vma\src;E:\PersonalWork\BaboonEngine\trunk\External Source\spirv-cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>$(SolutionDir)\libs\lib64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp.lib;vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp.lib;vulkan-1.lib;glfw3.lib;spirv-cross-core.lib;spirv-cross-glsl.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -166,15 +216,15 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;VK_USE_PLATFORM_WIN32_KHR;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\Baboon Engine\Source;$(SolutionDir)\External Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;VK_USE_PLATFORM_WIN32_KHR;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);GLM_ENABLE_EXPERIMENTAL</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\Baboon Engine\Source;$(SolutionDir)\External Source;E:\PersonalWork\BaboonEngine\trunk\External Source\vma\src;E:\PersonalWork\BaboonEngine\trunk\External Source\spirv-cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(SolutionDir)\libs\lib32\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp.lib;vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp.lib;vulkan-1.lib;glfw3.lib;spirv-cross-core.lib;spirv-cross-glsl.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -185,15 +235,15 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);VK_USE_PLATFORM_WIN32_KHR</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\Baboon Engine\Source;$(SolutionDir)\External Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);VK_USE_PLATFORM_WIN32_KHR;GLM_ENABLE_EXPERIMENTAL</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\Baboon Engine\Source;$(SolutionDir)\External Source;E:\PersonalWork\BaboonEngine\trunk\External Source\vma\src;E:\PersonalWork\BaboonEngine\trunk\External Source\spirv-cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(SolutionDir)\libs\lib64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp.lib;vulkan-1.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp.lib;vulkan-1.lib;glfw3.lib;spirv-cross-core.lib;spirv-cross-glsl.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -2,11 +2,12 @@
 #include "Renderer\RendererAbstract.h"
 #include "Core\ServiceLocator.h"
 
-void CameraManager::OnWindowResize()
+void CameraManager::OnWindowResize(int width, int height)
 {
+  float aspectRatio = (float)width / height;
 	for (int i=0;i<eCameraType_NCameras;i++)
 	{
-		m_Cameras[i].UpdateProjectionMatrix();
+		m_Cameras[i].UpdateProjectionMatrix(aspectRatio);
 		
 	}
 }

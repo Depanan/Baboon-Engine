@@ -7,6 +7,12 @@ struct InstanceUBO {
 
 };
 
+struct UBO {
+    glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 proj;
+};
+
 class Model
 {
 public:

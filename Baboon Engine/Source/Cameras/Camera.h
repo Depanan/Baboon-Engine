@@ -7,7 +7,7 @@ public:
 	void Init();
 	
 	void UpdateViewMatrix();
-	void UpdateProjectionMatrix();
+	void UpdateProjectionMatrix(float newAspectRatio);
 	
 	const glm::mat4& GetViewMatrix()const { return m_ViewMat; }
 	const glm::mat4& GetProjMatrix()const { return m_ProjMat; }

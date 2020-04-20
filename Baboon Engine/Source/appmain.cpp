@@ -32,7 +32,7 @@ public:
 			glfwPollEvents();
 			
 			pInput->processInput();
-			pScene->UpdateUniforms();
+      pRenderer->Update();
 			pRenderer->DrawFrame();
 			
 			pRenderer->UpdateTimesAndFPS(tStart);
@@ -59,7 +59,7 @@ private:
 
 		GraphicGLFWApp* thisPointer = reinterpret_cast<GraphicGLFWApp*>(glfwGetWindowUserPointer(window));
 		ServiceLocator::GetRenderer()->OnWindowResize(width,height);
-		ServiceLocator::GetCameraManager()->OnWindowResize();
+		ServiceLocator::GetCameraManager()->OnWindowResize(width,height);
 		ServiceLocator::GetSceneManager()->GetScene()->OnWindowResize();
 	}
 
@@ -89,7 +89,7 @@ private:
 
     
 
-		return ServiceLocator::GetRenderer()->Init(extensions,m_window);
+		return ServiceLocator::GetRenderer()->Init(extensions,m_window,ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main));
 
 	}
 	

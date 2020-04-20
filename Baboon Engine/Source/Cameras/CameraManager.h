@@ -19,7 +19,7 @@ public:
 	};
 	void Init();
 	
-	void OnWindowResize();
+	void OnWindowResize(int width, int height);
 
 	const Camera* GetCamera(eCameraType i_camType)
 	{

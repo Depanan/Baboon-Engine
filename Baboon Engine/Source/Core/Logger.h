@@ -8,6 +8,11 @@
 #define LOGINFO(s) ServiceLocator::GetLogger()->log(std::string("INFO: ") + s)
 #define LOGERROR(s) ServiceLocator::GetLogger()->log(std::string("ERROR: ") + s)
 
+#ifdef _DEBUG //only available in debug mode
+#define LOGDEBUG(s) ServiceLocator::GetLogger()->log(std::string("DEBUG: ") + s)
+#else
+#define LOGDEBUG(s)
+#endif
 
 
 //Using cout per thread can lead to issues hence we queue the messages using this class and we print them in a non threaded area 

@@ -36,9 +36,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Core\Image.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Core\Input.cpp">
       <Filter>Core</Filter>
     </ClCompile>
@@ -53,21 +50,6 @@
     </ClCompile>
     <ClCompile Include="Source\UI\VulkanIMGUI.cpp">
       <Filter>GUI</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\UI\imgui\imgui.cpp">
-      <Filter>GUI\ImGUI</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\UI\imgui\imgui_demo.cpp">
-      <Filter>GUI\ImGUI</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\UI\imgui\imgui_draw.cpp">
-      <Filter>GUI\ImGUI</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\UI\imgui\imgui_impl_glfw_vulkan.cpp">
-      <Filter>GUI\ImGUI</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\appmain.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\Renderer\Vulkan\RendererVulkan.cpp">
       <Filter>Renderer\Vulkan</Filter>
@@ -90,11 +72,104 @@
     <ClCompile Include="Source\Core\Logger.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="Source\appmain.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\SwapChain.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\VulkanContext.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\VulkanImage.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\RenderFrame.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\VulkanImageView.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\CommandPool.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\Queue.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\CommandBuffer.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\SemaphorePool.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\FencePool.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\PipelineState.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\VulkanResources.cpp">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\resources\RenderTarget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\Common.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\Subpass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\resources\FrameBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\resources\Shader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\resources\PipelineLayout.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\RenderPath.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\resources\RenderPass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\resources\Pipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\resources\DescriptorSetLayout.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\ResourceBindingState.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\Buffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\resources\DescriptorPool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\resources\DescriptorSet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\VulkanSampler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External Source\imgui\imgui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External Source\imgui\imgui_demo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External Source\imgui\imgui_draw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External Source\imgui\imgui_widgets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Core\Image.h">
-      <Filter>Core</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Core\Input.h">
       <Filter>Core</Filter>
     </ClInclude>
@@ -112,30 +187,6 @@
     </ClInclude>
     <ClInclude Include="Source\UI\VulkanIMGUI.h">
       <Filter>GUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\UI\imgui\imconfig.h">
-      <Filter>GUI\ImGUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\UI\imgui\imgui.h">
-      <Filter>GUI\ImGUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\UI\imgui\imgui_impl_glfw_vulkan.h">
-      <Filter>GUI\ImGUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\UI\imgui\imgui_internal.h">
-      <Filter>GUI\ImGUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\UI\imgui\MyIMGUIVulkanWrapper.h">
-      <Filter>GUI\ImGUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\UI\imgui\stb_rect_pack.h">
-      <Filter>GUI\ImGUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\UI\imgui\stb_textedit.h">
-      <Filter>GUI\ImGUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\UI\imgui\stb_truetype.h">
-      <Filter>GUI\ImGUI</Filter>
     </ClInclude>
     <ClInclude Include="Source\defines.h">
       <Filter>Header Files</Filter>
@@ -163,6 +214,105 @@
     </ClInclude>
     <ClInclude Include="Source\Core\Logger.h">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\SwapChain.h">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\VulkanContext.h">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\VulkanImage.h">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\RenderFrame.h">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\VulkanImageView.h">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\CommandPool.h">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\Queue.h">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\CommandBuffer.h">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\SemaphorePool.h">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\FencePool.h">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\PipelineState.h">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\VulkanResources.h">
+      <Filter>Renderer\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\resources\RenderTarget.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\Common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\Subpass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\resources\FrameBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\resources\Shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\resources\PipelineLayout.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\RenderPath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\resources\RenderPass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\resources\Pipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\resources\DescriptorSetLayout.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\ResourceBindingState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\Buffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\resources\DescriptorPool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\resources\DescriptorSet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\VulkanSampler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\External Source\imgui\imconfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\External Source\imgui\imgui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\External Source\imgui\imgui_internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\External Source\imgui\imstb_rectpack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\External Source\imgui\imstb_textedit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\External Source\imgui\imstb_truetype.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
