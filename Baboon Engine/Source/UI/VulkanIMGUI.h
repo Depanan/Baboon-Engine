@@ -11,6 +11,7 @@
 class VulkanContext;
 class PipelineLayout;
 class CommandBuffer;
+class PersistentCommandsPerFrame;
 
 
 struct ImFont;
@@ -47,9 +48,10 @@ public:
 	void OnWindowResize();
 private:
 	
+  void recordCommandBuffers(CommandBuffer* command_buffer, CommandBuffer* primary_commandBuffer);
   void newFrame();
 	
-	void UpdateDrawBuffers(bool i_ForceSkipFence = false);
+	void UpdateDrawBuffers();
 
 
 	void RenderStatsWindow(bool* pOpen);
@@ -75,6 +77,6 @@ private:
 
   std::vector<Font> m_Fonts;
 
-
-
+  bool m_ForceUpdateGeometryBuffers{ false };
+  PersistentCommandsPerFrame* m_PersistentCommandsPerFrame;
 };

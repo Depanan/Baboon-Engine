@@ -8,7 +8,9 @@ public:
 	
 	void UpdateViewMatrix();
 	void UpdateProjectionMatrix(float newAspectRatio);
-	
+  bool GetDirty() const{ return m_Dirty; }
+  void ClearDirty() { m_Dirty = false; }
+
 	const glm::mat4& GetViewMatrix()const { return m_ViewMat; }
 	const glm::mat4& GetProjMatrix()const { return m_ProjMat; }
 	const glm::vec3& GetPosition()const { return m_Position; }
@@ -23,11 +25,14 @@ public:
 	static void startRotation(void* i_pCam);
 	static void rotate(void* i_pCam);
 	static void endRotation(void* i_pCam);
+
+
 private:
 
 	float m_MoveSpeed ;
 	float m_RotatingSpeed;
 	bool m_bRotating;
+  bool m_Dirty{ false };
 
 	glm::vec3 m_Rotation = glm::vec3();
 	glm::vec3 m_Position = glm::vec3();

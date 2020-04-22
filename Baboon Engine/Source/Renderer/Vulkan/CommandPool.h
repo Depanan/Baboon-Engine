@@ -28,6 +28,7 @@ public:
     CommandBuffer& request_command_buffer(VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
     size_t getThreadIndex() { return m_threadIndex; }
     RenderFrame* getRenderFrame() { return m_RenderFrame; }
+    void setRenderFrame(RenderFrame* frame) { m_RenderFrame = frame; }
 
 private:
     CommandBuffer::ResetMode m_ResetMode;
@@ -43,4 +44,22 @@ private:
     VkCommandPool m_CommandPool{ VK_NULL_HANDLE };
 
     RenderFrame* m_RenderFrame{ nullptr };
+};
+
+
+
+struct PersistentCommands {
+    bool m_NeedsSecondaryCommandsRecording{ true };
+    CommandPool* m_PersistentCommandPoolsPerFrame{ nullptr };
+    CommandBuffer* m_PersistentCommandsPerFrame{ nullptr };
+};
+class PersistentCommandsPerFrame
+{
+public:
+    PersistentCommands* getPersistentCommands(const char* frameId, Device& device, RenderFrame& renderFrame);
+    void setDirty();
+    void getDirty(const char* frameId);
+
+private:
+    std::unordered_map < const char*, PersistentCommands*> m_PersistentCommandsPerFrame;
 };

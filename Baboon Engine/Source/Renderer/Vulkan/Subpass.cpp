@@ -159,8 +159,7 @@ TestTriangleSubPass::TestTriangleSubPass(VulkanContext& render_context, ShaderSo
     m_TestTexture.m_Sampler = new VulkanSampler(device, samplerInfo);
 
 
-
-
+    m_PersistentCommandsPerFrame = new PersistentCommandsPerFrame();
 
 }
 void TestTriangleSubPass::prepare()//setup shaders, To be called when adding subpass to the pipeline
@@ -170,28 +169,84 @@ void TestTriangleSubPass::prepare()//setup shaders, To be called when adding sub
     auto& vert_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, m_VertexShader);
     auto& frag_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT,m_FragmentShader);
 }
-void TestTriangleSubPass::draw(CommandBuffer& command_buffer) {//render geometry within subpass
+
+
+
+
+void TestTriangleSubPass::draw(CommandBuffer& primary_commandBuffer) {//render geometry within subpass
+
+
+
+    if (m_Camera->GetDirty())//If camera moves we need to re-record
+    {
+        m_PersistentCommandsPerFrame->setDirty();
+    }
+
 
     auto& device = m_RenderContext.getDevice();
+    auto& activeFrame = m_RenderContext.getActiveFrame();
+   
+
+    auto persistentCommands = m_PersistentCommandsPerFrame->getPersistentCommands(activeFrame.getHashId().c_str(), device,activeFrame);
+    CommandBuffer* command_buffer = persistentCommands->m_PersistentCommandsPerFrame;
+
+    if (persistentCommands->m_NeedsSecondaryCommandsRecording)
+    {
+       
+        recordCommandBuffers(command_buffer, &primary_commandBuffer);
+        persistentCommands->m_NeedsSecondaryCommandsRecording = false;
+
+    }
+    primary_commandBuffer.execute_commands(*command_buffer);
+
+
+}
+
+void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, CommandBuffer* primary_commandBuffer)
+{
+
+    auto& device = m_RenderContext.getDevice();
+    auto& renderTarget = m_RenderContext.getActiveFrame().getRenderTarget();//Grab the render target
+
+    //Set viewport and scissors
+    auto& extent = renderTarget.getExtent();
+    VkViewport viewport{};
+    viewport.width = static_cast<float>(extent.width);
+    viewport.height = static_cast<float>(extent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    VkRect2D scissor{};
+    scissor.extent = extent;
+
+
+
+    command_buffer->begin(VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT , primary_commandBuffer);
+    command_buffer->setViewport(0, { viewport });
+    command_buffer->setScissor(0, { scissor });
+    command_buffer->setColorBlendState(primary_commandBuffer->getColorBlendState());
+    command_buffer->setDepthStencilState(primary_commandBuffer->getDepthStencilState());
+
+
+
     auto& vert_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, m_VertexShader);
     auto& frag_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, m_FragmentShader);
     std::vector<ShaderModule*> shader_modules{ &vert_module, &frag_module };
 
     auto& pipeline_layout = device.getResourcesCache().request_pipeline_layout(shader_modules);
 
-    command_buffer.bindPipelineLayout(pipeline_layout);
+    command_buffer->bindPipelineLayout(pipeline_layout);
 
 
     RasterizationState rasterState{};
     rasterState.m_FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-    command_buffer.setRasterState(rasterState);
+    command_buffer->setRasterState(rasterState);
 
 
 
     auto& descriptor_set_layout = pipeline_layout.getDescriptorSetLayout(0);
     if (auto layout_binding = descriptor_set_layout.getLayoutBinding("baseTexture"))//TODO: When we create textures store them in a map with their shader name and replace it here
     {
-        command_buffer.bind_image(*m_TestTexture.m_View,
+        command_buffer->bind_image(*m_TestTexture.m_View,
             *m_TestTexture.m_Sampler,
             0, layout_binding->binding, 0);
     }
@@ -208,13 +263,13 @@ void TestTriangleSubPass::draw(CommandBuffer& command_buffer) {//render geometry
     //This is specific for this vertex format, has to be improved, one pipeline for each vertexFormat?
     Vertex::GetVertexDescription(&bindingDescription);
     Vertex::GetAttributesDescription(attributeDescriptions);
-    
+
     vertex_input_state.m_Bindings.push_back(bindingDescription);
     for (auto& attributeDescription : attributeDescriptions)
     {
         vertex_input_state.m_Attributes.push_back(attributeDescription);
     }
-    command_buffer.setVertexInputState(vertex_input_state);
+    command_buffer->setVertexInputState(vertex_input_state);
 
 
     ///TODO:: Move this to an animate func and link it with the camera
@@ -224,22 +279,24 @@ void TestTriangleSubPass::draw(CommandBuffer& command_buffer) {//render geometry
     m_UniformBuffer->update(&m_TestUBO, sizeof(UBO));//TODO: This to be updated every frame for the camera, Consider using pushconstant for the camera matrices???
 
     //Bind the matrices uniform buffer
-    command_buffer.bind_buffer(*m_UniformBuffer, 0, sizeof(UBO), 0, 1, 0);
+    command_buffer->bind_buffer(*m_UniformBuffer, 0, sizeof(UBO), 0, 1, 0);
 
     //Bind vertex buffer
     std::vector<std::reference_wrapper<Buffer>> buffers;
     buffers.emplace_back(std::ref(*m_TrianglePos));
-    command_buffer.bind_vertex_buffers(0, std::move(buffers), { 0 });
+    command_buffer->bind_vertex_buffers(0, std::move(buffers), { 0 });
 
     //Bind Indices buffer
-    command_buffer.bind_index_buffer(*m_TriangleIndices,0, VK_INDEX_TYPE_UINT16);
-
-    
-    
-
-    //command_buffer.draw(6, 1, 0, 0);
-    command_buffer.draw_indexed(6, 1, 0, 0, 0);
+    command_buffer->bind_index_buffer(*m_TriangleIndices, 0, VK_INDEX_TYPE_UINT16);
 
 
+
+
+    //command_buffer->draw(6, 1, 0, 0);
+    command_buffer->draw_indexed(6, 1, 0, 0, 0);
+
+
+
+    command_buffer->end();
 }
 

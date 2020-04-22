@@ -28,7 +28,7 @@ void RenderPath::draw(CommandBuffer& command_buffer, RenderTarget& render_target
     {
         auto& subpass = m_Subpasses[i];
         if (i == 0)
-            command_buffer.beginRenderPass(render_target, load_store, clear_value,m_Subpasses);
+            command_buffer.beginRenderPass(render_target, load_store, clear_value,m_Subpasses,contents);
         else
             command_buffer.nextSubpass();
 

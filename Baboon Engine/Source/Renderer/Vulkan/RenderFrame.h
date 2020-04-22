@@ -36,6 +36,8 @@ public:
     DescriptorSet& requestDescriptorSet(DescriptorSetLayout& descriptor_set_layout, const BindingMap<VkDescriptorBufferInfo>& buffer_infos, const BindingMap<VkDescriptorImageInfo>& image_infos, size_t thread_index);
    
     FencePool& getFencePool() { return m_FencePool; }
+
+    const std::string& getHashId() const { return m_HashId; }
    
 private:
   
@@ -54,4 +56,5 @@ private:
 
     SemaphorePool m_SemaphorePool;
     FencePool m_FencePool;
+    std::string m_HashId;
 };

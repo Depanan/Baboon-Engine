@@ -42,6 +42,8 @@ void Camera::UpdateProjectionMatrix(float newAspectRatio)
 
 	m_ProjMat = glm::perspective(fFov, newAspectRatio, fNear, fFar);//TODO:: Make far near and fov config
 	m_ProjMat[1][1] *= -1;//GLM was originally designed for OpenGL, where the Y coordinate of the clip coordinates is inverted.
+
+  m_Dirty = true;
 }
 void Camera::UpdateViewMatrix()
 {
@@ -56,6 +58,8 @@ void Camera::UpdateViewMatrix()
 
 	
 	m_ViewMat = rotM * transM;
+
+  m_Dirty = true;
 }
 
 void Camera::moveLeft(void* i_pCam)

@@ -21,6 +21,8 @@ public:
 	
 	void OnWindowResize(int width, int height);
 
+  void ClearDirty();
+
 	const Camera* GetCamera(eCameraType i_camType)
 	{
 		if (i_camType >= eCameraType_NCameras)

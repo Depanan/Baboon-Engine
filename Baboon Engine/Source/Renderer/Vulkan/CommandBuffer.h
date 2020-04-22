@@ -96,7 +96,16 @@ public:
     inline void setRasterState(const RasterizationState& state_info) { m_PipelineState.setRasterizationState(state_info); }
     inline void setDepthStencilState(const DepthStencilState& state_info) { m_PipelineState.setDepthStencilState(state_info); }
 
+    inline const ColorBlendState& getColorBlendState() { return m_PipelineState.getColorBlendState(); }
+    inline const RasterizationState& getRasterState( ) { return m_PipelineState.getRasterizationState(); }
+    inline const DepthStencilState& getDepthStencilState( ) { return m_PipelineState.getDepthStencilState(); }
+    inline const VertexInputState& getVertexInputState() { return m_PipelineState.getVertexInputState(); }
 
+    void execute_commands(CommandBuffer& secondary_command_buffer);
+    
+    const RenderPassBinding& get_current_render_pass() const { return m_CurrentRenderPass; }
+
+    const uint32_t CommandBuffer::get_current_subpass_index() const{return m_PipelineState.getSubpassIndex();}
 
     void pushConstants(uint32_t offset, const std::vector<uint8_t>& values);
 

@@ -25,7 +25,7 @@ public:
 		RendererAbstract* pRenderer = ServiceLocator::GetRenderer();
 		Scene* pScene = ServiceLocator::GetSceneManager()->GetScene();
 		Input* pInput = ServiceLocator::GetInput();
-
+    CameraManager* pCameraMan = ServiceLocator::GetCameraManager();
 		while (!glfwWindowShouldClose(m_window)) {
 			auto tStart = std::chrono::high_resolution_clock::now();
 			
@@ -37,6 +37,8 @@ public:
 			
 			pRenderer->UpdateTimesAndFPS(tStart);
 			
+      pCameraMan->ClearDirty();
+
       ServiceLocator::GetLogger()->process();
 
 		}

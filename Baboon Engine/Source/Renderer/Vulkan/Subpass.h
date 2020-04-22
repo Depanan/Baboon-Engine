@@ -3,6 +3,7 @@
 #include "Common.h"
 #include "resources/Shader.h"
 #include "Core/Model.h"
+#include <unordered_map>
 
 class CommandBuffer;
 
@@ -45,11 +46,16 @@ class VulkanImage;
 class VulkanSampler;
 class VulkanImageView;
 class Camera;
+class CommandPool;
+class PersistentCommandsPerFrame;
 struct Texture{
     VulkanImage* m_Image;
     VulkanSampler* m_Sampler;
     VulkanImageView* m_View;
 };
+
+
+
 class TestTriangleSubPass: public Subpass
 {
 public:
@@ -64,6 +70,11 @@ private:
     UBO m_TestUBO;
     const Camera* m_Camera;
     Texture m_TestTexture;
+
+  
+    
+    PersistentCommandsPerFrame* m_PersistentCommandsPerFrame;
+    void recordCommandBuffers(CommandBuffer* commandBuffer, CommandBuffer* primary_command_buffer);
 
 };
 

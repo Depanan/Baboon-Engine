@@ -15,7 +15,8 @@ RenderFrame::RenderFrame(Device& device, std::unique_ptr<RenderTarget>&& renderT
     m_Target(std::move(renderTarget)),
     m_NThreads(nThreads),
     m_SemaphorePool(device),
-    m_FencePool(device)
+    m_FencePool(device),
+    m_HashId((const char*) this)
 {
     //Allocate resources per thread
     for (size_t i = 0; i < m_NThreads; i++)

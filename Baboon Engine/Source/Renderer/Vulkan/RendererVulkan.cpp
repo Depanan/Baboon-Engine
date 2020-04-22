@@ -22,7 +22,8 @@ void PrintVulkanSupportedExtensions()
 
 void RendererVulkan::OnWindowResize(int i_NewW, int i_NewH)
 {
-	
+    if (m_GUI)
+        m_GUI->OnWindowResize();
 }
 
 void RendererVulkan::WaitToDestroy()
@@ -85,7 +86,6 @@ int RendererVulkan::Init(std::vector<const char*>& required_extensions, GLFWwind
 
     
     
-//TODO make gui work!    
     m_GUI = std::make_unique<VulkanImGUI>(*m_RenderContext);
     m_GUI->Init(i_window);
     
@@ -119,18 +119,21 @@ void RendererVulkan::DrawFrame()
   viewport.height = static_cast<float>(extent.height);
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
-  command_buffer.setViewport(0, { viewport });
+  //command_buffer.setViewport(0, { viewport });
 
   VkRect2D scissor{};
   scissor.extent = extent;
-  command_buffer.setScissor(0, { scissor });
+  //command_buffer.setScissor(0, { scissor });
 
  
   if(m_RenderPath)//If we have a pipeline set, call its draw function
-    m_RenderPath->draw(command_buffer, renderTarget); 
+    m_RenderPath->draw(command_buffer, renderTarget, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
   if (m_GUI)
+  {
       m_GUI->Draw(command_buffer);
+  }
+      
       
   command_buffer.endRenderPass();
 

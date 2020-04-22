@@ -2,6 +2,7 @@
 #include "Core\ServiceLocator.h"
 #include "Device.h"
 #include "RenderFrame.h"
+#include "VulkanContext.h"
 
 CommandPool::CommandPool(Device& device, uint32_t queue_family_index, RenderFrame* render_frame,
     size_t                   thread_index
@@ -159,6 +160,48 @@ CommandBuffer& CommandPool::request_command_buffer(VkCommandBufferLevel level )
 
         return *m_SecondaryCommandBuffers.back();
     }
+}
+
+PersistentCommands* PersistentCommandsPerFrame::getPersistentCommands(const char* frameId, Device& device, RenderFrame& renderFrame)
+{
+    PersistentCommands* persistentCommands = nullptr;
+
+    auto commandBuffersIt = m_PersistentCommandsPerFrame.find(frameId);
+    if (commandBuffersIt == m_PersistentCommandsPerFrame.end())
+    {
+        //First time the current renderframe hits here, construct everything
+        auto insertionRes = m_PersistentCommandsPerFrame.emplace(frameId, new PersistentCommands());
+        if (insertionRes.second)
+        {
+            commandBuffersIt = insertionRes.first;
+            persistentCommands = commandBuffersIt->second;
+            persistentCommands->m_PersistentCommandPoolsPerFrame = new CommandPool(device, device.getGraphicsQueue().getFamilyIndex(), nullptr, 0, CommandBuffer::ResetMode::ResetIndividually);//TODO: Handle threads here!
+            persistentCommands->m_PersistentCommandPoolsPerFrame->setRenderFrame(&renderFrame);
+            persistentCommands->m_PersistentCommandsPerFrame = &(persistentCommands->m_PersistentCommandPoolsPerFrame->request_command_buffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY));
+            persistentCommands->m_NeedsSecondaryCommandsRecording = true;
+        }
+
+    }
+    else
+    {
+        persistentCommands = commandBuffersIt->second;
+    }
+
+    return persistentCommands;
+}
+
+void PersistentCommandsPerFrame::setDirty()
+{
+    for (auto commandBuffersIt : m_PersistentCommandsPerFrame)
+    {
+
+        commandBuffersIt.second->m_NeedsSecondaryCommandsRecording = true;
+    }
+}
+void PersistentCommandsPerFrame::getDirty(const char* frameId)
+{
+    auto commandBuffersIt = m_PersistentCommandsPerFrame.find(frameId);
+    commandBuffersIt->second->m_NeedsSecondaryCommandsRecording;
 }
 
 

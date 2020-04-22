@@ -197,21 +197,39 @@ void VulkanImGUI::Init(GLFWwindow* i_window)
     m_VertexBuffer = std::make_unique<Buffer>(device, 1, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
     m_IndexBuffer = std::make_unique<Buffer>(device, 1, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
 
+    m_PersistentCommandsPerFrame = new PersistentCommandsPerFrame();
+
 
 }
 void VulkanImGUI::OnWindowResize()
 {
-	/*RendererVulkan* pRenderer = (RendererVulkan*)ServiceLocator::GetRenderer();
-	vkDestroyRenderPass(pRenderer->m_LogicalDevice->get_handle(), m_RenderPass, VK_NULL_HANDLE);
-	CreateRenderPass();
-	CreateCommandBuffers();
-	UpdateDrawBuffers();*/
-	
+    m_PersistentCommandsPerFrame->setDirty();
+    m_ForceUpdateGeometryBuffers = true;
 }
 
-void VulkanImGUI::Draw(CommandBuffer& command_buffer)
+
+void VulkanImGUI::recordCommandBuffers(CommandBuffer* command_buffer, CommandBuffer* primary_commandBuffer)
 {
-   
+
+
+    auto& device = m_VulkanContext.getDevice();
+    auto& renderTarget = m_VulkanContext.getActiveFrame().getRenderTarget();//Grab the render target
+
+    //Set viewport and scissors
+    auto& extent = renderTarget.getExtent();
+    VkViewport viewport{};
+    viewport.width = static_cast<float>(extent.width);
+    viewport.height = static_cast<float>(extent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    VkRect2D scissor{};
+    scissor.extent = extent;
+
+
+
+    command_buffer->begin(VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT, primary_commandBuffer);
+    command_buffer->setViewport(0, { viewport });
+    command_buffer->setScissor(0, { scissor });
 
     // Vertex input state
     VkVertexInputBindingDescription vertex_input_binding{};
@@ -238,7 +256,7 @@ void VulkanImGUI::Draw(CommandBuffer& command_buffer)
     vertex_input_state.m_Bindings = { vertex_input_binding };
     vertex_input_state.m_Attributes = { pos_attr, uv_attr, col_attr };
 
-    command_buffer.setVertexInputState(vertex_input_state);
+    command_buffer->setVertexInputState(vertex_input_state);
 
     // Blend state
     ColorBlendAttachmentState color_attachment{};
@@ -251,41 +269,41 @@ void VulkanImGUI::Draw(CommandBuffer& command_buffer)
     ColorBlendState blend_state;
     blend_state.m_Attachments.push_back(color_attachment);
 
-    command_buffer.setColorBlendState(blend_state);
+    command_buffer->setColorBlendState(blend_state);
 
     RasterizationState rasterization_state{};
     rasterization_state.m_CullMode = VK_CULL_MODE_NONE;
-    command_buffer.setRasterState(rasterization_state);
+    command_buffer->setRasterState(rasterization_state);
 
     DepthStencilState depth_state{};
     depth_state.m_DepthTestEnable = VK_FALSE;
     depth_state.m_DepthWriteEnable = VK_FALSE;
-    command_buffer.setDepthStencilState(depth_state);
+    command_buffer->setDepthStencilState(depth_state);
 
     // Bind pipeline layout
-    command_buffer.bindPipelineLayout(*m_PipelineLayout);
+    command_buffer->bindPipelineLayout(*m_PipelineLayout);
 
-    command_buffer.bind_image(*m_FontImageView, *m_Sampler, 0, 0, 0);
+    command_buffer->bind_image(*m_FontImageView, *m_Sampler, 0, 0, 0);
 
     // Pre-rotation
     auto& io = ImGui::GetIO();
     auto  push_transform = glm::mat4(1.0f);
 
-    
+
     // GUI coordinate space to screen space
     push_transform = glm::translate(push_transform, glm::vec3(-1.0f, -1.0f, 0.0f));
     push_transform = glm::scale(push_transform, glm::vec3(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y, 0.0f));
 
     // Push constants
-    command_buffer.pushConstants(0, push_transform);
+    command_buffer->pushConstants(0, push_transform);
 
-   
+
     std::vector<std::reference_wrapper<Buffer>> buffers;
     buffers.push_back(*m_VertexBuffer);
-    command_buffer.bind_vertex_buffers(0, buffers, { 0 });
+    command_buffer->bind_vertex_buffers(0, buffers, { 0 });
 
-    command_buffer.bind_index_buffer(*m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
-    
+    command_buffer->bind_index_buffer(*m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
 
     // Render commands
     ImDrawData* draw_data = ImGui::GetDrawData();
@@ -309,13 +327,36 @@ void VulkanImGUI::Draw(CommandBuffer& command_buffer)
             scissor_rect.extent.width = static_cast<uint32_t>(cmd->ClipRect.z - cmd->ClipRect.x);
             scissor_rect.extent.height = static_cast<uint32_t>(cmd->ClipRect.w - cmd->ClipRect.y);
 
-            
-            command_buffer.setScissor(0, { scissor_rect });
-            command_buffer.draw_indexed(cmd->ElemCount, 1, index_offset, vertex_offset, 0);
+
+            command_buffer->setScissor(0, { scissor_rect });
+            command_buffer->draw_indexed(cmd->ElemCount, 1, index_offset, vertex_offset, 0);
             index_offset += cmd->ElemCount;
         }
         vertex_offset += cmd_list->VtxBuffer.Size;
     }
+
+    command_buffer->end();
+}
+
+void VulkanImGUI::Draw(CommandBuffer& primary_commandBuffer)
+{
+    auto& device = m_VulkanContext.getDevice();
+    auto& activeFrame = m_VulkanContext.getActiveFrame();
+
+    auto persistentCommands = m_PersistentCommandsPerFrame->getPersistentCommands(activeFrame.getHashId().c_str(), device, activeFrame);
+    CommandBuffer* command_buffer = persistentCommands->m_PersistentCommandsPerFrame;
+
+    if (persistentCommands->m_NeedsSecondaryCommandsRecording)
+    {
+
+        recordCommandBuffers(command_buffer, &primary_commandBuffer);
+        persistentCommands->m_NeedsSecondaryCommandsRecording = false;
+
+    }
+    primary_commandBuffer.execute_commands(*command_buffer);
+
+
+    
 	
 }
 
@@ -412,15 +453,17 @@ void VulkanImGUI::DoUI(bool i_FirstCall)
 
 	
 
-	ImGui::ShowTestWindow();
+	//ImGui::ShowTestWindow();
 	///////////////////////////////////////////////////////
 
 
   // Render to generate draw buffers
   ImGui::Render();
 
-	UpdateDrawBuffers(i_FirstCall);
+	UpdateDrawBuffers();
 }
+
+
 
 
 void VulkanImGUI::newFrame()
@@ -468,10 +511,8 @@ void VulkanImGUI::newFrame()
     ImGui::NewFrame();
 }
 
-void VulkanImGUI::UpdateDrawBuffers(bool i_ForceSkipFence)
+void VulkanImGUI::UpdateDrawBuffers()
 {
-
-
     ImDrawData* draw_data = ImGui::GetDrawData();
     bool        updated = false;
 
@@ -520,60 +561,29 @@ void VulkanImGUI::UpdateDrawBuffers(bool i_ForceSkipFence)
             VMA_MEMORY_USAGE_GPU_TO_CPU);
     }
 
-    // Upload data
-    ImDrawVert* vtx_dst = (ImDrawVert*)m_VertexBuffer->map();
-    ImDrawIdx* idx_dst = (ImDrawIdx*)m_IndexBuffer->map();
-
-    for (int n = 0; n < draw_data->CmdListsCount; n++)
+    if(true)//bNeedsUpdate || m_ForceUpdateGeometryBuffers)//TODO: There is no way to know if IMGUI has changed from frame to frame apparently so for now we need to redo this
     {
-        const ImDrawList* cmd_list = draw_data->CmdLists[n];
-        memcpy(vtx_dst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
-        memcpy(idx_dst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
-        vtx_dst += cmd_list->VtxBuffer.Size;
-        idx_dst += cmd_list->IdxBuffer.Size;
+        // Upload data
+        ImDrawVert* vtx_dst = (ImDrawVert*)m_VertexBuffer->map();
+        ImDrawIdx* idx_dst = (ImDrawIdx*)m_IndexBuffer->map();
+
+        for (int n = 0; n < draw_data->CmdListsCount; n++)
+        {
+            const ImDrawList* cmd_list = draw_data->CmdLists[n];
+            memcpy(vtx_dst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
+            memcpy(idx_dst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
+            vtx_dst += cmd_list->VtxBuffer.Size;
+            idx_dst += cmd_list->IdxBuffer.Size;
+        }
+
+        m_VertexBuffer->flush();
+        m_IndexBuffer->flush();
+
+        m_VertexBuffer->unmap();
+        m_IndexBuffer->unmap();
+
+        m_PersistentCommandsPerFrame->setDirty();
+        m_ForceUpdateGeometryBuffers = false;
     }
 
-    m_VertexBuffer->flush();
-    m_IndexBuffer->flush();
-
-    m_VertexBuffer->unmap();
-    m_IndexBuffer->unmap();
-
-
-
-
-	
-	/*RendererVulkan* pRenderer = (RendererVulkan*)ServiceLocator::GetRenderer();
-
-	
-	vkResetCommandPool(pRenderer->m_LogicalDevice->get_handle(), m_CommandPool, 0);
-
-	VkCommandBufferBeginInfo cmdBufferBeginInfo{};
-	cmdBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	cmdBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;//Means we can submit whilst still drawing previous frame
-	VkClearValue clearValues[2];
-	clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clearValues[1].depthStencil = { 1.0f, 0 };
-
-	VkRenderPassBeginInfo renderPassBeginInfo{};
-	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassBeginInfo.renderPass = m_RenderPass;
-	renderPassBeginInfo.renderArea.extent.width = pRenderer->GetMainRTWidth();
-	renderPassBeginInfo.renderArea.extent.height = pRenderer->GetMainRTHeight();
-	renderPassBeginInfo.clearValueCount = 2;
-	renderPassBeginInfo.pClearValues = clearValues;
-
-	for (int32_t i = 0; i < m_CmdBuffers.size(); ++i)
-	{
-		vkBeginCommandBuffer(m_CmdBuffers[i], &cmdBufferBeginInfo);
-		//renderPassBeginInfo.framebuffer = pRenderer->m_SwapChainFramebuffers[i];
-		vkCmdBeginRenderPass(m_CmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-		//Record IMGUI commands
-		ImGui_ImplGlfwVulkan_Render(m_CmdBuffers[i]);
-
-		vkCmdEndRenderPass(m_CmdBuffers[i]);
-		vkEndCommandBuffer(m_CmdBuffers[i]);
-	}
-  */
 }

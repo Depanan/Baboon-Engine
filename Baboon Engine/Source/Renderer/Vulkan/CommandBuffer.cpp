@@ -72,12 +72,16 @@ VkResult CommandBuffer::reset(ResetMode reset_mode)
 
 VkResult CommandBuffer::begin(VkCommandBufferUsageFlags flags, CommandBuffer* primary_cmd_buf)
 {
-    m_DescriptorSet_Binding_State.clear();
     if (isRecording())
     {
         return VK_NOT_READY;
     }
     m_State = State::Recording;
+
+    // Reset state
+    m_PipelineState.reset();
+    m_ResourceBindingState.reset();
+    m_DescriptorSet_Binding_State.clear();
 
     VkCommandBufferBeginInfo       beginInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
     VkCommandBufferInheritanceInfo inheritance { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
@@ -87,15 +91,15 @@ VkResult CommandBuffer::begin(VkCommandBufferUsageFlags flags, CommandBuffer* pr
     {
         assert(primary_cmd_buf && "A primary command buffer pointer must be provided when calling begin from a secondary one");
 
-        //auto render_pass_binding = primary_cmd_buf->get_current_render_pass();
-        //current_render_pass.render_pass = render_pass_binding.render_pass;
-        //current_render_pass.framebuffer = render_pass_binding.framebuffer;
+        auto render_pass_binding = primary_cmd_buf->get_current_render_pass();
+        m_CurrentRenderPass.render_pass = render_pass_binding.render_pass;
+        m_CurrentRenderPass.framebuffer = render_pass_binding.framebuffer;
 
-        //inheritance.renderPass = current_render_pass.render_pass->get_handle();
-        //inheritance.framebuffer = current_render_pass.framebuffer->get_handle();
-        //inheritance.subpass = primary_cmd_buf->get_current_subpass_index();
+        inheritance.renderPass = m_CurrentRenderPass.render_pass->getHandle();
+        inheritance.framebuffer = m_CurrentRenderPass.framebuffer->getHandle();
+        inheritance.subpass = primary_cmd_buf->get_current_subpass_index();
 
-        //begin_info.pInheritanceInfo = &inheritance;
+        beginInfo.pInheritanceInfo = &inheritance;
     }
 
     return vkBeginCommandBuffer(m_CommandBuffer, &beginInfo);
@@ -116,8 +120,8 @@ void CommandBuffer::beginRenderPass(const RenderTarget& render_target, const std
 {
 
    m_PipelineState.reset();
-   //resource_binding_state.reset();
-  // descriptor_set_layout_binding_state.clear();
+   m_ResourceBindingState.reset();
+   m_DescriptorSet_Binding_State.clear();
 
    std::vector<SubpassInfo> subpass_infos(subpasses.size());
 
@@ -167,16 +171,16 @@ void CommandBuffer::nextSubpass()
 {
 
     // Increment subpass index
-    //pipeline_state.set_subpass_index(pipeline_state.get_subpass_index() + 1);
+    m_PipelineState.setSubpassIndex(m_PipelineState.getSubpassIndex() + 1);
 
     // Update blend state attachments
-    //auto blend_state = pipeline_state.get_color_blend_state();
-    //blend_state.attachments.resize(current_render_pass.render_pass->get_color_output_count(pipeline_state.get_subpass_index()));
-    //pipeline_state.set_color_blend_state(blend_state);
+    auto blend_state = m_PipelineState.getColorBlendState();
+    blend_state.m_Attachments.resize(m_CurrentRenderPass.render_pass->getColorOutputCount(m_PipelineState.getSubpassIndex()));
+    m_PipelineState.setColorBlendState(blend_state);
 
     // Reset descriptor sets
-    //resource_binding_state.reset();
-    //descriptor_set_layout_binding_state.clear();
+    m_ResourceBindingState.reset();
+    m_DescriptorSet_Binding_State.clear();
 
     // Clear stored push constants
     //stored_push_constants.clear();
@@ -256,6 +260,11 @@ void CommandBuffer::draw_indexed(uint32_t index_count, uint32_t instance_count, 
 void CommandBuffer::bindPipelineLayout(PipelineLayout& pipeline_layout)
 {
     m_PipelineState.setPipelineLayout(pipeline_layout);
+}
+
+void CommandBuffer::execute_commands(CommandBuffer& secondary_command_buffer)
+{
+    vkCmdExecuteCommands(getHandle(), 1, &secondary_command_buffer.getHandle());
 }
 
 void CommandBuffer::pushConstants(uint32_t offset, const std::vector<uint8_t>& values)
