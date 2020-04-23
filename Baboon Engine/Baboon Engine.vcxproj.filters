@@ -144,9 +144,6 @@
     <ClCompile Include="Source\Renderer\Vulkan\ResourceBindingState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Renderer\Vulkan\Buffer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Renderer\Vulkan\resources\DescriptorPool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -166,6 +163,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\External Source\imgui\imgui_widgets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\VulkanBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Renderer\Common\Buffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -284,9 +287,6 @@
     <ClInclude Include="Source\Renderer\Vulkan\ResourceBindingState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Renderer\Vulkan\Buffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Renderer\Vulkan\resources\DescriptorPool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -312,6 +312,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\External Source\imgui\imstb_truetype.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\VulkanBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Common\Buffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Common\Texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\VulkanTexture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

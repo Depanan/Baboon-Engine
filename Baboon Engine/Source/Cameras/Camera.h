@@ -1,18 +1,28 @@
 #pragma once
 #include <glm\glm.hpp>
+
+struct UBOCamera {
+    glm::mat4 view;
+    glm::mat4 proj;
+};
+
+class Buffer;
 class Camera
 {
 
 public:
 	void Init();
 	
+  void Update();
 	void UpdateViewMatrix();
 	void UpdateProjectionMatrix(float newAspectRatio);
   bool GetDirty() const{ return m_Dirty; }
   void ClearDirty() { m_Dirty = false; }
 
-	const glm::mat4& GetViewMatrix()const { return m_ViewMat; }
-	const glm::mat4& GetProjMatrix()const { return m_ProjMat; }
+
+  const Buffer* GetCameraUniformBuffer()const { return m_CameraUniformBuffer; }
+	const glm::mat4& GetViewMatrix()const { return m_UBOCamera.view; }
+	const glm::mat4& GetProjMatrix()const { return m_UBOCamera.proj; }
 	const glm::vec3& GetPosition()const { return m_Position; }
 	const glm::vec3& GetRotation()const { return m_Rotation; }
 
@@ -38,8 +48,8 @@ private:
 	glm::vec3 m_Position = glm::vec3();
 
 
-	glm::mat4 m_ViewMat;
-	glm::mat4 m_ProjMat;
+  UBOCamera m_UBOCamera;
+  Buffer* m_CameraUniformBuffer;
 
 
 };

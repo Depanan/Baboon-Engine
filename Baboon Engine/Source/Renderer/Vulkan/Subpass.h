@@ -41,18 +41,12 @@ protected:
 
 
 
-class Buffer;
-class VulkanImage;
-class VulkanSampler;
-class VulkanImageView;
+class VulkanBuffer;
+class VulkanTexture;
 class Camera;
 class CommandPool;
 class PersistentCommandsPerFrame;
-struct Texture{
-    VulkanImage* m_Image;
-    VulkanSampler* m_Sampler;
-    VulkanImageView* m_View;
-};
+
 
 
 
@@ -64,12 +58,10 @@ public:
     void draw(CommandBuffer& command_buffer) override;
 
 private:
-    Buffer* m_TrianglePos;
-    Buffer* m_TriangleIndices;
-    Buffer* m_UniformBuffer;
-    UBO m_TestUBO;
+    //VulkanBuffer* m_TrianglePos;
+    //VulkanBuffer* m_TriangleIndices;
     const Camera* m_Camera;
-    Texture m_TestTexture;
+    VulkanTexture* m_TestTexture;
 
   
     

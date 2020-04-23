@@ -1,5 +1,5 @@
 #include "ResourceBindingState.h"
-#include "Buffer.h"
+#include "VulkanBuffer.h"
 #include "VulkanImageView.h"
 #include "VulkanSampler.h"
 
@@ -23,7 +23,7 @@ void ResourceBindingState::clear_dirty(uint32_t set)
 {
     m_Resource_Sets[set].clear_dirty();
 }
-void ResourceBindingState::bind_buffer(const Buffer& buffer, VkDeviceSize offset, VkDeviceSize range, uint32_t set, uint32_t binding, uint32_t array_element)
+void ResourceBindingState::bind_buffer(const VulkanBuffer& buffer, VkDeviceSize offset, VkDeviceSize range, uint32_t set, uint32_t binding, uint32_t array_element)
 {
     m_Resource_Sets[set].bind_buffer(buffer, offset, range, binding, array_element);
 
@@ -68,7 +68,7 @@ void ResourceSet::clear_dirty(uint32_t binding, uint32_t array_element)
     m_Resource_Bindings[binding][array_element].m_Dirty = false;
 }
 
-void ResourceSet::bind_buffer(const Buffer& buffer, VkDeviceSize offset, VkDeviceSize range, uint32_t binding, uint32_t array_element)
+void ResourceSet::bind_buffer(const VulkanBuffer& buffer, VkDeviceSize offset, VkDeviceSize range, uint32_t binding, uint32_t array_element)
 {
     m_Resource_Bindings[binding][array_element].m_Dirty = true;
     m_Resource_Bindings[binding][array_element].m_Buffer = &buffer;

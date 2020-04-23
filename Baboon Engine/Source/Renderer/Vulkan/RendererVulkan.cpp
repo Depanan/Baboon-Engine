@@ -6,6 +6,7 @@
 #include "Core\Model.h"
 #include "Core\Scene.h"
 #include "Cameras\Camera.h"
+#include "VulkanTexture.h"
 
 
 void PrintVulkanSupportedExtensions()
@@ -220,15 +221,28 @@ void  RendererVulkan::pickPhysicalDevice()
 }
 
 
-void  RendererVulkan::CreateVertexBuffer(const void*  i_data, size_t iBufferSize)
+Buffer* RendererVulkan::CreateVertexBuffer( void*  i_data, size_t iBufferSize)
 {
+    Buffer* buffer;
 
+    m_Buffers.emplace_back(*m_LogicalDevice, iBufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+    buffer = &m_Buffers.back();
+    if(i_data)
+        buffer->update(i_data, iBufferSize);
+
+    return buffer;
 	
 }
 
-void RendererVulkan::CreateIndexBuffer(const void*  i_data, size_t iBufferSize)
+Buffer* RendererVulkan::CreateIndexBuffer( void*  i_data, size_t iBufferSize)
 {
-	
+    Buffer* buffer;
+    m_Buffers.emplace_back(*m_LogicalDevice, iBufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+    buffer = &m_Buffers.back();
+    if(i_data)
+        buffer->update(i_data, iBufferSize);
+
+    return buffer;
 }
 
 
@@ -241,16 +255,22 @@ void RendererVulkan::DeleteIndexBuffer()
 
 }
 
-void RendererVulkan::CreateStaticUniformBuffer(const void*  i_data, size_t iBufferSize)
+Buffer* RendererVulkan::CreateStaticUniformBuffer( void*  i_data, size_t iBufferSize)
 {
+    Buffer* buffer;
 
+    m_Buffers.emplace_back(*m_LogicalDevice, iBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+    buffer = &m_Buffers.back();
+    if(i_data)
+        buffer->update(i_data, iBufferSize);
 
+    return buffer;
 
 }
-void RendererVulkan::CreateInstancedUniformBuffer(const void*  i_data, size_t iBufferSize)
+Buffer* RendererVulkan::CreateInstancedUniformBuffer( void*  i_data, size_t iBufferSize)
 {
 	
-
+    return nullptr;
 }
 
 void RendererVulkan::DeleteStaticUniformBuffer()
@@ -281,6 +301,116 @@ void RendererVulkan::UpdateTimesAndFPS(std::chrono::time_point<std::chrono::high
 		m_FrameCounter = 0.0f;
 	}
 	
+}
+
+Texture* RendererVulkan::CreateTexture(void* pPixels, int i_Widht, int i_Height)
+{
+    VulkanTexture* texture = new VulkanTexture();
+    auto& command_buffer = m_LogicalDevice->requestCommandBuffer();
+    command_buffer.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, 0);
+
+
+
+
+    VkExtent3D extent{ i_Widht,i_Height,1 };
+
+    m_Images.emplace_back(*m_LogicalDevice, extent, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
+    texture->setImage(&m_Images.back());
+
+    m_ImageViews.emplace_back(*texture->getImage(), VK_IMAGE_VIEW_TYPE_2D);
+    texture->setImageView(&m_ImageViews.back());
+
+    size_t size = i_Widht * i_Height * 4 * sizeof(unsigned char);//we are forcing 4 channels with the STBI_rgb_alpha flag
+    VulkanBuffer stage_buffer{ *m_LogicalDevice,
+                              size,
+                              VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                              VMA_MEMORY_USAGE_CPU_ONLY };
+
+
+    stage_buffer.update(pPixels, size);
+   
+
+    /////Lets upload image to the gpu
+    {
+        ImageMemoryBarrier memory_barrier{};
+        memory_barrier.old_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+        memory_barrier.new_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        memory_barrier.src_access_mask = 0;
+        memory_barrier.dst_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        memory_barrier.src_stage_mask = VK_PIPELINE_STAGE_HOST_BIT;
+        memory_barrier.dst_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+        command_buffer.imageBarrier(*texture->getImageView(), memory_barrier);
+    }
+
+    std::vector<VkBufferImageCopy> buffer_copy_regions(1);//TODO: We are assuming mipmaps = 1
+    auto& copy_region = buffer_copy_regions[0];
+    copy_region.bufferOffset = 0;//mipmap.offset;
+    copy_region.imageSubresource = texture->getImageView()->getSubresourceLayers();
+    // Update miplevel
+    copy_region.imageSubresource.mipLevel = 0;//mipmap.level;
+    VkExtent3D mipExtent{ i_Widht,i_Height,1 };
+    copy_region.imageExtent = mipExtent;//mipmap.extent;
+
+    command_buffer.copy_buffer_to_image(stage_buffer, *texture->getImage(), buffer_copy_regions);
+
+    //Transition image to readable by the shader
+    {
+        ImageMemoryBarrier memory_barrier{};
+        memory_barrier.old_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        memory_barrier.new_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        memory_barrier.src_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        memory_barrier.dst_access_mask = VK_ACCESS_SHADER_READ_BIT;
+        memory_barrier.src_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        memory_barrier.dst_stage_mask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+        command_buffer.imageBarrier(*texture->getImageView(), memory_barrier);
+    }
+
+
+    command_buffer.end();
+
+    auto& queue = m_LogicalDevice->getGraphicsQueue();
+
+    queue.submit(command_buffer, m_LogicalDevice->requestFence());
+
+    m_LogicalDevice->getFencePool().wait();
+    m_LogicalDevice->getFencePool().reset();
+    m_LogicalDevice->getCommandPool().reset_pool();
+    m_LogicalDevice->wait_idle();
+
+    //!TODO END/////////////////////////////////////////////////////////////////////
+
+
+    //I think this same sampler can be used for all the textures TODO: Make it shareable
+    VkSamplerCreateInfo samplerInfo = {};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = 16;
+
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.mipLodBias = 0.0f;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+    samplerInfo.anisotropyEnable = VK_FALSE;
+
+    m_Samplers.emplace_back(*m_LogicalDevice, samplerInfo);
+    texture->setSampler(&m_Samplers.back());
+    return texture;
 }
 
 

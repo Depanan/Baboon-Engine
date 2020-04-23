@@ -3,7 +3,7 @@
 #include "../Renderer/Vulkan/VulkanImage.h"
 #include "../Renderer/Vulkan/VulkanImageView.h"
 #include "../Renderer/Vulkan/VulkanSampler.h"
-#include "../Renderer/Vulkan/Buffer.h"
+#include "../Renderer/Vulkan/VulkanBuffer.h"
 #include "../Renderer/Vulkan/resources/Shader.h"
 
 #include <memory>
@@ -66,8 +66,8 @@ private:
 
   PipelineLayout* m_PipelineLayout{ nullptr };
 
-  std::unique_ptr<Buffer> m_VertexBuffer;
-  std::unique_ptr<Buffer> m_IndexBuffer;
+  std::unique_ptr<VulkanBuffer> m_VertexBuffer;
+  std::unique_ptr<VulkanBuffer> m_IndexBuffer;
 
   size_t m_LastVertexBufferSize;
   size_t m_LastIndexBufferSize;

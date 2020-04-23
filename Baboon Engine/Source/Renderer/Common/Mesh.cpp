@@ -10,8 +10,8 @@ void Vertex::GetVertexDescription(VkVertexInputBindingDescription* o_Description
 }
 void Vertex::GetAttributesDescription(std::vector<VkVertexInputAttributeDescription>& o_AttribDescription)
 {
-    o_AttribDescription.resize(3);
-	//o_AttribDescription.resize(4);
+   // o_AttribDescription.resize(3);
+	o_AttribDescription.resize(4);
 	
 	//Position
 	o_AttribDescription[0].binding = 0;
@@ -31,10 +31,10 @@ void Vertex::GetAttributesDescription(std::vector<VkVertexInputAttributeDescript
 	o_AttribDescription[2].location = 2;
 	o_AttribDescription[2].format = VK_FORMAT_R32G32_SFLOAT;
 	o_AttribDescription[2].offset = offsetof(Vertex, texCoord);
-/*
+
 	//Normal
 	o_AttribDescription[3].binding = 0;
 	o_AttribDescription[3].location = 3;
 	o_AttribDescription[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-	o_AttribDescription[3].offset = offsetof(Vertex, normal);*/
+	o_AttribDescription[3].offset = offsetof(Vertex, normal);
 }

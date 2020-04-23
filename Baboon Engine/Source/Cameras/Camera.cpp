@@ -4,20 +4,24 @@
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "Renderer/Common/Buffer.h"
 
 
 void Camera::Init()
 {
-   
+  size_t size = sizeof(UBOCamera);
+  m_CameraUniformBuffer = ServiceLocator::GetRenderer()->CreateStaticUniformBuffer(nullptr, size);
+  m_UBOCamera.view = glm::mat4();
 	UpdateProjectionMatrix(ServiceLocator::GetRenderer()->GetMainRTWidth() / ServiceLocator::GetRenderer()->GetMainRTHeight());
+
+  
+
 	m_MoveSpeed = 100.0f;
 	m_RotatingSpeed = 10.0f;
 	m_bRotating = false;
 
 	
 	
-	m_ViewMat = glm::mat4();
-
 	//Map functions to input:
 
 	Input* pInput = ServiceLocator::GetInput();
@@ -30,20 +34,29 @@ void Camera::Init()
 	pInput->MapMouseButtonClicked(1, Camera::startRotation, this);
 	pInput->MapMouseMoved(Camera::rotate, this);
 	pInput->MapMouseButtonReleased(1, Camera::endRotation, this);
+
 }
 void Camera::UpdateProjectionMatrix(float newAspectRatio)
 {
 	float fNear = 0.1f;
-	float fFar = 10.0f;
+	float fFar = 1000.0f;
 	float fFov = glm::radians(60.0f);
 
   auto vfov = static_cast<float>(2 * atan(tan(fFov / 2) * (1.0 / newAspectRatio)));
   fFov = newAspectRatio > 1.0f ? fFov : vfov;
 
-	m_ProjMat = glm::perspective(fFov, newAspectRatio, fNear, fFar);//TODO:: Make far near and fov config
-	m_ProjMat[1][1] *= -1;//GLM was originally designed for OpenGL, where the Y coordinate of the clip coordinates is inverted.
+  m_UBOCamera.proj = glm::perspective(fFov, newAspectRatio, fNear, fFar);//TODO:: Make far near and fov config
+  m_UBOCamera.proj[1][1] *= -1;//GLM was originally designed for OpenGL, where the Y coordinate of the clip coordinates is inverted.
 
   m_Dirty = true;
+}
+void Camera::Update()
+{
+    if (m_Dirty)
+    {
+        m_CameraUniformBuffer->update(&m_UBOCamera, sizeof(UBOCamera));
+    }
+    m_Dirty = false;
 }
 void Camera::UpdateViewMatrix()
 {
@@ -57,7 +70,7 @@ void Camera::UpdateViewMatrix()
 	transM = glm::translate(glm::mat4(), m_Position);
 
 	
-	m_ViewMat = rotM * transM;
+  m_UBOCamera.view = rotM * transM;
 
   m_Dirty = true;
 }

@@ -31,8 +31,9 @@
     <ClCompile Include="Source\Core\Model.cpp" />
     <ClCompile Include="Source\Core\Scene.cpp" />
     <ClCompile Include="Source\Core\ServiceLocator.cpp" />
+    <ClCompile Include="Source\Renderer\Common\Buffer.cpp" />
     <ClCompile Include="Source\Renderer\Common\Mesh.cpp" />
-    <ClCompile Include="Source\Renderer\Vulkan\Buffer.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\VulkanBuffer.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\CommandBuffer.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\CommandPool.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\Common.cpp" />
@@ -80,9 +81,11 @@
     <ClInclude Include="Source\Core\Scene.h" />
     <ClInclude Include="Source\Core\ServiceLocator.h" />
     <ClInclude Include="Source\defines.h" />
+    <ClInclude Include="Source\Renderer\Common\Buffer.h" />
     <ClInclude Include="Source\Renderer\Common\Mesh.h" />
+    <ClInclude Include="Source\Renderer\Common\Texture.h" />
     <ClInclude Include="Source\Renderer\RendererAbstract.h" />
-    <ClInclude Include="Source\Renderer\Vulkan\Buffer.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\VulkanBuffer.h" />
     <ClInclude Include="Source\Renderer\Vulkan\CommandBuffer.h" />
     <ClInclude Include="Source\Renderer\Vulkan\CommandPool.h" />
     <ClInclude Include="Source\Renderer\Vulkan\Common.h" />
@@ -112,6 +115,7 @@
     <ClInclude Include="Source\Renderer\Vulkan\VulkanImageView.h" />
     <ClInclude Include="Source\Renderer\Vulkan\VulkanResources.h" />
     <ClInclude Include="Source\Renderer\Vulkan\VulkanSampler.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\VulkanTexture.h" />
     <ClInclude Include="Source\UI\VulkanIMGUI.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

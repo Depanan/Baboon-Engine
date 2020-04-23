@@ -3,14 +3,14 @@
 #include <unordered_map>
 
 class Device;
-class Buffer;
+class VulkanBuffer;
 class VulkanSampler;
 class VulkanImageView;
 
 struct ResourceInfo
 {
     bool m_Dirty{ false };
-    const Buffer* m_Buffer{ nullptr };
+    const VulkanBuffer* m_Buffer{ nullptr };
     VkDeviceSize m_Offset{ 0 };
     VkDeviceSize m_Range{ 0 };
     const VulkanImageView* m_ImageView{ nullptr };
@@ -34,7 +34,7 @@ public:
 
     void clear_dirty(uint32_t binding, uint32_t array_element);
 
-    void bind_buffer(const Buffer& buffer, VkDeviceSize offset, VkDeviceSize range, uint32_t binding, uint32_t array_element);
+    void bind_buffer(const VulkanBuffer& buffer, VkDeviceSize offset, VkDeviceSize range, uint32_t binding, uint32_t array_element);
 
     void bind_image(const VulkanImageView& image_view, const VulkanSampler& sampler, uint32_t binding, uint32_t array_element);
 
@@ -59,7 +59,7 @@ public:
 
     void clear_dirty(uint32_t set);
 
-    void bind_buffer(const Buffer& buffer, VkDeviceSize offset, VkDeviceSize range, uint32_t set, uint32_t binding, uint32_t array_element);
+    void bind_buffer(const VulkanBuffer& buffer, VkDeviceSize offset, VkDeviceSize range, uint32_t set, uint32_t binding, uint32_t array_element);
 
     void bind_image(const VulkanImageView& image_view, const VulkanSampler& sampler, uint32_t set, uint32_t binding, uint32_t array_element);
 

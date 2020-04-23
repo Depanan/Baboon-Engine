@@ -10,7 +10,7 @@
 #include "../Renderer/Vulkan/Device.h"
 #include "../Renderer/Vulkan/resources/PipelineLayout.h"
 #include "../Renderer/Vulkan/VulkanContext.h"
-#include "../Renderer/Vulkan/Buffer.h"
+#include "../Renderer/Vulkan/VulkanBuffer.h"
 #include "../Renderer/Vulkan/CommandBuffer.h"
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -116,7 +116,7 @@ void VulkanImGUI::Init(GLFWwindow* i_window)
 
     // Upload font data into the vulkan image memory
     {
-        Buffer stage_buffer{ device, upload_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY, 0 };
+        VulkanBuffer stage_buffer{ device, upload_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY, 0 };
         stage_buffer.update({ font_data, font_data + upload_size });
 
         auto& command_buffer = device.requestCommandBuffer();
@@ -194,8 +194,8 @@ void VulkanImGUI::Init(GLFWwindow* i_window)
 
     m_Sampler = std::make_unique<VulkanSampler>(device, sampler_info);
 
-    m_VertexBuffer = std::make_unique<Buffer>(device, 1, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
-    m_IndexBuffer = std::make_unique<Buffer>(device, 1, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+    m_VertexBuffer = std::make_unique<VulkanBuffer>(device, 1, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+    m_IndexBuffer = std::make_unique<VulkanBuffer>(device, 1, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
 
     m_PersistentCommandsPerFrame = new PersistentCommandsPerFrame();
 
@@ -281,7 +281,7 @@ void VulkanImGUI::recordCommandBuffers(CommandBuffer* command_buffer, CommandBuf
     command_buffer->setDepthStencilState(depth_state);
 
     // Bind pipeline layout
-    command_buffer->bindPipelineLayout(*m_PipelineLayout);
+    command_buffer->bindPipelineLayout(*m_PipelineLayout)   ;
 
     command_buffer->bind_image(*m_FontImageView, *m_Sampler, 0, 0, 0);
 
@@ -298,7 +298,7 @@ void VulkanImGUI::recordCommandBuffers(CommandBuffer* command_buffer, CommandBuf
     command_buffer->pushConstants(0, push_transform);
 
 
-    std::vector<std::reference_wrapper<Buffer>> buffers;
+    std::vector<std::reference_wrapper<VulkanBuffer>> buffers;
     buffers.push_back(*m_VertexBuffer);
     command_buffer->bind_vertex_buffers(0, buffers, { 0 });
 
@@ -545,7 +545,7 @@ void VulkanImGUI::UpdateDrawBuffers()
         updated = true;
 
         m_VertexBuffer.reset();
-        m_VertexBuffer = std::make_unique<Buffer>(m_VulkanContext.getDevice(), vertex_buffer_size,
+        m_VertexBuffer = std::make_unique<VulkanBuffer>(m_VulkanContext.getDevice(), vertex_buffer_size,
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VMA_MEMORY_USAGE_GPU_TO_CPU);
     }
@@ -556,7 +556,7 @@ void VulkanImGUI::UpdateDrawBuffers()
         updated = true;
 
         m_IndexBuffer.reset();
-        m_IndexBuffer = std::make_unique<Buffer>(m_VulkanContext.getDevice(), index_buffer_size,
+        m_IndexBuffer = std::make_unique<VulkanBuffer>(m_VulkanContext.getDevice(), index_buffer_size,
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
             VMA_MEMORY_USAGE_GPU_TO_CPU);
     }

@@ -17,11 +17,12 @@ public:
 		eCameraType_Main,
 		eCameraType_NCameras
 	};
+  void Update();
 	void Init();
 	
 	void OnWindowResize(int width, int height);
 
-  void ClearDirty();
+ 
 
 	const Camera* GetCamera(eCameraType i_camType)
 	{

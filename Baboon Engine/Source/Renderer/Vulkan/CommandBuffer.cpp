@@ -5,7 +5,7 @@
 #include <cassert>
 #include "resources/RenderTarget.h"
 #include "resources/DescriptorSet.h"
-#include "Buffer.h"
+#include "VulkanBuffer.h"
 #include "VulkanSampler.h"
 #include "RenderFrame.h"
 
@@ -302,28 +302,28 @@ void CommandBuffer::flushPipelineState()
 }
 
 
-void CommandBuffer::bind_buffer(const Buffer& buffer, VkDeviceSize offset, VkDeviceSize range, uint32_t set, uint32_t binding, uint32_t array_element)
+void CommandBuffer::bind_buffer(const VulkanBuffer& buffer, VkDeviceSize offset, VkDeviceSize range, uint32_t set, uint32_t binding, uint32_t array_element)
 {
     m_ResourceBindingState.bind_buffer(buffer, offset, range, set, binding, array_element);
 }
 
-void CommandBuffer::copy_buffer_to_image(const Buffer& buffer, const VulkanImage& image, const std::vector<VkBufferImageCopy>& regions)
+void CommandBuffer::copy_buffer_to_image(const VulkanBuffer& buffer, const VulkanImage& image, const std::vector<VkBufferImageCopy>& regions)
 {
     vkCmdCopyBufferToImage(getHandle(), buffer.getHandle(),
         image.getHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         regions.size(), regions.data());
 }
 
-void CommandBuffer::bind_vertex_buffers(uint32_t first_binding, std::vector<std::reference_wrapper<Buffer>> buffers, const std::vector<VkDeviceSize>& offsets)
+void CommandBuffer::bind_vertex_buffers(uint32_t first_binding, std::vector<std::reference_wrapper<VulkanBuffer>> buffers, const std::vector<VkDeviceSize>& offsets)
 {
     std::vector<VkBuffer> buffer_handles(buffers.size(), VK_NULL_HANDLE);
     std::transform(buffers.begin(), buffers.end(), buffer_handles.begin(),
-        [](const Buffer& buffer) { return buffer.getHandle(); });
+        [](const VulkanBuffer& buffer) { return buffer.getHandle(); });
     vkCmdBindVertexBuffers(getHandle(), first_binding, buffer_handles.size(), buffer_handles.data(), offsets.data());
     
 }
 
-void CommandBuffer::bind_index_buffer(Buffer& buffer, VkDeviceSize offset, VkIndexType index_type)
+void CommandBuffer::bind_index_buffer(VulkanBuffer& buffer, VkDeviceSize offset, VkIndexType index_type)
 {
     vkCmdBindIndexBuffer(getHandle(), buffer.getHandle(), offset, index_type);
 }

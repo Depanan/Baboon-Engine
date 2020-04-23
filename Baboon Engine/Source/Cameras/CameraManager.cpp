@@ -12,11 +12,13 @@ void CameraManager::OnWindowResize(int width, int height)
 	}
 }
 
-void CameraManager::ClearDirty()
+
+
+void CameraManager::Update()
 {
     for (int i = 0; i < eCameraType_NCameras; i++)
     {
-        m_Cameras[i].ClearDirty();
+        m_Cameras[i].Update();
 
     }
 }

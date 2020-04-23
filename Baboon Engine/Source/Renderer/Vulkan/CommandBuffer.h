@@ -14,6 +14,7 @@ class VulkanImageView;
 class PipelineLayout;
 class FrameBuffer;
 class DescriptorSetLayout;
+class VulkanImage;
 
 struct ImageMemoryBarrier
 {
@@ -36,7 +37,7 @@ struct RenderPassBinding
     const FrameBuffer* framebuffer;
 };
 
-class Buffer;
+class VulkanBuffer;
 
 class CommandBuffer
 {
@@ -81,13 +82,13 @@ public:
     void draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance);
     void draw_indexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, int32_t vertex_offset, uint32_t first_instance);
 
-    void bind_vertex_buffers(uint32_t first_binding, std::vector<std::reference_wrapper<Buffer>> buffers, const std::vector<VkDeviceSize>& offsets);
-    void bind_index_buffer(Buffer& buffer, VkDeviceSize offset, VkIndexType index_type);
+    void bind_vertex_buffers(uint32_t first_binding, std::vector<std::reference_wrapper<VulkanBuffer>> buffers, const std::vector<VkDeviceSize>& offsets);
+    void bind_index_buffer(VulkanBuffer& buffer, VkDeviceSize offset, VkIndexType index_type);
 
-    void bind_buffer(const Buffer& buffer, VkDeviceSize offset, VkDeviceSize range, uint32_t set, uint32_t binding, uint32_t array_element);
+    void bind_buffer(const VulkanBuffer& buffer, VkDeviceSize offset, VkDeviceSize range, uint32_t set, uint32_t binding, uint32_t array_element);
     void bind_image(const VulkanImageView& image_view, const VulkanSampler& sampler, uint32_t set, uint32_t binding, uint32_t array_element);
 
-    void copy_buffer_to_image(const Buffer& buffer, const VulkanImage& image, const std::vector<VkBufferImageCopy>& regions);
+    void copy_buffer_to_image(const VulkanBuffer& buffer, const VulkanImage& image, const std::vector<VkBufferImageCopy>& regions);
 
 
     void bindPipelineLayout(PipelineLayout& pipeline_layout);

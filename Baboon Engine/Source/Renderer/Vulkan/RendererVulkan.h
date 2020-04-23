@@ -8,6 +8,7 @@
 #include "Device.h"
 #include "VulkanContext.h"
 #include "RenderPath.h"
+#include <list>
 
 class VulkanImGUI;
 class RendererVulkan : public RendererAbstract
@@ -25,12 +26,12 @@ public:
 	float GetMainRTWidth() override;
 	float GetMainRTHeight() override;
  
-	void CreateVertexBuffer(const void*  i_data, size_t iBufferSize) override;
-	void CreateIndexBuffer(const void*  i_data, size_t iBufferSize) override;
+	Buffer* CreateVertexBuffer( void*  i_data, size_t iBufferSize) override;
+  Buffer* CreateIndexBuffer( void*  i_data, size_t iBufferSize) override;
 	void DeleteVertexBuffer() override;
 	void DeleteIndexBuffer() override;
-	void CreateStaticUniformBuffer(const void*  i_data, size_t iBufferSize) override;
-	void CreateInstancedUniformBuffer(const void*  i_data, size_t iBufferSize) override;
+  Buffer* CreateStaticUniformBuffer( void*  i_data, size_t iBufferSize) override;
+  Buffer* CreateInstancedUniformBuffer( void*  i_data, size_t iBufferSize) override;
 	void DeleteStaticUniformBuffer() override;
 	void DeleteInstancedUniformBuffer() override;
 	void SetupRenderCalls() override;
@@ -38,7 +39,7 @@ public:
 
 
   //This 3 to be implemented
-  virtual int CreateTexture(void* i_data, int i_Widht, int i_Height) override { return 0; }
+  virtual Texture* CreateTexture(void* i_data, int i_Widht, int i_Height) override;
   virtual void CreateMaterial(std::string i_MatName, int* iTexIndices, int iNumTextures) override{ }
   virtual void DeleteMaterials() override { }
 
@@ -54,6 +55,10 @@ private:
   std::unique_ptr<RenderPath> m_RenderPath{ nullptr };
 
 
+  std::list<VulkanImage> m_Images;//Using lists here so pointers remain valid!
+  std::list<VulkanImageView> m_ImageViews;
+  std::list <VulkanSampler> m_Samplers;
+  std::list<VulkanBuffer> m_Buffers;
 
   std::unique_ptr <VulkanImGUI> m_GUI{ nullptr };
 

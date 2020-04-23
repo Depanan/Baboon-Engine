@@ -31,13 +31,13 @@ public:
 			
 			glfwPollEvents();
 			
-			pInput->processInput();
+			pInput->processInput();//Order here is important, 1.Input modifies camera, 2.Cameraman update modifies uniform buffers, 3. Renderer uses them 
+      pCameraMan->Update();
       pRenderer->Update();
 			pRenderer->DrawFrame();
 			
 			pRenderer->UpdateTimesAndFPS(tStart);
 			
-      pCameraMan->ClearDirty();
 
       ServiceLocator::GetLogger()->process();
 

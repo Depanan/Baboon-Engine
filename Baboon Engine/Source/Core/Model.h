@@ -7,11 +7,7 @@ struct InstanceUBO {
 
 };
 
-struct UBO {
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 proj;
-};
+
 
 class Model
 {
@@ -33,6 +29,7 @@ public:
 	void Translate(const glm::vec3& i_TranslateVec);
 	glm::vec3 GetPosition() { return m_pInstanceUniforms->model[4]; }
 
+  const glm::mat4& getModelMatrix()const { return m_pInstanceUniforms->model; }
 private:
 	Mesh* m_Mesh;
 	Material* m_Material;
