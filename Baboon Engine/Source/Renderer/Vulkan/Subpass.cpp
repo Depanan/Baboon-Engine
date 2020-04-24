@@ -21,6 +21,11 @@ Subpass::Subpass(VulkanContext& render_context, ShaderSource&& vertex_shader, Sh
 
 }
 
+void Subpass::invalidatePersistentCommands()
+{
+    m_PersistentCommandsPerFrame->resetPersistentCommands();
+}
+
 
 
 
@@ -147,13 +152,7 @@ void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, Co
 
 
 
-    auto& descriptor_set_layout = pipeline_layout.getDescriptorSetLayout(0);
-    if (auto layout_binding = descriptor_set_layout.getLayoutBinding("baseTexture"))//TODO: When we create textures store them in a map with their shader name and replace it here
-    {
-        command_buffer->bind_image(*m_TestTexture->getImageView(),
-            *m_TestTexture->getSampler(),
-            0, layout_binding->binding, 0);
-    }
+   
 
 
 
@@ -185,21 +184,39 @@ void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, Co
     std::vector<std::reference_wrapper<VulkanBuffer>> buffers;
     buffers.emplace_back(std::ref(*((VulkanBuffer*)scene->GetVerticesBuffer())));
     
-    command_buffer->bind_vertex_buffers(0, std::move(buffers), { 0 });//TODO: Here get the big buffer chunk from the scene
+    command_buffer->bind_vertex_buffers(0, std::move(buffers), { 0 });
     //Bind Indices buffer
-    command_buffer->bind_index_buffer(*((VulkanBuffer*)scene->GetIndicesBuffer()), 0, VK_INDEX_TYPE_UINT16);//TODO: Here get the big buffer chunk from the scene
+    command_buffer->bind_index_buffer(*((VulkanBuffer*)scene->GetIndicesBuffer()), 0, VK_INDEX_TYPE_UINT16);
 
 
 
 
-    std::vector <Model> sceneModels = *(scene->GetModels());
-    for (int i = 0; i< sceneModels.size();i++)
+    std::vector <Model*> sceneOpaqueModels = *(scene->GetOpaqueModels()); //TODO: Get transparency working. Unfortunately to get transparency rendered properly we need to sort geometry which will likely change the pre recorded command buffers (when we move the camera)
+    for (int i = 0; i< sceneOpaqueModels.size();i++)
     {
-        Model& model = sceneModels[i];
-        int nIndices = sceneModels[i].GetMesh()->GetNIndices();
-        int indexStart = sceneModels[i].GetMesh()->GetIndexStartPosition();
+        Model& model = *sceneOpaqueModels[i];
+        auto& descriptor_set_layout = pipeline_layout.getDescriptorSetLayout(0);
+        if (auto layout_binding = descriptor_set_layout.getLayoutBinding("baseTexture"))
+        {
+            VulkanTexture* texture = (VulkanTexture*) model.GetMaterial()->GetTextureByName("baseTexture");
+            if (texture)
+            {
+                command_buffer->bind_image(*texture->getImageView(),
+                    *texture->getSampler(),
+                    0, layout_binding->binding, 0);
+            }
+            else{
+                command_buffer->bind_image(*m_TestTexture->getImageView(),
+                    *m_TestTexture->getSampler(),
+                    0, layout_binding->binding, 0);
+            }
+        }
+
+
+        int nIndices = model.GetMesh()->GetNIndices();
+        int indexStart = model.GetMesh()->GetIndexStartPosition();
         command_buffer->pushConstants(0, model.getModelMatrix());
-        command_buffer->draw_indexed(nIndices, 1, indexStart, sceneModels[i].GetMesh()->GetVertexStartPosition(), 0);
+        command_buffer->draw_indexed(nIndices, 1, indexStart, model.GetMesh()->GetVertexStartPosition(), 0);
     }
 
     

@@ -190,6 +190,19 @@ PersistentCommands* PersistentCommandsPerFrame::getPersistentCommands(const char
     return persistentCommands;
 }
 
+void PersistentCommandsPerFrame::resetPersistentCommands()
+{
+    for (auto persistentCommand : m_PersistentCommandsPerFrame)
+    {
+        persistentCommand.second->m_NeedsSecondaryCommandsRecording = true;
+
+        persistentCommand.second->m_PersistentCommandPoolsPerFrame->getRenderFrame()->getFencePool().wait();//We need to wait since the commands might be in use here!, so we wait in fence associated to the Primary commandbuffer the secondary ones are executed
+        persistentCommand.second->m_PersistentCommandPoolsPerFrame->reset_pool();
+       
+        persistentCommand.second->m_PersistentCommandsPerFrame = &(persistentCommand.second->m_PersistentCommandPoolsPerFrame->request_command_buffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY));
+    }
+}
+
 void PersistentCommandsPerFrame::setDirty()
 {
     for (auto commandBuffersIt : m_PersistentCommandsPerFrame)

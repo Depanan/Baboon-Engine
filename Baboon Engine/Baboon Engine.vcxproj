@@ -28,6 +28,7 @@
     <ClCompile Include="Source\Cameras\CameraManager.cpp" />
     <ClCompile Include="Source\Core\Input.cpp" />
     <ClCompile Include="Source\Core\Logger.cpp" />
+    <ClCompile Include="Source\Core\Material.cpp" />
     <ClCompile Include="Source\Core\Model.cpp" />
     <ClCompile Include="Source\Core\Scene.cpp" />
     <ClCompile Include="Source\Core\ServiceLocator.cpp" />

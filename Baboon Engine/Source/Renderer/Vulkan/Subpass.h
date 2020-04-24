@@ -9,6 +9,8 @@ class CommandBuffer;
 
 //Here is where the drawing actually happens!
 class VulkanContext;
+class PersistentCommandsPerFrame;
+
 class Subpass
 {
 public:
@@ -23,12 +25,15 @@ public:
     const  std::vector<uint32_t>& getInputAttachments()const { return m_InputAttachments; }
     const  std::vector<uint32_t>& getOutputAttachments()const { return m_OutputAttachments; }
 
+
+    void invalidatePersistentCommands();
 protected:
     ShaderSource m_VertexShader;
     ShaderSource m_FragmentShader;
     VulkanContext& m_RenderContext;
 
-    
+    PersistentCommandsPerFrame* m_PersistentCommandsPerFrame;
+
     bool m_DisableDepthAttachment{ false };
 
 
@@ -45,7 +50,6 @@ class VulkanBuffer;
 class VulkanTexture;
 class Camera;
 class CommandPool;
-class PersistentCommandsPerFrame;
 
 
 
@@ -58,14 +62,11 @@ public:
     void draw(CommandBuffer& command_buffer) override;
 
 private:
-    //VulkanBuffer* m_TrianglePos;
-    //VulkanBuffer* m_TriangleIndices;
-    const Camera* m_Camera;
-    VulkanTexture* m_TestTexture;
-
-  
     
-    PersistentCommandsPerFrame* m_PersistentCommandsPerFrame;
+    const Camera* m_Camera;
+
+    VulkanTexture* m_TestTexture;
+    
     void recordCommandBuffers(CommandBuffer* commandBuffer, CommandBuffer* primary_command_buffer);
 
 };

@@ -57,6 +57,7 @@ class PersistentCommandsPerFrame
 {
 public:
     PersistentCommands* getPersistentCommands(const char* frameId, Device& device, RenderFrame& renderFrame);
+    void resetPersistentCommands();//Needed for example when window is resized since render targets are updated
     void setDirty();
     void getDirty(const char* frameId);
 

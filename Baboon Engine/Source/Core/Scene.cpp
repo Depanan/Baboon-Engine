@@ -65,6 +65,8 @@ void Scene::Free()
 {
 	RendererAbstract* renderer = ServiceLocator::GetRenderer();
 	renderer->DeleteMaterials();
+  m_OpaqueModels.clear();
+  m_TransparentModels.clear();
 	m_Models.clear();
 	m_Materials.clear();
 	m_Meshes.clear();
@@ -119,10 +121,8 @@ void Scene::loadAssets(const std::string i_ScenePath)
 	int dynamicAlignment = 256;//TODO: This should come from somewhere...
 	size_t dynamicBufferSize = numberOfModelsInScene * dynamicAlignment;
 	m_InstanceUniforms = (InstanceUBO*)alignedAlloc(dynamicBufferSize, dynamicAlignment);
-	renderer->CreateInstancedUniformBuffer(nullptr, dynamicBufferSize);
+	//renderer->CreateInstancedUniformBuffer(nullptr, dynamicBufferSize);
 	/////////////////////////////////
-
-	
 	UpdateUniforms();
 
 	
@@ -137,25 +137,66 @@ void Scene::loadAssets(const std::string i_ScenePath)
 	
 }
 
+const char* fromAiTexureTypesToShaderName(aiTextureType texType)
+{
+    switch (texType)
+    {
+    case aiTextureType_NONE:
+        break;
+    case aiTextureType_DIFFUSE:
+        return "baseTexture";
+    case aiTextureType_SPECULAR:
+        return "specularTexture";
+    case aiTextureType_AMBIENT:
+        break;
+    case aiTextureType_EMISSIVE:
+        break;
+    case aiTextureType_HEIGHT:
+        break;
+    case aiTextureType_NORMALS:
+        return "normalTexture";
+    case aiTextureType_SHININESS:
+        break;
+    case aiTextureType_OPACITY:
+        return " ";
+    case aiTextureType_DISPLACEMENT:
+        break;
+    case aiTextureType_LIGHTMAP:
+        break;
+    case aiTextureType_REFLECTION:
+        break;
+    case aiTextureType_UNKNOWN:
+        break;
+    case _aiTextureType_Force32Bit:
+        break;
+    default:
+        break;
+    }
+    return " ";
+
+}
+
+
 void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneTexturesPath)
 {
 	RendererAbstract* renderer = ServiceLocator::GetRenderer();
-
+  std::unordered_map<std::string, Texture*> fileNameImages;//Map to avoid loading the same texture more than once
 	int numberOfMaterialsInScene =i_aScene->mNumMaterials;
 	m_Materials.resize(numberOfMaterialsInScene);
 
 	for (int i = 0; i < numberOfMaterialsInScene; i++)
 	{
+
+    std::vector<std::pair<std::string,Texture*>> texturesInMaterial;
 		aiMaterial* pMaterial = i_aScene->mMaterials[i];
 		aiString matName;
 		pMaterial->Get(AI_MATKEY_NAME, matName);
 
     LOGINFO("\n Creating material: " + matName.C_Str());
 
-		std::vector<int> i_TexIndices;
-
-	
-
+    float opacity;
+    pMaterial->Get(AI_MATKEY_OPACITY, opacity);
+    bool isTransparent = opacity < 1.0f || pMaterial->GetTextureCount(aiTextureType_OPACITY);
 
 		aiString texturefile;
 		// Diffuse
@@ -163,32 +204,51 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 		int width, height;
 		int texChannels;
 		
-		
-		
-		if (pMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0)
-		{
-			pMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &texturefile);
-			std::string fileName = i_SceneTexturesPath + std::string(texturefile.C_Str());
-      LOGINFO("\n Loading texture: " + fileName);
+    int aiTexureTypes = aiTextureType_UNKNOWN - 1;
+   
+    for (int i = 0; i < aiTexureTypes; i++)
+    {
+        aiTextureType texType = (aiTextureType)i;
+        if (pMaterial->GetTextureCount(texType) > 0)
+        {
+            Texture* texture = nullptr;
+            pMaterial->GetTexture(texType, 0, &texturefile);
+            std::string fileName = i_SceneTexturesPath + std::string(texturefile.C_Str());
+            auto texIterator = fileNameImages.find(fileName);
+            if (texIterator != fileNameImages.end())
+            {
+                texture = fileNameImages[fileName];
+            }
+            else
+            {
+                
+                LOGINFO("\n Loading image: " + fileName);
 
-			pPixels = stbi_load(fileName.c_str(), &width, &height, &texChannels, STBI_rgb_alpha);
-		}
-		if(pPixels == nullptr)
-		{
-			
-			// todo : separate pipeline and layout
-			pPixels = stbi_load("Textures/baboon.jpg", &width, &height, &texChannels, STBI_rgb_alpha);
-		}
-		if (pPixels == nullptr)
-			throw std::runtime_error("Texture not found, I will handle this properly at some point shouldn't just break!");
+                pPixels = stbi_load(fileName.c_str(), &width, &height, &texChannels, STBI_rgb_alpha);
 
-    renderer->CreateTexture((void*)pPixels, width, height);
-		//i_TexIndices.push_back(iTexIndex);
+                if (pPixels == nullptr)
+                {
+
+                    // todo : separate pipeline and layout
+                    pPixels = stbi_load("Textures/baboon.jpg", &width, &height, &texChannels, STBI_rgb_alpha);
+                }
+                if (pPixels == nullptr)
+                    throw std::runtime_error("Texture not found, I will handle this properly at some point shouldn't just break!");
+
+                texture = renderer->CreateTexture((void*)pPixels, width, height);
+                fileNameImages[fileName] = texture;
+                stbi_image_free(pPixels);
+            }
+            if (texture)
+            {
+                texturesInMaterial.push_back({ fromAiTexureTypesToShaderName(texType),texture });
+            }
+        }
+    }
 		
-		stbi_image_free(pPixels);
-
-		renderer->CreateMaterial(std::string(matName.C_Str()), i_TexIndices.data(),i_TexIndices.size());
-		m_Materials[i].Init(std::string(matName.C_Str()));
+	
+		
+		m_Materials[i].Init(std::string(matName.C_Str()),texturesInMaterial,isTransparent);
 	}
 
 
@@ -244,6 +304,16 @@ void Scene::loadModels(const aiScene* i_aScene)
 		m_Models[i].SetMesh(&m_Meshes[i]);
 		m_Models[i].SetInstanceUniforms((InstanceUBO*)((uint64_t)m_InstanceUniforms + (i * dynamicAlignment)), i);
 		m_Models[i].SetMaterial(&m_Materials[aMesh->mMaterialIndex]);
+
+    if (m_Materials[aMesh->mMaterialIndex].isTransparent())
+    {
+        m_TransparentModels.push_back(&m_Models[i]);
+    }
+    else
+    {
+        m_OpaqueModels.push_back(&m_Models[i]);
+    }
+
 
 		iCurrentIndex += iNIndices;
 		iVertexCount += aMesh->mNumVertices;

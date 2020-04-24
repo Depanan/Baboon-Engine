@@ -39,7 +39,7 @@ void Camera::Init()
 void Camera::UpdateProjectionMatrix(float newAspectRatio)
 {
 	float fNear = 0.1f;
-	float fFar = 1000.0f;
+	float fFar = 10000.0f;
 	float fFov = glm::radians(60.0f);
 
   auto vfov = static_cast<float>(2 * atan(tan(fFov / 2) * (1.0 / newAspectRatio)));

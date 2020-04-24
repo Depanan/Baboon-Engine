@@ -14,6 +14,8 @@ public:
     RenderPath(std::vector<std::unique_ptr<Subpass>>&& subpasses = {});
     void add_subpass(std::unique_ptr<Subpass>&& subpass);
     void draw(CommandBuffer& command_buffer, RenderTarget& render_target, VkSubpassContents contents = VK_SUBPASS_CONTENTS_INLINE);
+
+    std::vector<std::unique_ptr<Subpass>>& getSubPasses() { return m_Subpasses; }
 private:
     std::vector<std::unique_ptr<Subpass>> m_Subpasses;
 

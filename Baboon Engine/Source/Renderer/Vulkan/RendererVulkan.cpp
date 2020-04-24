@@ -25,6 +25,15 @@ void RendererVulkan::OnWindowResize(int i_NewW, int i_NewH)
 {
     if (m_GUI)
         m_GUI->OnWindowResize();
+    
+    if (m_RenderPath)
+    {
+        auto& subpasses = m_RenderPath->getSubPasses();
+        for (int i = 0;i<subpasses.size();i++)
+        {
+            subpasses[i]->invalidatePersistentCommands();
+        }
+    }
 }
 
 void RendererVulkan::WaitToDestroy()

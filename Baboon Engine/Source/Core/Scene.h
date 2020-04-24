@@ -42,7 +42,8 @@ public:
 	
 
 	std::vector <Model>* GetModels() { return &m_Models; }
-
+  std::vector <Model*>* GetOpaqueModels() { return &m_OpaqueModels; }
+  std::vector <Model*>* GetTransparentModels() { return &m_TransparentModels; }
 	
 
 private:
@@ -53,6 +54,11 @@ private:
 	InstanceUBO* m_InstanceUniforms =nullptr;
 
 	std::vector <Model> m_Models;
+
+  std::vector <Model*> m_OpaqueModels;
+  std::vector <Model*> m_TransparentModels;
+
+
 	std::vector <Mesh> m_Meshes;
 	std::vector <Material> m_Materials;
 
