@@ -36,12 +36,13 @@ public:
 
 struct GLFWwindow;
 
+class RendererVulkan;
 class VulkanImGUI
 {
 public:
 	~VulkanImGUI();
 
-  VulkanImGUI(VulkanContext& i_context);
+  VulkanImGUI(VulkanContext& i_context, RendererVulkan* renderer);
 	void Init(GLFWwindow* i_window);
 	void DoUI(bool i_FirstCall = false);
 	void Draw(CommandBuffer& m_Command);
@@ -64,7 +65,6 @@ private:
 
   std::unique_ptr<VulkanSampler> m_Sampler{ nullptr };
 
-  PipelineLayout* m_PipelineLayout{ nullptr };
 
   std::unique_ptr<VulkanBuffer> m_VertexBuffer;
   std::unique_ptr<VulkanBuffer> m_IndexBuffer;
@@ -72,8 +72,10 @@ private:
   size_t m_LastVertexBufferSize;
   size_t m_LastIndexBufferSize;
 
-  ShaderSource m_VertexShader;
-  ShaderSource m_FragmentShader;
+  RendererVulkan* m_VulkanRenderer{ nullptr };
+
+  std::weak_ptr<ShaderSource> m_VertexShader;
+  std::weak_ptr<ShaderSource> m_FragmentShader;
 
   std::vector<Font> m_Fonts;
 

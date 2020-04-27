@@ -4,6 +4,7 @@
 #include "resources/Shader.h"
 #include "Core/Model.h"
 #include <unordered_map>
+#include <memory>
 
 class CommandBuffer;
 
@@ -14,12 +15,12 @@ class PersistentCommandsPerFrame;
 class Subpass
 {
 public:
-    Subpass(VulkanContext& render_context, ShaderSource&& vertex_shader, ShaderSource&& fragment_shader);
+    Subpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr <ShaderSource> fragment_shader);
     virtual void prepare() = 0;
     virtual void draw(CommandBuffer& command_buffer) = 0;
 
-    const ShaderSource& getVertexShader() const { return m_VertexShader; }
-    const ShaderSource& getFragmentShader() const{ return m_FragmentShader;}
+    //const ShaderSource& getVertexShader() const { return *m_VertexShader; }
+    //const ShaderSource& getFragmentShader() const{ return *m_FragmentShader;}
 
     bool getDisableDepthAttachment() { return m_DisableDepthAttachment; }
     const  std::vector<uint32_t>& getInputAttachments()const { return m_InputAttachments; }
@@ -27,9 +28,10 @@ public:
 
 
     void invalidatePersistentCommands();
+    void setReRecordCommands();
 protected:
-    ShaderSource m_VertexShader;
-    ShaderSource m_FragmentShader;
+    std::weak_ptr<ShaderSource> m_VertexShader;
+    std::weak_ptr<ShaderSource> m_FragmentShader;
     VulkanContext& m_RenderContext;
 
     PersistentCommandsPerFrame* m_PersistentCommandsPerFrame;
@@ -57,7 +59,7 @@ class CommandPool;
 class TestTriangleSubPass: public Subpass
 {
 public:
-    TestTriangleSubPass(VulkanContext& render_context, ShaderSource&& vertex_shader, ShaderSource&& fragment_shader, const Camera* p_Camera);
+    TestTriangleSubPass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr<ShaderSource> fragment_shader, const Camera* p_Camera);
     void prepare() override;
     void draw(CommandBuffer& command_buffer) override;
 
@@ -68,7 +70,7 @@ private:
     VulkanTexture* m_TestTexture;
     
     void recordCommandBuffers(CommandBuffer* commandBuffer, CommandBuffer* primary_command_buffer);
-
+    void drawModel(Model& model, CommandBuffer* commandBuffer);
 };
 
 

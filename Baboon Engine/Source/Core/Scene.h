@@ -3,7 +3,7 @@
 #include <vector>
 #include "Core\Model.h"
 #include "Core\Material.h"
-
+#include <map>
 
 
 
@@ -13,6 +13,7 @@ class Scene {
 public:
 	Scene();
 	~Scene();
+   std::vector<Vertex>& GetVertices() { return m_Vertices; }
 	const Vertex* GetVerticesData() { return m_Vertices.data(); }
 	const int GetVerticesNumber() { return m_Vertices.size(); }
 	const size_t GetVerticesSize() { return sizeof(m_Vertices[0]) * m_Vertices.size(); }
@@ -45,6 +46,7 @@ public:
   std::vector <Model*>* GetOpaqueModels() { return &m_OpaqueModels; }
   std::vector <Model*>* GetTransparentModels() { return &m_TransparentModels; }
 	
+  void GetSortedOpaqueAndTransparent(std::multimap<float, Model*>& opaque, std::multimap<float, Model*>& transparent);
 
 private:
 

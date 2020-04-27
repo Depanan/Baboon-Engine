@@ -1,4 +1,4 @@
-#version 450
+#version 320 es
 
 layout(set = 0, binding = 1) uniform UniformBufferObject {
     mat4 view;
@@ -21,7 +21,7 @@ layout (location = 3) out vec3 outViewVec;
 
 void main() {
 	vec4 worldPos = pushConstants.model * vec4(inPosition, 1.0);
-	outViewVec = -worldPos.xyz;
+	outViewVec = worldPos.xyz;
 	
     gl_Position = ubo.proj * ubo.view * worldPos;
 	fragColor = inColor;

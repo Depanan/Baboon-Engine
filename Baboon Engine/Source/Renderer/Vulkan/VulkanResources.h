@@ -13,7 +13,7 @@
 #include "resources/DescriptorSetLayout.h"
 #include "resources/DescriptorSet.h"
 #include "resources/DescriptorPool.h"
-
+#include <memory>
 
 
 class Device;
@@ -21,13 +21,13 @@ class PipelineState;
 class VulkanResources
 {
 public:
-    VulkanResources(Device&);
+    VulkanResources(Device&, std::chrono::duration<int, std::milli> garbageCollectorInterval);
     RenderPass& request_render_pass(const std::vector<Attachment>& attachments,
         const std::vector<LoadStoreInfo>& load_store_infos,
         const std::vector<SubpassInfo>& subpasses);
 
     FrameBuffer& request_framebuffer(const RenderTarget& render_target, const RenderPass& render_pass);
-    ShaderModule& request_shader_module(VkShaderStageFlagBits stage, const ShaderSource& glsl_source);//TODO: Add shadervariant here!
+    ShaderModule& request_shader_module(VkShaderStageFlagBits stage, const std::shared_ptr<ShaderSource>& glsl_source);//TODO: Add shadervariant here!
     PipelineLayout& request_pipeline_layout(std::vector<ShaderModule*> shader_modules);
     Pipeline& request_pipeline(const PipelineState& pipelineState);
     DescriptorSetLayout& request_descriptor_set_layout(const std::vector<ShaderResource>& set_resources);
@@ -37,6 +37,7 @@ public:
     DescriptorSet& request_descriptor_set(std::unordered_map<std::size_t, DescriptorSet>& descriptorSetCache, DescriptorSetLayout& descriptor_set_layout, DescriptorPool& pool, const BindingMap<VkDescriptorBufferInfo>& buffer_infos, const BindingMap<VkDescriptorImageInfo>& image_infos);
 
     void clear();
+    void GarbageCollect();
 
 private:
     Device& m_Device;
@@ -55,6 +56,9 @@ private:
     std::mutex m_RenderPassMutex;
     std::mutex m_FramebufferMutex;
     std::mutex m_DescriptorSetLayoutMutex;
+
+    std::chrono::duration<int, std::milli> m_GarbageCollectorInterval;
+    std::chrono::time_point<std::chrono::steady_clock> m_StartGarbageCollection;
 
 };
 

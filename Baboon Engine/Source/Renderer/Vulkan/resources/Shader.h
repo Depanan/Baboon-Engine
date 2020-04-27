@@ -1,7 +1,7 @@
 #pragma once
 #include "../Common.h"
-
-
+#include <unordered_map>
+#include <memory>
 namespace spirv_cross
 {
     class CompilerGLSL;
@@ -67,23 +67,37 @@ struct ShaderResource
 };
 
 class Device;
+class ShaderSourcePool;
 class ShaderSource
 {
 public:
     //ShaderSource() = default;
-    ShaderSource(const std::string & filename);
-    ShaderSource(std::vector<uint32_t> && data);
+   
+    ShaderSource(std::vector<uint8_t> && data);
 
     size_t get_id() const { return m_HashId; }
 
     inline const std::string& get_filename() const { return m_FileName; }
 
-    inline const std::vector<uint32_t>& get_data() const { return m_Data; }
-
+    inline const std::vector<uint8_t>& get_data() const { return m_Data; }
+    
 private:
+    ShaderSource(const std::string& filename);
     size_t m_HashId;
     std::string m_FileName;
-    std::vector<uint32_t> m_Data;
+    std::vector<uint8_t> m_Data;
+
+    friend class ShaderSourcePool;
+};
+
+
+class ShaderSourcePool
+{
+public:
+    std::weak_ptr<ShaderSource> getShaderSource(std::string shaderPath);
+    void reloadShader(std::string shaderPath);//TODO: we could do this individually?
+private:
+    std::unordered_map<std::string, std::shared_ptr<ShaderSource>> m_ShaderSources;
 };
 
 class ShaderModule
@@ -91,7 +105,7 @@ class ShaderModule
 public:
     ShaderModule(const Device& device,
         VkShaderStageFlagBits stage,
-        const ShaderSource& shaderSource
+        const std::shared_ptr<ShaderSource>& shaderSource
         /*,
         const ShaderVariant& shader_variant*/);
 
@@ -106,14 +120,19 @@ public:
     inline const size_t getId() const { return m_HashId; }
     inline const VkShaderStageFlagBits getStage() const { return m_Stage; }
     inline const std::string& getEntryPoint() const { return m_EntryPoint; }
-    inline const std::vector<uint32_t>& getSourceBinary()const { return m_Source.get_data(); }
+    inline const std::vector<uint32_t>& getSourceBinary()const { return m_Spirv; }
 
     const std::vector<ShaderResource>& get_resources() const { return m_Resources; }
+
+    bool isStillValid();
 private:
     const Device& m_Device;
     VkShaderStageFlagBits m_Stage;
     std::string m_EntryPoint;
-    const ShaderSource& m_Source;
+    std::weak_ptr<ShaderSource> m_Source;
+    /// Compiled source
+    std::vector<uint32_t> m_Spirv;
+
     VkShaderModule m_ShaderModule{ VK_NULL_HANDLE };
     size_t m_HashId;
 

@@ -27,9 +27,9 @@ const Queue& Device::getQueueByFlags(VkQueueFlags requiredFlags, uint32_t index)
 
 
 
-Device::Device(VkPhysicalDevice physDevice, VkSurfaceKHR surface, const std::vector<const char*> validationLayers, const std::vector<const char*> deviceExtensions)
+Device::Device(VkPhysicalDevice physDevice, VkSurfaceKHR surface, const std::vector<const char*> validationLayers, const std::vector<const char*> deviceExtensions, std::chrono::duration<int, std::milli> garbageCollectorInterval)
     :
-    m_ResourcesCache(*this)
+    m_ResourcesCache(*this, garbageCollectorInterval)
 {
     m_PhysDevice = physDevice;
   

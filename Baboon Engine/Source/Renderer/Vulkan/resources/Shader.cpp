@@ -1,5 +1,6 @@
 #include "Shader.h"
 #include "../Device.h"
+#include "../glsl_compiler.h"
 #include "Core/ServiceLocator.h"
 __pragma(warning(push, 0))
 #include <spirv-cross/spirv_glsl.hpp>
@@ -10,24 +11,26 @@ __pragma(warning(pop))
 
 ShaderSource::ShaderSource(const std::string& filename)
     :m_FileName(filename),
-    m_Data(readFile(m_FileName))
+    m_Data(readFileUint8(m_FileName))
 {
     std::hash<std::string> hasher{};
     m_HashId = hasher(std::string{ m_Data.cbegin(), m_Data.cend() });
+    //m_HashId = std::time(NULL);
 }
 
-ShaderSource::ShaderSource(std::vector<uint32_t>&& data):
+ShaderSource::ShaderSource(std::vector<uint8_t>&& data):
     m_Data{ std::move(data) }
 {
     m_FileName = "\0";
     std::hash<std::string> hasher{};
     m_HashId = hasher(std::string{ m_Data.cbegin(), m_Data.cend() });
+    //m_HashId = std::time(NULL);
 }
 
 
 ShaderModule::ShaderModule(const Device& device,
     VkShaderStageFlagBits stage,
-    const ShaderSource& shaderSource
+    const std::shared_ptr<ShaderSource>& shaderSource
     /*,
     const ShaderVariant& shader_variant*/):
     m_Device(device),
@@ -35,18 +38,25 @@ ShaderModule::ShaderModule(const Device& device,
     m_Source(shaderSource)
 
 {
-    m_EntryPoint = "main";//TODO: Maybe don't hardcode this?
-    assert(m_Source.get_data().size(), "Source code for shadermodule can't be empty!");
+    auto srcPtr = m_Source.lock();
+    if(srcPtr)
+    {
+        m_EntryPoint = "main";//TODO: Maybe don't hardcode this?
+        assert(srcPtr->get_data().size(), "Source code for shadermodule can't be empty!");
 
+        std::string infoLog;
+        GLSLCompiler compiler;
+        compiler.compile_to_spirv(m_Stage, srcPtr->get_data(), m_EntryPoint, m_Spirv, infoLog);
     
-    readShaderResources();
-
+        readShaderResources();
+    }
 }
 
 ShaderModule::ShaderModule(ShaderModule&& other) :
 m_Device(other.m_Device),
 m_Stage(other.m_Stage),
 m_Source(other.m_Source),
+m_Spirv(other.m_Spirv),
 m_ShaderModule(other.m_ShaderModule),
 m_EntryPoint(other.m_EntryPoint),
 m_Resources(other.m_Resources)
@@ -55,12 +65,18 @@ m_Resources(other.m_Resources)
     other.m_ShaderModule = VK_NULL_HANDLE;
 }
 
+bool ShaderModule::isStillValid()
+{
+    bool valid = m_Source.lock() != nullptr;
+    return valid;
+}
+
 
 
 
 void ShaderModule::readShaderResources()
 {
-    spirv_cross::CompilerGLSL compiler{ m_Source.get_data() };
+    spirv_cross::CompilerGLSL compiler{ m_Spirv };
     readInputs(&compiler);
     readOutputs(&compiler);
     readSamplers(&compiler);
@@ -170,4 +186,39 @@ void ShaderModule::readPushConstants(spirv_cross::CompilerGLSL* compiler)
         m_Resources.push_back(shader_resource);
 
     }
+}
+
+std::weak_ptr<ShaderSource> ShaderSourcePool::getShaderSource(std::string shaderPath)
+{
+
+   
+    auto it = m_ShaderSources.find(shaderPath);
+    if (it != m_ShaderSources.end())
+        return it->second;
+
+    
+    auto insertionResult = m_ShaderSources.emplace(shaderPath, std::shared_ptr<ShaderSource>(new ShaderSource(shaderPath)));
+    if(insertionResult.second)
+        it = insertionResult.first;
+    return it->second;
+   
+}
+
+void ShaderSourcePool::reloadShader(std::string shaderPath)
+{
+
+    m_ShaderSources.erase(shaderPath);
+    getShaderSource(shaderPath);
+
+    /*std::vector<std::string> paths;
+    for (int i = 0;i<m_ShaderSources.size();i++)
+    {
+        paths.push_back(m_ShaderSources[i]->get_filename());
+        m_ShaderSources[i].reset();
+    }
+    m_ShaderSources.clear();
+    for (auto path : paths)
+    {
+        getShaderSource(path);//this should regenerate everything, TODO: Obviously we are not changing the spv yet, this should be done inside shadersource 
+    }*/
 }

@@ -31,6 +31,7 @@ public:
 	virtual Buffer* CreateIndexBuffer(void*  i_data, size_t iBufferSize) = 0;
 	virtual void DeleteVertexBuffer() = 0;
 	virtual void DeleteIndexBuffer() = 0;
+  virtual void ReloadShader(std::string) = 0;
   virtual Buffer* CreateStaticUniformBuffer( void* i_data, size_t iBufferSize) = 0;
 	virtual Buffer* CreateInstancedUniformBuffer( void*  i_data, size_t iBufferSize) = 0;
 	virtual void DeleteStaticUniformBuffer() {}

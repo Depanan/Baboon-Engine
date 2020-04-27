@@ -43,6 +43,19 @@ void RendererVulkan::WaitToDestroy()
 
 void RendererVulkan::Update()
 {
+    m_LogicalDevice->getResourcesCache().GarbageCollect();
+    if (ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->GetDirty())
+    {
+        if (m_RenderPath)
+        {
+            auto& subpasses = m_RenderPath->getSubPasses();
+            for (int i = 0; i < subpasses.size(); i++)
+            {
+                subpasses[i]->setReRecordCommands();
+            }
+        }
+    }
+
     if (m_GUI)
         m_GUI->DoUI();
 }
@@ -62,6 +75,25 @@ float RendererVulkan::GetMainRTHeight() {
 void RendererVulkan::SetupRenderCalls()
 {
 
+}
+
+void RendererVulkan::ReloadShader(std::string shaderPath)
+{
+   
+    //So, the plan is to iterate over the shader source pool and reload the shader source with the new modified source code. That will generate a new ShaderSource::Id, which is used for hashing ShaderSource. The result of this will be that when trying to fetch a shader module, it won't exist
+    //in the cache so we will need to create a new one. The same for the pipeline and so on...
+
+   
+    LOGINFO("I should reload shaders here!");
+    m_ShaderSourcePool.reloadShader(shaderPath);
+    if (m_RenderPath)
+    {
+        auto& subpasses = m_RenderPath->getSubPasses();
+        for (int i = 0; i < subpasses.size(); i++)
+        {
+            subpasses[i]->setReRecordCommands();
+        }
+    }
 }
 
 
@@ -84,19 +116,19 @@ int RendererVulkan::Init(std::vector<const char*>& required_extensions, GLFWwind
     m_RenderContext = std::make_unique<VulkanContext>(*m_LogicalDevice, m_Surface, width, height);
     m_RenderContext->prepare();
 
+    
 
-
-    auto& vertexShader = ShaderSource{ "Shaders/vert.spv" };
-    auto& fragmentShader = ShaderSource{ "Shaders/frag.spv" };
+    auto vertexShader = m_ShaderSourcePool.getShaderSource("./Shaders/shader.vert");
+    auto fragmentShader = m_ShaderSourcePool.getShaderSource("./Shaders/shader.frag"); 
 
   
-    auto subpass = std::make_unique<TestTriangleSubPass>(*m_RenderContext,std::move(vertexShader),std::move(fragmentShader),p_Camera);//Here we are adding our own test subpass TODO: Add the real thing
+    auto subpass = std::make_unique<TestTriangleSubPass>(*m_RenderContext,vertexShader,fragmentShader,p_Camera);//Here we are adding our own test subpass TODO: Add the real thing
     m_RenderPath = std::make_unique<RenderPath>();
     m_RenderPath->add_subpass(std::move(subpass));
 
     
     
-    m_GUI = std::make_unique<VulkanImGUI>(*m_RenderContext);
+    m_GUI = std::make_unique<VulkanImGUI>(*m_RenderContext, this);
     m_GUI->Init(i_window);
     
     
@@ -110,7 +142,6 @@ int RendererVulkan::Init(std::vector<const char*>& required_extensions, GLFWwind
 
 void RendererVulkan::DrawFrame()
 {
-	 
   auto& command_buffer = m_RenderContext->begin();//Grab a command buffer from the render context
   auto result = command_buffer.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);//Call begin to start recording commands
   assert(!result, "Error starting commandbuffer recording");

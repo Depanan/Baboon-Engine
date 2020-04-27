@@ -26,6 +26,7 @@
     <ClCompile Include="Source\appmain.cpp" />
     <ClCompile Include="Source\Cameras\Camera.cpp" />
     <ClCompile Include="Source\Cameras\CameraManager.cpp" />
+    <ClCompile Include="Source\Core\aabb.cpp" />
     <ClCompile Include="Source\Core\Input.cpp" />
     <ClCompile Include="Source\Core\Logger.cpp" />
     <ClCompile Include="Source\Core\Material.cpp" />
@@ -34,6 +35,7 @@
     <ClCompile Include="Source\Core\ServiceLocator.cpp" />
     <ClCompile Include="Source\Renderer\Common\Buffer.cpp" />
     <ClCompile Include="Source\Renderer\Common\Mesh.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\glsl_compiler.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\VulkanBuffer.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\CommandBuffer.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\CommandPool.cpp" />
@@ -75,17 +77,20 @@
     <ClInclude Include="..\External Source\imgui\imstb_truetype.h" />
     <ClInclude Include="Source\Cameras\Camera.h" />
     <ClInclude Include="Source\Cameras\CameraManager.h" />
+    <ClInclude Include="Source\Core\aabb.h" />
     <ClInclude Include="Source\Core\Input.h" />
     <ClInclude Include="Source\Core\Logger.h" />
     <ClInclude Include="Source\Core\Material.h" />
     <ClInclude Include="Source\Core\Model.h" />
     <ClInclude Include="Source\Core\Scene.h" />
     <ClInclude Include="Source\Core\ServiceLocator.h" />
+    <ClInclude Include="Source\Core\ThreadPool.hpp" />
     <ClInclude Include="Source\defines.h" />
     <ClInclude Include="Source\Renderer\Common\Buffer.h" />
     <ClInclude Include="Source\Renderer\Common\Mesh.h" />
     <ClInclude Include="Source\Renderer\Common\Texture.h" />
     <ClInclude Include="Source\Renderer\RendererAbstract.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\glsl_compiler.h" />
     <ClInclude Include="Source\Renderer\Vulkan\VulkanBuffer.h" />
     <ClInclude Include="Source\Renderer\Vulkan\CommandBuffer.h" />
     <ClInclude Include="Source\Renderer\Vulkan\CommandPool.h" />
@@ -191,6 +196,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;VK_USE_PLATFORM_WIN32_KHR;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);GLM_ENABLE_EXPERIMENTAL</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)\Baboon Engine\Source;$(SolutionDir)\External Source;E:\PersonalWork\BaboonEngine\trunk\External Source\vma\src;E:\PersonalWork\BaboonEngine\trunk\External Source\spirv-cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -205,12 +211,13 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);VK_USE_PLATFORM_WIN32_KHR;GLM_ENABLE_EXPERIMENTAL</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\Baboon Engine\Source;$(SolutionDir)\External Source;E:\PersonalWork\BaboonEngine\trunk\External Source\vma\src;E:\PersonalWork\BaboonEngine\trunk\External Source\spirv-cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>E:\PersonalWork\BaboonEngine\trunk\External Source\glslang;$(SolutionDir)\Baboon Engine\Source;$(SolutionDir)\External Source;E:\PersonalWork\BaboonEngine\trunk\External Source\vma\src;E:\PersonalWork\BaboonEngine\trunk\External Source\spirv-cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>$(SolutionDir)\libs\lib64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>assimp.lib;vulkan-1.lib;glfw3.lib;spirv-cross-core.lib;spirv-cross-glsl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp.lib;vulkan-1.lib;glfw3.lib;spirv-cross-core.lib;spirv-cross-glsl.lib;OSDependentd.lib;OGLCompilerd.lib;HLSLd.lib;SPIRVd.lib;SPIRV-Toolsd.lib;SPIRV-Tools-optd.lib;SPVRemapperd.lib;glslang-default-resource-limitsd.lib;glslangd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -223,6 +230,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;VK_USE_PLATFORM_WIN32_KHR;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);GLM_ENABLE_EXPERIMENTAL</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)\Baboon Engine\Source;$(SolutionDir)\External Source;E:\PersonalWork\BaboonEngine\trunk\External Source\vma\src;E:\PersonalWork\BaboonEngine\trunk\External Source\spirv-cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -242,6 +250,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);VK_USE_PLATFORM_WIN32_KHR;GLM_ENABLE_EXPERIMENTAL</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)\Baboon Engine\Source;$(SolutionDir)\External Source;E:\PersonalWork\BaboonEngine\trunk\External Source\vma\src;E:\PersonalWork\BaboonEngine\trunk\External Source\spirv-cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

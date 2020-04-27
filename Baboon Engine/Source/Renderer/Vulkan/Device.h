@@ -12,7 +12,7 @@
 class Device
 {
 public:
-    Device(VkPhysicalDevice physDevice, VkSurfaceKHR surface, const std::vector<const char*> validationLayers, const std::vector<const char*> deviceExtensions);
+    Device(VkPhysicalDevice physDevice, VkSurfaceKHR surface, const std::vector<const char*> validationLayers, const std::vector<const char*> deviceExtensions, std::chrono::duration<int, std::milli> garbageCollectorInterval = std::chrono::milliseconds(60000));
     VkDevice get_handle() const { return m_Handle; }
     const Queue& getQueueByFlags(VkQueueFlags requiredFlags, uint32_t index) const;
     ~Device();

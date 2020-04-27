@@ -2,6 +2,7 @@
 
 #include "Renderer\Common\Mesh.h"
 #include "Core\Material.h"
+#include "aabb.h"
 struct InstanceUBO {
 	glm::mat4 model;
 
@@ -13,7 +14,7 @@ class Model
 {
 public:
 	Model(){}
-	void SetMesh(Mesh* i_Mesh) { m_Mesh = i_Mesh; }
+  void SetMesh(Mesh* i_Mesh);
 	Mesh* GetMesh() { return m_Mesh; }
 
 	void SetMaterial(Material* i_Mat) { m_Material = i_Mat; }
@@ -30,10 +31,15 @@ public:
 	glm::vec3 GetPosition() { return m_pInstanceUniforms->model[4]; }
 
   const glm::mat4& getModelMatrix()const { return m_pInstanceUniforms->model; }
+  const AABB& getAABB() { return m_AABB; }
 private:
+   
 	Mesh* m_Mesh;
 	Material* m_Material;
 
+  AABB m_AABB;
 	InstanceUBO* m_pInstanceUniforms = nullptr;
 	int m_iInstanceUniformIndex;
+
+  void updateAABB();
 };

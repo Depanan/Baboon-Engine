@@ -56,7 +56,7 @@ void Camera::Update()
     {
         m_CameraUniformBuffer->update(&m_UBOCamera, sizeof(UBOCamera));
     }
-    m_Dirty = false;
+    
 }
 void Camera::UpdateViewMatrix()
 {

@@ -18,6 +18,7 @@ public:
 		eCameraType_NCameras
 	};
   void Update();
+  void EndFrame();
 	void Init();
 	
 	void OnWindowResize(int width, int height);

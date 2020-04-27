@@ -23,6 +23,14 @@ void CameraManager::Update()
     }
 }
 
+void CameraManager::EndFrame()
+{
+    for (int i = 0; i < eCameraType_NCameras; i++)
+    {
+        m_Cameras[i].ClearDirty();
+    }
+}
+
 void CameraManager::Init()
 {
 	for (int i = 0; i<eCameraType_NCameras; i++)

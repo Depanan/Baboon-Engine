@@ -8,14 +8,15 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <stb/stb_image.h>
 #include "VulkanTexture.h"
+#include "RendererVulkan.h"
 
 #include "Cameras/Camera.h"
 
 
-Subpass::Subpass(VulkanContext& render_context, ShaderSource&& vertex_shader, ShaderSource&& fragment_shader):
+Subpass::Subpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr<ShaderSource> fragment_shader):
     m_RenderContext(render_context),
-    m_VertexShader(std::move(vertex_shader)),
-    m_FragmentShader(std::move(fragment_shader))
+    m_VertexShader(vertex_shader),
+    m_FragmentShader(fragment_shader)
 
 {
 
@@ -26,12 +27,15 @@ void Subpass::invalidatePersistentCommands()
     m_PersistentCommandsPerFrame->resetPersistentCommands();
 }
 
+void Subpass::setReRecordCommands()
+{
+    m_PersistentCommandsPerFrame->setDirty();
+}
 
 
 
-//TODO: Make this render a triangle! I will need to setup shaders and geometry to do so
-TestTriangleSubPass::TestTriangleSubPass(VulkanContext& render_context, ShaderSource&& vertex_shader, ShaderSource&& fragment_shader, const Camera* p_Camera):
-    Subpass{ render_context,std::move(vertex_shader),std::move(fragment_shader) },
+TestTriangleSubPass::TestTriangleSubPass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr<ShaderSource> fragment_shader, const Camera* p_Camera):
+    Subpass{ render_context,vertex_shader,fragment_shader },
     m_Camera(p_Camera)
 {
     auto renderer = ServiceLocator::GetRenderer();
@@ -59,11 +63,11 @@ TestTriangleSubPass::TestTriangleSubPass(VulkanContext& render_context, ShaderSo
 
 
 */
-    unsigned char* pPixels = nullptr;
-    int width, height, texChannels;
-    pPixels = stbi_load("Textures/baboon.jpg", &width, &height, &texChannels, STBI_rgb_alpha);
-    m_TestTexture = (VulkanTexture*)renderer->CreateTexture(pPixels, width, height);
-    stbi_image_free(pPixels);//Since its already copied in the buffer
+    
+    
+   
+     unsigned char pPixels[] = { 255,255,255,255 };
+    m_TestTexture = (VulkanTexture*)renderer->CreateTexture(pPixels, 1, 1);
     
 
     m_PersistentCommandsPerFrame = new PersistentCommandsPerFrame();
@@ -73,8 +77,8 @@ void TestTriangleSubPass::prepare()//setup shaders, To be called when adding sub
 {
     //Warming up shaders so vkCreateShaderModule is called
     auto& device = m_RenderContext.getDevice();
-    auto& vert_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, m_VertexShader);
-    auto& frag_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT,m_FragmentShader);
+    //auto& vert_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, m_VertexShader);
+    //auto& frag_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT,m_FragmentShader);
 }
 
 
@@ -112,8 +116,6 @@ void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, Co
     auto camera = ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main);
     auto scene = ServiceLocator::GetSceneManager()->GetScene();
 
-
-    auto& device = m_RenderContext.getDevice();
     auto& renderTarget = m_RenderContext.getActiveFrame().getRenderTarget();//Grab the render target
 
     //Set viewport and scissors
@@ -134,10 +136,80 @@ void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, Co
     command_buffer->setColorBlendState(primary_commandBuffer->getColorBlendState());
     command_buffer->setDepthStencilState(primary_commandBuffer->getDepthStencilState());
 
+    //Bind the matrices uniform buffer
+    command_buffer->bind_buffer(*((VulkanBuffer*)camera->GetCameraUniformBuffer()), 0, sizeof(UBOCamera), 0, 1, 0);
+
+    //Bind vertex buffer
+    std::vector<std::reference_wrapper<VulkanBuffer>> buffers;
+    buffers.emplace_back(std::ref(*((VulkanBuffer*)scene->GetVerticesBuffer())));
+
+    command_buffer->bind_vertex_buffers(0, std::move(buffers), { 0 });
+    //Bind Indices buffer
+    command_buffer->bind_index_buffer(*((VulkanBuffer*)scene->GetIndicesBuffer()), 0, VK_INDEX_TYPE_UINT16);
+
+    
+    std::multimap<float, Model*> sceneOpaqueModels;//using multimap to get the sorting automatically from when inserting on it
+    std::multimap<float, Model*> transparent;
+    scene->GetSortedOpaqueAndTransparent(sceneOpaqueModels, transparent);
+    
+    
+    for (auto node_it = sceneOpaqueModels.begin(); node_it != sceneOpaqueModels.end(); node_it++)
+    {
+        Model& model = *node_it->second;
+        drawModel(model, command_buffer);
+       
+    }
 
 
-    auto& vert_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, m_VertexShader);
-    auto& frag_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, m_FragmentShader);
+    // Enable alpha blending
+    ColorBlendAttachmentState color_blend_attachment{};
+    color_blend_attachment.m_BlendEnable = VK_TRUE;
+    color_blend_attachment.m_SrcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    color_blend_attachment.m_DstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    color_blend_attachment.m_SrcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+
+    ColorBlendState color_blend_state{};
+    color_blend_state.m_Attachments.resize(1);
+    color_blend_state.m_Attachments[0] = color_blend_attachment;
+    command_buffer->setColorBlendState(color_blend_state);
+
+    DepthStencilState depth_stencil_state{};
+    command_buffer->setDepthStencilState(depth_stencil_state);
+
+    for (auto node_it = transparent.begin(); node_it != transparent.end(); node_it++)
+    {
+        Model& model = *node_it->second;
+        drawModel(model, command_buffer);
+
+    }
+
+
+
+    command_buffer->end();
+}
+
+void TestTriangleSubPass::drawModel(Model& model, CommandBuffer* command_buffer)
+{
+    auto& device = m_RenderContext.getDevice();
+    auto renderVulkan =(RendererVulkan*) ServiceLocator::GetRenderer();
+
+    auto pVertexShader = m_VertexShader.lock();
+    if (!pVertexShader)
+    {
+        m_VertexShader = renderVulkan->getShaderSourcePool().getShaderSource("./Shaders/shader.vert");
+        pVertexShader = m_VertexShader.lock();
+    }
+    auto pFragmentShader = m_FragmentShader.lock();
+    if (!pFragmentShader)
+    {
+        m_FragmentShader = renderVulkan->getShaderSourcePool().getShaderSource("./Shaders/shader.frag");
+        pFragmentShader = m_FragmentShader.lock();
+    }
+
+
+
+    auto& vert_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader);
+    auto& frag_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader);
     std::vector<ShaderModule*> shader_modules{ &vert_module, &frag_module };
 
     auto& pipeline_layout = device.getResourcesCache().request_pipeline_layout(shader_modules);
@@ -150,14 +222,7 @@ void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, Co
     rasterState.m_FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     command_buffer->setRasterState(rasterState);
 
-
-
-   
-
-
-
-
-    auto vertex_input_resources = pipeline_layout.getResources(ShaderResourceType::Input, VK_SHADER_STAGE_VERTEX_BIT);
+    //auto vertex_input_resources = pipeline_layout.getResources(ShaderResourceType::Input, VK_SHADER_STAGE_VERTEX_BIT);
 
     VertexInputState vertex_input_state;
     VkVertexInputBindingDescription bindingDescription = {};
@@ -175,54 +240,64 @@ void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, Co
     command_buffer->setVertexInputState(vertex_input_state);
 
 
+
+    auto& descriptor_set_layout = pipeline_layout.getDescriptorSetLayout(0);
+
+
    
 
-    //Bind the matrices uniform buffer
-    command_buffer->bind_buffer(*((VulkanBuffer*)camera->GetCameraUniformBuffer()), 0, sizeof(UBOCamera), 0, 1, 0);
 
-    //Bind vertex buffer
-    std::vector<std::reference_wrapper<VulkanBuffer>> buffers;
-    buffers.emplace_back(std::ref(*((VulkanBuffer*)scene->GetVerticesBuffer())));
-    
-    command_buffer->bind_vertex_buffers(0, std::move(buffers), { 0 });
-    //Bind Indices buffer
-    command_buffer->bind_index_buffer(*((VulkanBuffer*)scene->GetIndicesBuffer()), 0, VK_INDEX_TYPE_UINT16);
+    auto textures = model.GetMaterial()->getTextures();
 
-
-
-
-    std::vector <Model*> sceneOpaqueModels = *(scene->GetOpaqueModels()); //TODO: Get transparency working. Unfortunately to get transparency rendered properly we need to sort geometry which will likely change the pre recorded command buffers (when we move the camera)
-    for (int i = 0; i< sceneOpaqueModels.size();i++)
+    //////////////////////////HACK REMOVE WHEN SHADER VARIANTS WORKING! binding white texture if not non transparent wont be seen (multip by 0)//////////////////////////////
+    auto texIterator = textures->find("opacityTexture");
+    if(texIterator == textures->end())
     {
-        Model& model = *sceneOpaqueModels[i];
-        auto& descriptor_set_layout = pipeline_layout.getDescriptorSetLayout(0);
-        if (auto layout_binding = descriptor_set_layout.getLayoutBinding("baseTexture"))
+        if (auto layout_binding = descriptor_set_layout.getLayoutBinding("opacityTexture"))
         {
-            VulkanTexture* texture = (VulkanTexture*) model.GetMaterial()->GetTextureByName("baseTexture");
-            if (texture)
+
+
+            command_buffer->bind_image(*m_TestTexture->getImageView(),
+                *m_TestTexture->getSampler(),
+                0, layout_binding->binding, 0);
+
+        }
+    }
+    /////////////////////!HACK//////////////////////////////////////////////////////////////////////
+    for (auto texture : *textures)
+    {
+        if (auto layout_binding = descriptor_set_layout.getLayoutBinding(texture.first))
+        {
+            VulkanTexture* vulkanTex = (VulkanTexture*)texture.second;
+            if (vulkanTex)
             {
-                command_buffer->bind_image(*texture->getImageView(),
-                    *texture->getSampler(),
-                    0, layout_binding->binding, 0);
-            }
-            else{
-                command_buffer->bind_image(*m_TestTexture->getImageView(),
-                    *m_TestTexture->getSampler(),
+                command_buffer->bind_image(*vulkanTex->getImageView(),
+                    *vulkanTex->getSampler(),
                     0, layout_binding->binding, 0);
             }
         }
-
-
-        int nIndices = model.GetMesh()->GetNIndices();
-        int indexStart = model.GetMesh()->GetIndexStartPosition();
-        command_buffer->pushConstants(0, model.getModelMatrix());
-        command_buffer->draw_indexed(nIndices, 1, indexStart, model.GetMesh()->GetVertexStartPosition(), 0);
     }
 
-    
+    /*if (auto layout_binding = descriptor_set_layout.getLayoutBinding("baseTexture"))
+    {
+        VulkanTexture* texture = (VulkanTexture*)model.GetMaterial()->GetTextureByName("baseTexture");
+        if (texture)
+        {
+            command_buffer->bind_image(*texture->getImageView(),
+                *texture->getSampler(),
+                0, layout_binding->binding, 0);
+        }
+        else {
+            command_buffer->bind_image(*m_TestTexture->getImageView(),//TODO: descriptor set complains if no texture assigned, look into it
+                *m_TestTexture->getSampler(),
+                0, layout_binding->binding, 0);
+        }
+    }
+    */
 
-
-
-    command_buffer->end();
+    int nIndices = model.GetMesh()->GetNIndices();
+    int indexStart = model.GetMesh()->GetIndexStartPosition();
+    command_buffer->pushConstants(0, model.getModelMatrix());
+    command_buffer->draw_indexed(nIndices, 1, indexStart, model.GetMesh()->GetVertexStartPosition(), 0);
 }
 

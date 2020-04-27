@@ -3,6 +3,8 @@
 
 
 layout (set=0, binding=0) uniform sampler2D baseTexture;
+layout (set=0, binding=2) uniform sampler2D opacityTexture;
+
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
@@ -25,6 +27,8 @@ void main() {
 	vec3 specular = pow(max(dot(R, V), 0.0), 32.0) * spec;
 
     vec4 texColor = texture(baseTexture, fragTexCoord);
-	outColor = vec4((diffuse + ambient) * texColor.rgb + specular , 1.0);	
-	//outColor = vec4(fragNormal,1.0);
+	vec4 opacity = texture(opacityTexture, fragTexCoord);
+	outColor = vec4((diffuse + ambient) * texColor.rgb + specular , 1.0) * opacity;
+    outColor.a = opacity.r;	
+	//outColor = vec4(1.0,1.0,1.0,1.0);
 }

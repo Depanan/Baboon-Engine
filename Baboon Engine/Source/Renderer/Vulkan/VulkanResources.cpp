@@ -99,9 +99,9 @@ void hash_param<RenderPass>(
     hash_combine(seed, value);
 }
 template <>
-void hash_param<ShaderSource>(
+void hash_param<std::shared_ptr<ShaderSource>>(
     size_t& seed,
-    const ShaderSource& value)
+    const std::shared_ptr<ShaderSource>& value)
 {
     hash_combine(seed, value);
 }
@@ -261,13 +261,13 @@ namespace std
     };
 
     template <>
-    struct hash<ShaderSource>
+    struct hash<std::shared_ptr<ShaderSource>>
     {
-        std::size_t operator()(const ShaderSource& shader_source) const
+        std::size_t operator()(const std::shared_ptr<ShaderSource>& shader_source) const
         {
             std::size_t result = 0;
 
-            hash_combine(result, shader_source.get_id());
+            hash_combine(result, shader_source->get_id());
 
             return result;
         }
@@ -573,10 +573,11 @@ namespace std
 
 
 
-VulkanResources::VulkanResources( Device& device):
-m_Device(device)
+VulkanResources::VulkanResources( Device& device, std::chrono::duration<int, std::milli> garbageCollectorInterval):
+m_Device(device),
+m_GarbageCollectorInterval(garbageCollectorInterval)
 {
-
+    m_StartGarbageCollection = std::chrono::steady_clock::now();
 }
 
 
@@ -594,7 +595,7 @@ FrameBuffer& VulkanResources::request_framebuffer(const RenderTarget& render_tar
     return request_resource(m_Device, m_FramebufferMutex, m_FrameBuffers_Cache, render_target, render_pass);
 }
 
-ShaderModule& VulkanResources::request_shader_module(VkShaderStageFlagBits stage, const ShaderSource& glsl_source)
+ShaderModule& VulkanResources::request_shader_module(VkShaderStageFlagBits stage, const std::shared_ptr<ShaderSource>& glsl_source)
 {
     return request_resource(m_Device, m_ShaderModuleMutex, m_Shaders_Cache, stage, glsl_source);
 }
@@ -630,6 +631,34 @@ void VulkanResources::clear()
     m_FrameBuffers_Cache.clear();
     m_Shaders_Cache.clear();
     m_PipelinesLayout_Cache.clear();
+}
+
+void VulkanResources::GarbageCollect()
+{
+
+    auto timeNow = std::chrono::steady_clock::now();
+    auto int_ms = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - m_StartGarbageCollection);
+
+
+    if (int_ms >= m_GarbageCollectorInterval)
+    {
+        m_StartGarbageCollection = timeNow;
+
+        std::lock_guard<std::mutex> guard(m_ShaderModuleMutex);
+        auto moduleIt = m_Shaders_Cache.begin();
+        while (moduleIt != m_Shaders_Cache.end())
+        {
+            if (!moduleIt->second.isStillValid())
+            {
+                moduleIt = m_Shaders_Cache.erase(moduleIt);
+            }
+            else
+            {
+                moduleIt++;
+            }
+
+        }
+    }
 }
 
 

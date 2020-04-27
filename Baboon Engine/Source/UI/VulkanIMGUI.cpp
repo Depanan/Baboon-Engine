@@ -3,7 +3,6 @@
 #include "defines.h"
 #include "Cameras\CameraManager.h"
 #include <GLFW/glfw3.h>
-#include <windows.h>
 #include <iostream>
 
 
@@ -62,12 +61,14 @@ Font::Font(const std::string& name, float size) :
 }
 
 
-VulkanImGUI::VulkanImGUI( VulkanContext& i_context):
+VulkanImGUI::VulkanImGUI(VulkanContext& i_context, RendererVulkan* renderer) :
     m_VulkanContext(i_context),
-    m_VertexShader("Shaders/imguiVert.spv"),
-    m_FragmentShader("Shaders/imguiFrag.spv")
-{
+    m_VulkanRenderer(renderer),
+    m_VertexShader {renderer->getShaderSourcePool().getShaderSource("./Shaders/imgui.vert")},
+    m_FragmentShader{ renderer->getShaderSourcePool().getShaderSource("./Shaders/imgui.frag") }
 
+{
+ 
 }
 
 VulkanImGUI::~VulkanImGUI()
@@ -186,11 +187,7 @@ void VulkanImGUI::Init(GLFWwindow* i_window)
 
    
 
-    std::vector<ShaderModule*> shader_modules;
-    shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, m_VertexShader));
-    shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, m_FragmentShader));
-
-    m_PipelineLayout = &device.getResourcesCache().request_pipeline_layout(shader_modules);
+    
 
     m_Sampler = std::make_unique<VulkanSampler>(device, sampler_info);
 
@@ -281,7 +278,26 @@ void VulkanImGUI::recordCommandBuffers(CommandBuffer* command_buffer, CommandBuf
     command_buffer->setDepthStencilState(depth_state);
 
     // Bind pipeline layout
-    command_buffer->bindPipelineLayout(*m_PipelineLayout)   ;
+    std::vector<ShaderModule*> shader_modules;
+    auto pVertexShader = m_VertexShader.lock();
+    if (!pVertexShader)
+    {
+        m_VertexShader = m_VulkanRenderer->getShaderSourcePool().getShaderSource("./Shaders/imgui.vert");
+        pVertexShader = m_VertexShader.lock();
+    }
+    auto pFragmentShader = m_FragmentShader.lock();
+    if (!pFragmentShader)
+    {
+        m_FragmentShader = m_VulkanRenderer->getShaderSourcePool().getShaderSource("./Shaders/imgui.frag");
+        pFragmentShader = m_FragmentShader.lock();
+    }
+    //TODO: Fix this shader mess
+    
+    shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader));
+    shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader));
+
+    auto& pipelineLayout = device.getResourcesCache().request_pipeline_layout(shader_modules);
+    command_buffer->bindPipelineLayout(pipelineLayout)   ;
 
     command_buffer->bind_image(*m_FontImageView, *m_Sampler, 0, 0, 0);
 

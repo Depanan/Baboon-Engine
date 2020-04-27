@@ -35,6 +35,7 @@ public:
 	void DeleteStaticUniformBuffer() override;
 	void DeleteInstancedUniformBuffer() override;
 	void SetupRenderCalls() override;
+  void ReloadShader(std::string) override;
 	void UpdateTimesAndFPS(std::chrono::time_point<std::chrono::high_resolution_clock>  i_tStartTime) override;
 
 
@@ -46,6 +47,10 @@ public:
 
 	VkFormat GetMainRTColorFormat() {return m_SwapChainImageFormat;}
 	VkFormat GetMainRTDepthFormat() { return m_SwapChainDepthFormat; }
+
+  ShaderSourcePool& getShaderSourcePool() {
+      return m_ShaderSourcePool;
+  }
 private:
   std::unique_ptr<Instance> m_Instance{ nullptr };
   VkSurfaceKHR m_Surface{ VK_NULL_HANDLE };
@@ -65,6 +70,8 @@ private:
 	VkFormat m_SwapChainImageFormat;
 	VkFormat m_SwapChainDepthFormat;
 	VkExtent2D m_SwapChainExtent;
+
+  ShaderSourcePool m_ShaderSourcePool;
 
   void createSurface(GLFWwindow* i_window);
   bool isDeviceSuitable(VkPhysicalDevice device);

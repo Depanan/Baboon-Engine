@@ -79,6 +79,22 @@ void Scene::Free()
 	m_bIsInit = false;
 }
 
+void Scene::GetSortedOpaqueAndTransparent(std::multimap<float, Model*>& opaque, std::multimap<float, Model*>& transparent)
+{
+    auto camera = ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main);
+   
+    for (auto model : m_OpaqueModels)
+    {
+        float distance = glm::length(camera->GetPosition() - model->getAABB().get_center());
+        opaque.emplace(distance, model);
+    }
+    for (auto model : m_TransparentModels)
+    {
+        float distance = glm::length(camera->GetPosition() - model->getAABB().get_center());
+        transparent.emplace(distance, model);
+    }
+}
+
 
 void Scene::UpdateUniforms()
 {
@@ -158,7 +174,7 @@ const char* fromAiTexureTypesToShaderName(aiTextureType texType)
     case aiTextureType_SHININESS:
         break;
     case aiTextureType_OPACITY:
-        return " ";
+        return "opacityTexture";
     case aiTextureType_DISPLACEMENT:
         break;
     case aiTextureType_LIGHTMAP:
@@ -264,7 +280,7 @@ void Scene::loadModels(const aiScene* i_aScene)
 	m_Meshes.resize(numberOfModelsInScene);//THIS IS NOT NECESSARILY TRUE DIFFERENT MODELS COULD POINT TO THE SAME MESH, TODO
 
 	int iCurrentIndex = 0;
-	int iVertexCount = 0;
+	int iVertexGeneralCount = 0;
 	for (uint32_t i = 0; i < numberOfModelsInScene; i++)
 	{
 		aiMesh *aMesh = i_aScene->mMeshes[i];
@@ -300,9 +316,9 @@ void Scene::loadModels(const aiScene* i_aScene)
 			}
 		}
 
-		m_Meshes[i].SetMeshIndicesInfo(iCurrentIndex, iNIndices, iVertexCount);
-		m_Models[i].SetMesh(&m_Meshes[i]);
-		m_Models[i].SetInstanceUniforms((InstanceUBO*)((uint64_t)m_InstanceUniforms + (i * dynamicAlignment)), i);
+		m_Meshes[i].SetMeshIndicesInfo(iCurrentIndex, iNIndices, iVertexGeneralCount, aMesh->mNumVertices);
+    m_Models[i].SetInstanceUniforms((InstanceUBO*)((uint64_t)m_InstanceUniforms + (i * dynamicAlignment)), i);//TODO: Get rid of the instance ubo thing and let the model just have a Model matrix for now
+    m_Models[i].SetMesh(&m_Meshes[i]);
 		m_Models[i].SetMaterial(&m_Materials[aMesh->mMaterialIndex]);
 
     if (m_Materials[aMesh->mMaterialIndex].isTransparent())
@@ -316,7 +332,7 @@ void Scene::loadModels(const aiScene* i_aScene)
 
 
 		iCurrentIndex += iNIndices;
-		iVertexCount += aMesh->mNumVertices;
+		iVertexGeneralCount += aMesh->mNumVertices;
 	}
 
 	RendererAbstract* renderer = ServiceLocator::GetRenderer();

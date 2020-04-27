@@ -1,5 +1,6 @@
 #include "Mesh.h"
 #include "defines.h"
+#include "Core/ServiceLocator.h"
 
 void Vertex::GetVertexDescription(VkVertexInputBindingDescription* o_Description)
 {
@@ -37,4 +38,19 @@ void Vertex::GetAttributesDescription(std::vector<VkVertexInputAttributeDescript
 	o_AttribDescription[3].location = 3;
 	o_AttribDescription[3].format = VK_FORMAT_R32G32B32_SFLOAT;
 	o_AttribDescription[3].offset = offsetof(Vertex, normal);
+}
+
+void Mesh::getIndicesData( const uint16_t** o_Indices, size_t* size)
+{
+    auto scene = ServiceLocator::GetSceneManager()->GetScene();
+    *o_Indices = scene->GetIndicesData() + m_IndexStartPosition;
+    *size = m_NIndices;
+   
+}
+void Mesh::getVertexData(  const Vertex** o_Vertices, size_t* size)
+{
+    auto scene = ServiceLocator::GetSceneManager()->GetScene();
+    *o_Vertices = scene->GetVerticesData()+ m_VertexStartPosition;
+    *size = m_NVertices;
+
 }
