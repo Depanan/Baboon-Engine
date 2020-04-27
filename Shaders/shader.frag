@@ -19,7 +19,7 @@ void main() {
 	vec3 spec = vec3(0.2,0.2,0.2);//TODO: Should be material uniform
 
 	vec3 N = normalize(fragNormal);
-	vec3 L = normalize(vec3(1.0,1.0,1.0));//TODO: Light dir should be uniform
+	vec3 L = normalize(vec3(1.0,1.0,0.0));//TODO: Light dir should be uniform
 	vec3 V = normalize(inViewVec);
 
 	vec3 R = -normalize(reflect(-L, N));

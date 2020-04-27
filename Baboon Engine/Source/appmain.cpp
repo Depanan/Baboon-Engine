@@ -117,7 +117,7 @@ static auto checkShaderChangesFunction = [](std::string path_to_watch, FileStatu
     }
     if (status == FileStatus::modified)
     {
-        std::cout << "File modified: " << path_to_watch << '\n';
+        //std::cout << "File modified: " << path_to_watch << '\n';
         ServiceLocator::GetRenderer()->ReloadShader(path_to_watch);
     }
 

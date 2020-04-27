@@ -650,6 +650,7 @@ void VulkanResources::GarbageCollect()
         {
             if (!moduleIt->second.isStillValid())
             {
+                LOGDEBUG("Garbage collector deleting ShaderModule: " + moduleIt->second.getSourceName());
                 moduleIt = m_Shaders_Cache.erase(moduleIt);
             }
             else

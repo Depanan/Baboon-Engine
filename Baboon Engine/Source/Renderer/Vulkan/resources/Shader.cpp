@@ -35,7 +35,8 @@ ShaderModule::ShaderModule(const Device& device,
     const ShaderVariant& shader_variant*/):
     m_Device(device),
     m_Stage(stage),
-    m_Source(shaderSource)
+    m_Source(shaderSource),
+    m_SourceName(shaderSource->get_filename())
 
 {
     auto srcPtr = m_Source.lock();
@@ -59,7 +60,8 @@ m_Source(other.m_Source),
 m_Spirv(other.m_Spirv),
 m_ShaderModule(other.m_ShaderModule),
 m_EntryPoint(other.m_EntryPoint),
-m_Resources(other.m_Resources)
+m_Resources(other.m_Resources),
+m_SourceName(other.m_SourceName)
 
 {
     other.m_ShaderModule = VK_NULL_HANDLE;

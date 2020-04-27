@@ -84,7 +84,7 @@ void RendererVulkan::ReloadShader(std::string shaderPath)
     //in the cache so we will need to create a new one. The same for the pipeline and so on...
 
    
-    LOGINFO("I should reload shaders here!");
+    LOGDEBUG("Reloading shader: " + shaderPath);
     m_ShaderSourcePool.reloadShader(shaderPath);
     if (m_RenderPath)
     {

@@ -123,7 +123,7 @@ public:
     inline const std::vector<uint32_t>& getSourceBinary()const { return m_Spirv; }
 
     const std::vector<ShaderResource>& get_resources() const { return m_Resources; }
-
+    const std::string& getSourceName() { return m_SourceName; }
     bool isStillValid();
 private:
     const Device& m_Device;
@@ -135,7 +135,7 @@ private:
 
     VkShaderModule m_ShaderModule{ VK_NULL_HANDLE };
     size_t m_HashId;
-
+    std::string m_SourceName;
     std::vector<ShaderResource> m_Resources;
 
     void readShaderResources();
