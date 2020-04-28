@@ -18,6 +18,7 @@
 
 class Device;
 class PipelineState;
+class ShaderVariant;
 class VulkanResources
 {
 public:
@@ -27,7 +28,7 @@ public:
         const std::vector<SubpassInfo>& subpasses);
 
     FrameBuffer& request_framebuffer(const RenderTarget& render_target, const RenderPass& render_pass);
-    ShaderModule& request_shader_module(VkShaderStageFlagBits stage, const std::shared_ptr<ShaderSource>& glsl_source);//TODO: Add shadervariant here!
+    ShaderModule& request_shader_module(VkShaderStageFlagBits stage, const std::shared_ptr<ShaderSource>& glsl_source, const ShaderVariant& shader_variant);
     PipelineLayout& request_pipeline_layout(std::vector<ShaderModule*> shader_modules);
     Pipeline& request_pipeline(const PipelineState& pipelineState);
     DescriptorSetLayout& request_descriptor_set_layout(const std::vector<ShaderResource>& set_resources);

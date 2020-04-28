@@ -1,9 +1,13 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-
+#ifdef HAS_BASETEXTURE
 layout (set=0, binding=0) uniform sampler2D baseTexture;
+#endif
+#ifdef HAS_OPACITYTEXTURE
 layout (set=0, binding=2) uniform sampler2D opacityTexture;
+#endif
+
 
 
 layout(location = 0) in vec3 fragColor;
@@ -26,8 +30,15 @@ void main() {
 	vec3 diffuse = max(dot(N, L), 0.0) *  vec3(1.0,1.0,1.0);
 	vec3 specular = pow(max(dot(R, V), 0.0), 32.0) * spec;
 
-    vec4 texColor = texture(baseTexture, fragTexCoord);
-	vec4 opacity = texture(opacityTexture, fragTexCoord);
+    vec4 texColor = vec4(1.0);
+	vec4 opacity = vec4(1.0);
+	#ifdef HAS_BASETEXTURE
+	texColor = texture(baseTexture, fragTexCoord);
+	#endif
+	#ifdef HAS_OPACITYTEXTURE
+	opacity = texture(opacityTexture, fragTexCoord);
+	#endif
+
 	outColor = vec4((diffuse + ambient) * texColor.rgb + specular , 1.0) * opacity;
     outColor.a = opacity.r;	
 	//outColor = vec4(1.0,1.0,1.0,1.0);

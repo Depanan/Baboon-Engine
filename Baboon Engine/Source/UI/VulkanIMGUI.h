@@ -5,6 +5,7 @@
 #include "../Renderer/Vulkan/VulkanSampler.h"
 #include "../Renderer/Vulkan/VulkanBuffer.h"
 #include "../Renderer/Vulkan/resources/Shader.h"
+#include "../Core/Material.h"
 
 #include <memory>
 
@@ -76,6 +77,8 @@ private:
 
   std::weak_ptr<ShaderSource> m_VertexShader;
   std::weak_ptr<ShaderSource> m_FragmentShader;
+
+  ShaderVariant m_ShaderVariant;
 
   std::vector<Font> m_Fonts;
 

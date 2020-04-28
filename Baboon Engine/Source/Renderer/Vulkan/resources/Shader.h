@@ -66,8 +66,19 @@ struct ShaderResource
     std::string name;
 };
 
+
+
+
+
+
+
+
+
+
+
 class Device;
 class ShaderSourcePool;
+class ShaderVariant;
 class ShaderSource
 {
 public:
@@ -105,9 +116,8 @@ class ShaderModule
 public:
     ShaderModule(const Device& device,
         VkShaderStageFlagBits stage,
-        const std::shared_ptr<ShaderSource>& shaderSource
-        /*,
-        const ShaderVariant& shader_variant*/);
+        const std::shared_ptr<ShaderSource>& shaderSource,
+        const ShaderVariant& shader_variant);
 
     ShaderModule(const ShaderModule&) = delete;
 

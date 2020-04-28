@@ -142,8 +142,6 @@ public:
 	void mainLoop()
 	{
 
-
-
     // Create a FileWatcher instance that will check the current folder for changes every 5 seconds
     FileWatcher fileWatcherShaders{ "./Shaders", std::chrono::milliseconds(5000),checkShaderChangesFunction };
       

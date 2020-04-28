@@ -2,7 +2,7 @@
 #include "PipelineState.h"
 #include <glm/gtx/hash.hpp>
 #include "resources/DescriptorPool.h"
-
+#include "../../Core/Material.h"
 
 template <class T>
 void hash_combine(size_t& seed, const T& v)
@@ -105,6 +105,16 @@ void hash_param<std::shared_ptr<ShaderSource>>(
 {
     hash_combine(seed, value);
 }
+
+template <>
+void hash_param<ShaderVariant>(
+    size_t& seed,
+    const ShaderVariant& value)
+{
+    hash_combine(seed, value);
+}
+
+
 template <>
 void hash_param<VkShaderStageFlagBits>(
     size_t& seed,
@@ -272,6 +282,20 @@ namespace std
             return result;
         }
     };
+
+    template <>
+    struct hash<ShaderVariant>
+    {
+        std::size_t operator()(const ShaderVariant& shader_variant) const
+        {
+            std::size_t result = 0;
+
+            hash_combine(result, shader_variant.get_id());
+
+            return result;
+        }
+    };
+
 
     template <>
     struct hash<ShaderModule>
@@ -595,9 +619,9 @@ FrameBuffer& VulkanResources::request_framebuffer(const RenderTarget& render_tar
     return request_resource(m_Device, m_FramebufferMutex, m_FrameBuffers_Cache, render_target, render_pass);
 }
 
-ShaderModule& VulkanResources::request_shader_module(VkShaderStageFlagBits stage, const std::shared_ptr<ShaderSource>& glsl_source)
+ShaderModule& VulkanResources::request_shader_module(VkShaderStageFlagBits stage, const std::shared_ptr<ShaderSource>& glsl_source, const ShaderVariant& shader_variant)
 {
-    return request_resource(m_Device, m_ShaderModuleMutex, m_Shaders_Cache, stage, glsl_source);
+    return request_resource(m_Device, m_ShaderModuleMutex, m_Shaders_Cache, stage, glsl_source, shader_variant);
 }
 
 PipelineLayout& VulkanResources::request_pipeline_layout(std::vector<ShaderModule*> shader_modules)

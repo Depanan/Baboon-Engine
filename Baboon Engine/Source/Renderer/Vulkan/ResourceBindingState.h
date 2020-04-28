@@ -42,6 +42,8 @@ public:
 
     inline const BindingMap<ResourceInfo>& get_resource_bindings() const { return m_Resource_Bindings; }
 
+    void forceDirty();
+
 private:
     bool m_Dirty{ false };
 
@@ -66,6 +68,8 @@ public:
     void bind_input(const VulkanImageView& image_view, uint32_t set, uint32_t binding, uint32_t array_element);
 
     inline const std::unordered_map<uint32_t, ResourceSet>& get_resource_sets() { return m_Resource_Sets; }
+
+    void forceDirty();
 
 private:
     bool m_Dirty{ false };

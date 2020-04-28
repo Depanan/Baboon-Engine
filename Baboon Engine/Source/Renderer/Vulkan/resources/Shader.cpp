@@ -2,9 +2,12 @@
 #include "../Device.h"
 #include "../glsl_compiler.h"
 #include "Core/ServiceLocator.h"
+#include "Core/Material.h"
 __pragma(warning(push, 0))
 #include <spirv-cross/spirv_glsl.hpp>
 __pragma(warning(pop))
+
+
 
 
 
@@ -30,9 +33,8 @@ ShaderSource::ShaderSource(std::vector<uint8_t>&& data):
 
 ShaderModule::ShaderModule(const Device& device,
     VkShaderStageFlagBits stage,
-    const std::shared_ptr<ShaderSource>& shaderSource
-    /*,
-    const ShaderVariant& shader_variant*/):
+    const std::shared_ptr<ShaderSource>& shaderSource,
+    const ShaderVariant& shader_variant):
     m_Device(device),
     m_Stage(stage),
     m_Source(shaderSource),
@@ -47,7 +49,7 @@ ShaderModule::ShaderModule(const Device& device,
 
         std::string infoLog;
         GLSLCompiler compiler;
-        compiler.compile_to_spirv(m_Stage, srcPtr->get_data(), m_EntryPoint, m_Spirv, infoLog);
+        compiler.compile_to_spirv(m_Stage, srcPtr->get_data(), m_EntryPoint,shader_variant, m_Spirv, infoLog);
     
         readShaderResources();
     }

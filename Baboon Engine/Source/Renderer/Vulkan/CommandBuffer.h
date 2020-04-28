@@ -110,6 +110,8 @@ public:
 
     void pushConstants(uint32_t offset, const std::vector<uint8_t>& values);
 
+    void forceResourceBindingDirty();
+
     template <typename T>
     void pushConstants(uint32_t offset, const T& value)
     {

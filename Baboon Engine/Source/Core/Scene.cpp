@@ -164,10 +164,12 @@ const char* fromAiTexureTypesToShaderName(aiTextureType texType)
     case aiTextureType_SPECULAR:
         return "specularTexture";
     case aiTextureType_AMBIENT:
+        return "ambientTexture";
         break;
     case aiTextureType_EMISSIVE:
         break;
     case aiTextureType_HEIGHT:
+        return "heightTexture";
         break;
     case aiTextureType_NORMALS:
         return "normalTexture";

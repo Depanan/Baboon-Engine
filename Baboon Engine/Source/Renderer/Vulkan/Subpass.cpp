@@ -66,8 +66,8 @@ TestTriangleSubPass::TestTriangleSubPass(VulkanContext& render_context, std::wea
     
     
    
-     unsigned char pPixels[] = { 255,255,255,255 };
-    m_TestTexture = (VulkanTexture*)renderer->CreateTexture(pPixels, 1, 1);
+     //unsigned char pPixels[] = { 255,255,255,255 };
+    //m_TestTexture = (VulkanTexture*)renderer->CreateTexture(pPixels, 1, 1);
     
 
     m_PersistentCommandsPerFrame = new PersistentCommandsPerFrame();
@@ -190,6 +190,7 @@ void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, Co
 
 void TestTriangleSubPass::drawModel(Model& model, CommandBuffer* command_buffer)
 {
+
     auto& device = m_RenderContext.getDevice();
     auto renderVulkan =(RendererVulkan*) ServiceLocator::GetRenderer();
 
@@ -208,8 +209,8 @@ void TestTriangleSubPass::drawModel(Model& model, CommandBuffer* command_buffer)
 
 
 
-    auto& vert_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader);
-    auto& frag_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader);
+    auto& vert_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader, model.getShaderVariant());
+    auto& frag_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader, model.getShaderVariant());
     std::vector<ShaderModule*> shader_modules{ &vert_module, &frag_module };
 
     auto& pipeline_layout = device.getResourcesCache().request_pipeline_layout(shader_modules);
@@ -249,55 +250,32 @@ void TestTriangleSubPass::drawModel(Model& model, CommandBuffer* command_buffer)
 
     auto textures = model.GetMaterial()->getTextures();
 
-    //////////////////////////HACK REMOVE WHEN SHADER VARIANTS WORKING! binding white texture if not non transparent wont be seen (multip by 0)//////////////////////////////
-    auto texIterator = textures->find("opacityTexture");
-    if(texIterator == textures->end())
+    if (textures->size() == 0)
     {
-        if (auto layout_binding = descriptor_set_layout.getLayoutBinding("opacityTexture"))
-        {
-
-
-            command_buffer->bind_image(*m_TestTexture->getImageView(),
-                *m_TestTexture->getSampler(),
-                0, layout_binding->binding, 0);
-
-        }
+        command_buffer->forceResourceBindingDirty();//TODO: In case of empty shaders with no bindings at all, when flushing resourcesBinding is dirty won't be dirty hence not updating the descriptor set creating a validation error! Better way than forcing it?
     }
-    /////////////////////!HACK//////////////////////////////////////////////////////////////////////
-    for (auto texture : *textures)
+    else
     {
-        if (auto layout_binding = descriptor_set_layout.getLayoutBinding(texture.first))
+        for (auto texture : *textures)
         {
-            VulkanTexture* vulkanTex = (VulkanTexture*)texture.second;
-            if (vulkanTex)
+            if (auto layout_binding = descriptor_set_layout.getLayoutBinding(texture.first))
             {
-                command_buffer->bind_image(*vulkanTex->getImageView(),
-                    *vulkanTex->getSampler(),
-                    0, layout_binding->binding, 0);
+                VulkanTexture* vulkanTex = (VulkanTexture*)texture.second;
+                if (vulkanTex)
+                {
+                    command_buffer->bind_image(*vulkanTex->getImageView(),
+                        *vulkanTex->getSampler(),
+                        0, layout_binding->binding, 0);
+                }
             }
         }
     }
 
-    /*if (auto layout_binding = descriptor_set_layout.getLayoutBinding("baseTexture"))
-    {
-        VulkanTexture* texture = (VulkanTexture*)model.GetMaterial()->GetTextureByName("baseTexture");
-        if (texture)
-        {
-            command_buffer->bind_image(*texture->getImageView(),
-                *texture->getSampler(),
-                0, layout_binding->binding, 0);
-        }
-        else {
-            command_buffer->bind_image(*m_TestTexture->getImageView(),//TODO: descriptor set complains if no texture assigned, look into it
-                *m_TestTexture->getSampler(),
-                0, layout_binding->binding, 0);
-        }
-    }
-    */
 
     int nIndices = model.GetMesh()->GetNIndices();
     int indexStart = model.GetMesh()->GetIndexStartPosition();
     command_buffer->pushConstants(0, model.getModelMatrix());
+  
     command_buffer->draw_indexed(nIndices, 1, indexStart, model.GetMesh()->GetVertexStartPosition(), 0);
 }
 

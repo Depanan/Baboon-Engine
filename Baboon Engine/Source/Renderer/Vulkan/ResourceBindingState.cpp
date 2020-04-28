@@ -44,6 +44,12 @@ void ResourceBindingState::bind_input(const VulkanImageView& image_view, uint32_
     m_Dirty = true;
 }
 
+void ResourceBindingState::forceDirty()
+{
+    m_Dirty = true;
+    m_Resource_Sets[0].forceDirty();
+}
+
 
 
 void ResourceSet::reset()
@@ -92,6 +98,11 @@ void ResourceSet::bind_input(const VulkanImageView& image_view, const uint32_t b
     m_Resource_Bindings[binding][array_element].m_Dirty = true;
     m_Resource_Bindings[binding][array_element].m_ImageView = &image_view;
 
+    m_Dirty = true;
+}
+
+void ResourceSet::forceDirty()
+{
     m_Dirty = true;
 }
 

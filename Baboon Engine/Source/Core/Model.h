@@ -17,7 +17,7 @@ public:
   void SetMesh(Mesh* i_Mesh);
 	Mesh* GetMesh() { return m_Mesh; }
 
-	void SetMaterial(Material* i_Mat) { m_Material = i_Mat; }
+  void SetMaterial(Material* i_Mat);
 	Material* GetMaterial() { return m_Material; }
 
 	void SetInstanceUniforms(InstanceUBO* i_InstanceUniforms, int i_Index) {
@@ -32,14 +32,20 @@ public:
 
   const glm::mat4& getModelMatrix()const { return m_pInstanceUniforms->model; }
   const AABB& getAABB() { return m_AABB; }
+
+  const ShaderVariant& getShaderVariant()const { return m_Variant; }
 private:
    
 	Mesh* m_Mesh;
 	Material* m_Material;
+  ShaderVariant m_Variant;
+
+
 
   AABB m_AABB;
 	InstanceUBO* m_pInstanceUniforms = nullptr;
 	int m_iInstanceUniformIndex;
 
+  void computeShaderVariant();
   void updateAABB();
 };

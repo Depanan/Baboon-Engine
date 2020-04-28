@@ -293,8 +293,8 @@ void VulkanImGUI::recordCommandBuffers(CommandBuffer* command_buffer, CommandBuf
     }
     //TODO: Fix this shader mess
     
-    shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader));
-    shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader));
+    shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader, m_ShaderVariant));
+    shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader, m_ShaderVariant));
 
     auto& pipelineLayout = device.getResourcesCache().request_pipeline_layout(shader_modules);
     command_buffer->bindPipelineLayout(pipelineLayout)   ;

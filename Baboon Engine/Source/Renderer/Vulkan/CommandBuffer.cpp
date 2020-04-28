@@ -283,6 +283,11 @@ void CommandBuffer::pushConstants(uint32_t offset, const std::vector<uint8_t>& v
     }
 }
 
+void CommandBuffer::forceResourceBindingDirty()
+{
+    m_ResourceBindingState.forceDirty();
+}
+
 void CommandBuffer::flushPipelineState()
 {
     // Create a new pipeline only if the graphics state changed
