@@ -5,6 +5,7 @@
 #include "Core/Model.h"
 #include <unordered_map>
 #include <memory>
+#include "PersistentCommand.h"
 
 class CommandBuffer;
 
@@ -16,6 +17,7 @@ class Subpass
 {
 public:
     Subpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr <ShaderSource> fragment_shader);
+    ~Subpass();
     virtual void prepare() = 0;
     virtual void draw(CommandBuffer& command_buffer) = 0;
 
@@ -34,7 +36,7 @@ protected:
     std::weak_ptr<ShaderSource> m_FragmentShader;
     VulkanContext& m_RenderContext;
 
-    PersistentCommandsPerFrame* m_PersistentCommandsPerFrame;
+    PersistentCommandsPerFrame m_PersistentCommandsPerFrame;
 
     bool m_DisableDepthAttachment{ false };
 

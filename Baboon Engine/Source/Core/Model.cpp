@@ -17,14 +17,14 @@ void Model::SetMaterial(Material* i_Mat)
 void Model::Translate(const glm::vec3& i_TranslateVec)
 {
 	
-	m_pInstanceUniforms->model = glm::translate(m_pInstanceUniforms->model, i_TranslateVec);
+	m_InstanceUniforms.model = glm::translate(m_InstanceUniforms.model, i_TranslateVec);
   updateAABB();
 }
 
 void Model::Scale(const glm::vec3& i_ScaleVec)
 {
 
-	m_pInstanceUniforms->model = glm::scale(m_pInstanceUniforms->model, i_ScaleVec);
+	m_InstanceUniforms.model = glm::scale(m_InstanceUniforms.model, i_ScaleVec);
   updateAABB();
 }
 void Model::computeShaderVariant()
@@ -51,5 +51,5 @@ void Model::updateAABB()
     size_t nVertices;
     m_Mesh->getVertexData(&vertices, &nVertices);
     m_AABB.update(vertices, nVertices, indices, nIndices);
-    m_AABB.transform(m_pInstanceUniforms->model);
+    m_AABB.transform(m_InstanceUniforms.model);
 }

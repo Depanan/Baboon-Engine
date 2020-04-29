@@ -6,6 +6,22 @@
 #include "../Device.h"
 #include "Core/ServiceLocator.h"
 
+Pipeline::~Pipeline()
+{
+    // Destroy pipeline
+    if (m_Handle != VK_NULL_HANDLE)
+    {
+        vkDestroyPipeline(m_Device.get_handle(), m_Handle, nullptr);
+    }
+}
+Pipeline::Pipeline(Pipeline&& other) :
+    m_Device{ other.m_Device },
+    m_Handle{ other.m_Handle },
+    m_State{ other.m_State }
+{
+    other.m_Handle = VK_NULL_HANDLE;
+}
+
 Pipeline::Pipeline(const Device& device, const PipelineState& pipeline_state):
     m_Device(device),
     m_State(pipeline_state)

@@ -8,17 +8,18 @@
 
 
 struct aiScene;
-
+class SceneManager;
 class Scene {
+    friend class SceneManager;
 public:
 	Scene();
 	~Scene();
    std::vector<Vertex>& GetVertices() { return m_Vertices; }
-	const Vertex* GetVerticesData() { return m_Vertices.data(); }
+	const Vertex* GetVerticesData() const { return m_Vertices.data(); }
 	const int GetVerticesNumber() { return m_Vertices.size(); }
 	const size_t GetVerticesSize() { return sizeof(m_Vertices[0]) * m_Vertices.size(); }
 
-	const uint16_t* GetIndicesData() { return m_Indices.data(); }
+	const uint16_t* GetIndicesData()const { return m_Indices.data(); }
 	const int GetIndicesNumber() { return m_Indices.size(); }
 	const size_t GetIndicesSize() { return sizeof(m_Indices[0]) * m_Indices.size(); }
 
@@ -26,16 +27,11 @@ public:
   Buffer* GetVerticesBuffer() { return m_VerticesBuffer; }
 	
 	void OnWindowResize();
-
-	void UpdateUniforms();
 	
-	
-	InstanceUBO* GetInstanceUniforms() { return m_InstanceUniforms; }
 
 
 	
-	void Init(const std::string i_ScenePath);
-	void Free();
+	
 
 
 	bool IsInit() { return m_bIsInit; }
@@ -53,8 +49,7 @@ private:
 	bool m_bIsInit = false;
 
 	
-	InstanceUBO* m_InstanceUniforms =nullptr;
-
+  std::vector <Texture*> m_Textures;
 	std::vector <Model> m_Models;
 
   std::vector <Model*> m_OpaqueModels;
@@ -75,16 +70,28 @@ private:
 	void loadMaterials(const aiScene* i_aScene, const std::string i_SceneTexturesPath);
 	void loadModels(const aiScene* i_aScene);
 
+  void Init(const std::string i_ScenePath);
+  void Free();
+
 };
 
 class SceneManager {
 
+    
+
 public:
-	Scene* GetScene() {
-		return &m_SceneData;
+
+    void LoadScene(const std::string i_ScenePath);
+    void FreeScene();
+	Scene* GetCurrentScene() {
+		return &m_SceneData[m_CurrentSceneIndex];
 	}
+
+
 private:
-	Scene m_SceneData;
+	Scene m_SceneData[2];
+  int m_CurrentSceneIndex = 0;
+  int m_LoadingSceneIndex = 1;
 
 };
 

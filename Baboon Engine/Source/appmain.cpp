@@ -6,6 +6,7 @@
 #include "Cameras\CameraManager.h"
 #include <filesystem>
 #include <functional>
+
 namespace fs = std::filesystem;
 
 
@@ -129,6 +130,9 @@ static auto checkShaderChangesFunction = [](std::string path_to_watch, FileStatu
 class GraphicGLFWApp
 {
 public:
+
+   
+
 	void init()
 	{
 		initWindow();
@@ -136,7 +140,11 @@ public:
 		ServiceLocator::GetCameraManager()->Init();
 		//ServiceLocator::GetSceneManager()->GetScene()->Init();
 
+    
+   
 
+
+    LOGINFO("LOLO");
 	}
 
 	void mainLoop()
@@ -148,7 +156,7 @@ public:
     
 
 		RendererAbstract* pRenderer = ServiceLocator::GetRenderer();
-		Scene* pScene = ServiceLocator::GetSceneManager()->GetScene();
+		Scene* pScene = ServiceLocator::GetSceneManager()->GetCurrentScene();
 		Input* pInput = ServiceLocator::GetInput();
     CameraManager* pCameraMan = ServiceLocator::GetCameraManager();
 		while (!glfwWindowShouldClose(m_window)) {
@@ -187,7 +195,7 @@ private:
 		GraphicGLFWApp* thisPointer = reinterpret_cast<GraphicGLFWApp*>(glfwGetWindowUserPointer(window));
 		ServiceLocator::GetRenderer()->OnWindowResize(width,height);
 		ServiceLocator::GetCameraManager()->OnWindowResize(width,height);
-		ServiceLocator::GetSceneManager()->GetScene()->OnWindowResize();
+		ServiceLocator::GetSceneManager()->GetCurrentScene()->OnWindowResize();
 	}
 
 
@@ -234,12 +242,15 @@ int main() {
 	Input theInput;
 	CameraManager camManager;
   Logger logger;
+  ThreadPool threadPool;
+  threadPool.setThreadCount(2);
 
 	ServiceLocator::Provide(&theSceneManager);
 	ServiceLocator::Provide(&vulkanRenderer);
 	ServiceLocator::Provide(&theInput);
 	ServiceLocator::Provide(&camManager);
   ServiceLocator::Provide(&logger);
+  ServiceLocator::Provide(&threadPool);
 	
 	try {
 		mainApp.init();

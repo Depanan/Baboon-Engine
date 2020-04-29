@@ -21,7 +21,7 @@ layout (location = 3) out vec3 outViewVec;
 
 void main() {
 	vec4 worldPos = pushConstants.model * vec4(inPosition, 1.0);
-	outViewVec = worldPos.xyz;
+	outViewVec = -worldPos.xyz;
 	
     gl_Position = ubo.proj * ubo.view * worldPos;
 	fragColor = inColor;

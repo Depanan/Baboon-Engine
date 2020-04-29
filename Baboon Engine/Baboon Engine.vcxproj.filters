@@ -180,6 +180,9 @@
     <ClCompile Include="Source\Renderer\Vulkan\glsl_compiler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Renderer\Vulkan\PersistentCommand.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Core\Input.h">
@@ -342,6 +345,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Renderer\Vulkan\glsl_compiler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Renderer\Vulkan\PersistentCommand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

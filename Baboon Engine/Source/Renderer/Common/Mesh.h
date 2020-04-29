@@ -14,18 +14,14 @@ struct Vertex {
 	static void GetAttributesDescription(std::vector<VkVertexInputAttributeDescription>& o_Description);
 };
 
-
+class Scene;
 class Mesh
 {
 public:
-	Mesh() 
-	{
-		
-
-	}
+    Mesh();
 
 	
-
+    void setScene(const Scene* scene);
 	void SetMeshIndicesInfo (uint32_t iIndicesStart, uint32_t iIndicesCount,  uint32_t i_VerticesStart, uint32_t i_nVertices)
 	{
 		m_IndexStartPosition = iIndicesStart;
@@ -47,7 +43,8 @@ private:
 	uint32_t m_VertexStartPosition;//Position in the global index array
 	uint32_t m_NIndices;//Number of indices
   uint32_t m_NVertices;
-	
+
+  const Scene* m_ScenePtr;
 
 };
 

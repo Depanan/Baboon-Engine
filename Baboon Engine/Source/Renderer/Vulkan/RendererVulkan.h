@@ -26,10 +26,10 @@ public:
 	float GetMainRTWidth() override;
 	float GetMainRTHeight() override;
  
+
 	Buffer* CreateVertexBuffer( void*  i_data, size_t iBufferSize) override;
   Buffer* CreateIndexBuffer( void*  i_data, size_t iBufferSize) override;
-	void DeleteVertexBuffer() override;
-	void DeleteIndexBuffer() override;
+	void DeleteBuffer(Buffer*) override;
   Buffer* CreateStaticUniformBuffer( void*  i_data, size_t iBufferSize) override;
   Buffer* CreateInstancedUniformBuffer( void*  i_data, size_t iBufferSize) override;
 	void DeleteStaticUniformBuffer() override;
@@ -41,9 +41,9 @@ public:
 
   //This 3 to be implemented
   virtual Texture* CreateTexture(void* i_data, int i_Widht, int i_Height) override;
-  virtual void CreateMaterial(std::string i_MatName, int* iTexIndices, int iNumTextures) override{ }
-  virtual void DeleteMaterials() override { }
+  virtual void DeleteTexture(Texture*) override;
 
+  virtual void CreateMaterial(std::string i_MatName, int* iTexIndices, int iNumTextures) override{ }
 
 	VkFormat GetMainRTColorFormat() {return m_SwapChainImageFormat;}
 	VkFormat GetMainRTDepthFormat() { return m_SwapChainDepthFormat; }
@@ -76,7 +76,7 @@ private:
   void createSurface(GLFWwindow* i_window);
   bool isDeviceSuitable(VkPhysicalDevice device);
   void pickPhysicalDevice();
-
+  void reRecordCommands();
 
 	const std::vector<const char*> m_VvalidationLayers = {
 		"VK_LAYER_LUNARG_standard_validation"

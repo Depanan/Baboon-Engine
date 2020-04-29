@@ -4,6 +4,7 @@
 #include "Core\Input.h"
 #include "Core\Logger.h"
 #include "Cameras\CameraManager.h"
+#include "ThreadPool.hpp"
 
 //Design patter to hold pointers likely to be a singleton but on a cleaner way
 class ServiceLocator
@@ -15,6 +16,7 @@ public:
 	static void Provide(Input* i_Input) { s_TheInput = i_Input; }
 	static void Provide(CameraManager* i_CamMan) { s_TheCamManager = i_CamMan; }
   static void Provide(Logger* i_Logger) { s_TheLogger = i_Logger; }
+  static void Provide(ThreadPool* i_tpool) { s_TheThreadPool = i_tpool; }
 
 	//One Getter for each service
 	static RendererAbstract* GetRenderer() { return s_TheRenderer; }
@@ -22,6 +24,7 @@ public:
 	static Input* GetInput() { return s_TheInput; }
 	static CameraManager* GetCameraManager() { return s_TheCamManager; }
   static Logger* GetLogger() { return s_TheLogger; }
+  static ThreadPool* GetThreadPool() { return s_TheThreadPool; }
 
 private:
 	static RendererAbstract* s_TheRenderer;
@@ -29,4 +32,6 @@ private:
 	static Input* s_TheInput;
 	static CameraManager* s_TheCamManager;
   static Logger* s_TheLogger;
+  static ThreadPool* s_TheThreadPool;
+
 };

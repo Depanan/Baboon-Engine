@@ -36,6 +36,7 @@
     <ClCompile Include="Source\Renderer\Common\Buffer.cpp" />
     <ClCompile Include="Source\Renderer\Common\Mesh.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\glsl_compiler.cpp" />
+    <ClCompile Include="Source\Renderer\Vulkan\PersistentCommand.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\VulkanBuffer.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\CommandBuffer.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\CommandPool.cpp" />
@@ -91,6 +92,7 @@
     <ClInclude Include="Source\Renderer\Common\Texture.h" />
     <ClInclude Include="Source\Renderer\RendererAbstract.h" />
     <ClInclude Include="Source\Renderer\Vulkan\glsl_compiler.h" />
+    <ClInclude Include="Source\Renderer\Vulkan\PersistentCommand.h" />
     <ClInclude Include="Source\Renderer\Vulkan\VulkanBuffer.h" />
     <ClInclude Include="Source\Renderer\Vulkan\CommandBuffer.h" />
     <ClInclude Include="Source\Renderer\Vulkan\CommandPool.h" />

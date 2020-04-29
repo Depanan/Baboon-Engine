@@ -19,18 +19,18 @@ public:
   virtual void Update() = 0;
 	virtual void OnWindowResize(int i_NewW, int i_NewH) = 0;
 	virtual void WaitToDestroy() {}//Function to wait till we can delete renderer stuff, like in vulkan we have to wait for vkDeviceWaitIdle(device);
-	virtual void SetupRenderCalls(){}
+  virtual void SetupRenderCalls() = 0;
 	virtual float GetMainRTAspectRatio() = 0;
 	virtual float GetMainRTWidth() = 0;
 	virtual float GetMainRTHeight() = 0;
 	virtual void UpdateTimesAndFPS(std::chrono::time_point<std::chrono::high_resolution_clock>  i_tStartTime) = 0;
 	virtual Texture* CreateTexture(void*  i_data, int i_Widht, int i_Height) = 0;
 	virtual void CreateMaterial(std::string i_MatName, int* iTexIndices, int iNumTextures) = 0;
-	virtual void DeleteMaterials() = 0;
+	virtual void DeleteTexture(Texture*) = 0;
 	virtual Buffer* CreateVertexBuffer(void*  i_data, size_t iBufferSize) = 0;
 	virtual Buffer* CreateIndexBuffer(void*  i_data, size_t iBufferSize) = 0;
-	virtual void DeleteVertexBuffer() = 0;
-	virtual void DeleteIndexBuffer() = 0;
+	virtual void DeleteBuffer(Buffer*) = 0;
+	
   virtual void ReloadShader(std::string) = 0;
   virtual Buffer* CreateStaticUniformBuffer( void* i_data, size_t iBufferSize) = 0;
 	virtual Buffer* CreateInstancedUniformBuffer( void*  i_data, size_t iBufferSize) = 0;

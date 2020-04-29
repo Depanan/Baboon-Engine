@@ -6,13 +6,13 @@
 #include "../Renderer/Vulkan/VulkanBuffer.h"
 #include "../Renderer/Vulkan/resources/Shader.h"
 #include "../Core/Material.h"
+#include "../Renderer/Vulkan/PersistentCommand.h"
 
 #include <memory>
 
 class VulkanContext;
 class PipelineLayout;
 class CommandBuffer;
-class PersistentCommandsPerFrame;
 
 
 struct ImFont;
@@ -83,5 +83,5 @@ private:
   std::vector<Font> m_Fonts;
 
   bool m_ForceUpdateGeometryBuffers{ false };
-  PersistentCommandsPerFrame* m_PersistentCommandsPerFrame;
+  PersistentCommandsPerFrame m_PersistentCommandsPerFrame;
 };

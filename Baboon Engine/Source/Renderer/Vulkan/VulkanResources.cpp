@@ -655,6 +655,8 @@ void VulkanResources::clear()
     m_FrameBuffers_Cache.clear();
     m_Shaders_Cache.clear();
     m_PipelinesLayout_Cache.clear();
+    m_Pipelines_Cache.clear();
+    m_DescriptorSetLayout_Cache.clear();
 }
 
 void VulkanResources::GarbageCollect()

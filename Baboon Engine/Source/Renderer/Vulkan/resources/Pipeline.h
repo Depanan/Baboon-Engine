@@ -11,7 +11,13 @@ class Pipeline
 {
 public:
     Pipeline(const Device& device, const PipelineState& pipeline_state);
-   
+    ~Pipeline();
+    Pipeline(Pipeline&& other);
+    Pipeline(const Pipeline&) = delete;
+    Pipeline& operator=(const Pipeline&) = delete;
+    Pipeline& operator=(Pipeline&&) = delete;
+
+
     inline const VkPipeline getHandle()const { return m_Handle; }
 
 protected:

@@ -194,13 +194,12 @@ void VulkanImGUI::Init(GLFWwindow* i_window)
     m_VertexBuffer = std::make_unique<VulkanBuffer>(device, 1, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
     m_IndexBuffer = std::make_unique<VulkanBuffer>(device, 1, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
 
-    m_PersistentCommandsPerFrame = new PersistentCommandsPerFrame();
 
 
 }
 void VulkanImGUI::OnWindowResize()
 {
-    m_PersistentCommandsPerFrame->setDirty();
+    m_PersistentCommandsPerFrame.setDirty();
     m_ForceUpdateGeometryBuffers = true;
 }
 
@@ -359,14 +358,14 @@ void VulkanImGUI::Draw(CommandBuffer& primary_commandBuffer)
     auto& device = m_VulkanContext.getDevice();
     auto& activeFrame = m_VulkanContext.getActiveFrame();
 
-    auto persistentCommands = m_PersistentCommandsPerFrame->getPersistentCommands(activeFrame.getHashId().c_str(), device, activeFrame);
-    CommandBuffer* command_buffer = persistentCommands->m_PersistentCommandsPerFrame;
+    auto persistentCommands = m_PersistentCommandsPerFrame.getPersistentCommands(activeFrame.getHashId().c_str(), device, activeFrame);
+    CommandBuffer* command_buffer = persistentCommands->getCommandBuffer();
 
-    if (persistentCommands->m_NeedsSecondaryCommandsRecording)
+    if (persistentCommands->getDirty())
     {
 
         recordCommandBuffers(command_buffer, &primary_commandBuffer);
-        persistentCommands->m_NeedsSecondaryCommandsRecording = false;
+        persistentCommands->clearDirty();
 
     }
     primary_commandBuffer.execute_commands(*command_buffer);
@@ -447,7 +446,7 @@ void VulkanImGUI::DoUI(bool i_FirstCall)
 		std::string filePath = BasicFileOpen();
 		if (filePath.size() > 0)
 		{
-			ServiceLocator::GetSceneManager()->GetScene()->Init(filePath);
+			ServiceLocator::GetSceneManager()->LoadScene(filePath);
 		}
 		
 
@@ -598,7 +597,7 @@ void VulkanImGUI::UpdateDrawBuffers()
         m_VertexBuffer->unmap();
         m_IndexBuffer->unmap();
 
-        m_PersistentCommandsPerFrame->setDirty();
+        m_PersistentCommandsPerFrame.setDirty();
         m_ForceUpdateGeometryBuffers = false;
     }
 

@@ -22,6 +22,7 @@ public:
     Device(const Device&) = delete;
     Device(Device&&) = delete;
     const Queue& getGraphicsQueue() const;
+    const Queue& getResourceTransferQueue() const;
     inline VkPhysicalDevice Device::get_physical_device() const{ return m_PhysDevice; }
     VkResult wait_idle() const;
 

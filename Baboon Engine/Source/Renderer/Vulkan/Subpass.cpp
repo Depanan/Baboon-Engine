@@ -19,17 +19,21 @@ Subpass::Subpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vert
     m_FragmentShader(fragment_shader)
 
 {
+   
+}
 
+Subpass::~Subpass()
+{
 }
 
 void Subpass::invalidatePersistentCommands()
 {
-    m_PersistentCommandsPerFrame->resetPersistentCommands();
+    m_PersistentCommandsPerFrame.resetPersistentCommands();
 }
 
 void Subpass::setReRecordCommands()
 {
-    m_PersistentCommandsPerFrame->setDirty();
+    m_PersistentCommandsPerFrame.setDirty();
 }
 
 
@@ -70,7 +74,7 @@ TestTriangleSubPass::TestTriangleSubPass(VulkanContext& render_context, std::wea
     //m_TestTexture = (VulkanTexture*)renderer->CreateTexture(pPixels, 1, 1);
     
 
-    m_PersistentCommandsPerFrame = new PersistentCommandsPerFrame();
+   
 
 }
 void TestTriangleSubPass::prepare()//setup shaders, To be called when adding subpass to the pipeline
@@ -87,22 +91,22 @@ void TestTriangleSubPass::prepare()//setup shaders, To be called when adding sub
 void TestTriangleSubPass::draw(CommandBuffer& primary_commandBuffer) 
 {//render geometry within subpass
 
-    auto scene = ServiceLocator::GetSceneManager()->GetScene();
+    auto scene = ServiceLocator::GetSceneManager()->GetCurrentScene();
     if (!scene->IsInit())
         return;
-
+        
     auto& device = m_RenderContext.getDevice();
     auto& activeFrame = m_RenderContext.getActiveFrame();
    
 
-    auto persistentCommands = m_PersistentCommandsPerFrame->getPersistentCommands(activeFrame.getHashId().c_str(), device,activeFrame);
-    CommandBuffer* command_buffer = persistentCommands->m_PersistentCommandsPerFrame;
+    auto persistentCommands = m_PersistentCommandsPerFrame.getPersistentCommands(activeFrame.getHashId().c_str(), device,activeFrame);
+    CommandBuffer* command_buffer = persistentCommands->getCommandBuffer();
 
-    if (persistentCommands->m_NeedsSecondaryCommandsRecording)
+    if (persistentCommands->getDirty())
     {
        
         recordCommandBuffers(command_buffer, &primary_commandBuffer);
-        persistentCommands->m_NeedsSecondaryCommandsRecording = false;
+        persistentCommands->clearDirty();
 
     }
     primary_commandBuffer.execute_commands(*command_buffer);
@@ -114,7 +118,7 @@ void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, Co
 {
 
     auto camera = ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main);
-    auto scene = ServiceLocator::GetSceneManager()->GetScene();
+    auto scene = ServiceLocator::GetSceneManager()->GetCurrentScene();
 
     auto& renderTarget = m_RenderContext.getActiveFrame().getRenderTarget();//Grab the render target
 

@@ -40,31 +40,30 @@ void alignedFree(void* data)
 
 Scene::Scene()
 {
-	m_InstanceUniforms = nullptr;
+
 }
 
 Scene::~Scene()
 {
-	if (m_InstanceUniforms)
-		alignedFree(m_InstanceUniforms);
+
 }
 
 void Scene::Init(const std::string i_ScenePath)
 {
-	if (m_bIsInit)
-		Free();
 
-	loadAssets(i_ScenePath);
-	//TODO: Make this work multithread
-	//ServiceLocator::GetThreadPool()->threads[0]->addJob([=] { loadAssets(i_ScenePath); });
-	m_bIsInit = true;
-	
+  Free();
+  loadAssets(i_ScenePath);
+
 }
 
 void Scene::Free()
 {
+  if (!m_bIsInit)
+   return;
 	RendererAbstract* renderer = ServiceLocator::GetRenderer();
-	renderer->DeleteMaterials();
+
+  renderer->WaitToDestroy();
+	
   m_OpaqueModels.clear();
   m_TransparentModels.clear();
 	m_Models.clear();
@@ -72,8 +71,14 @@ void Scene::Free()
 	m_Meshes.clear();
 	m_Indices.clear();
 	m_Vertices.clear();
-	renderer->DeleteIndexBuffer();
-	renderer->DeleteVertexBuffer();
+  for (auto texture : m_Textures)
+  {
+      renderer->DeleteTexture(texture);
+      delete texture;
+  }
+  m_Textures.clear();
+	renderer->DeleteBuffer(m_IndicesBuffer);
+	renderer->DeleteBuffer(m_VerticesBuffer);
 	renderer->DeleteInstancedUniformBuffer();
 
 	m_bIsInit = false;
@@ -96,16 +101,7 @@ void Scene::GetSortedOpaqueAndTransparent(std::multimap<float, Model*>& opaque, 
 }
 
 
-void Scene::UpdateUniforms()
-{
-	
-	//Maybe here moving lights and stuff....
 
-	
-	//m_Models[0].Translate(glm::vec3(0, -0.001f*time,0));
-	//m_Models[1].Translate(glm::vec3(0.0001f*time, 0, 0));
-
-}
 
 void Scene::OnWindowResize()
 {
@@ -125,21 +121,14 @@ void Scene::loadAssets(const std::string i_ScenePath)
   LOGINFO("\n-----------------Attempting to open scene : "+ i_ScenePath + "-----------------------");
 
 	Assimp::Importer Importer;
-	int flags =   aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_GenSmoothNormals;
+	int flags =   aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_GenSmoothNormals | aiProcess_SplitLargeMeshes;
 	aScene = Importer.ReadFile(i_ScenePath, flags);//TODO: Iterate filesystem and read all .obj files
 
 	if (aScene == nullptr)
 		throw std::runtime_error("Scene model not found, I will handle this properly at some point shouldn't just break!");
 
-	///////////TODO: This has to be done before material loading breaking the nice order of materials first, models after, probably
-	//since scene geometry is static we don't need to do this
-	int numberOfModelsInScene = aScene->mNumMeshes;
-	int dynamicAlignment = 256;//TODO: This should come from somewhere...
-	size_t dynamicBufferSize = numberOfModelsInScene * dynamicAlignment;
-	m_InstanceUniforms = (InstanceUBO*)alignedAlloc(dynamicBufferSize, dynamicAlignment);
-	//renderer->CreateInstancedUniformBuffer(nullptr, dynamicBufferSize);
-	/////////////////////////////////
-	UpdateUniforms();
+	
+	
 
 	
 	std::string iRootScenePath = i_ScenePath.substr(0, i_ScenePath.find_last_of("\\/")) + "\\";
@@ -150,6 +139,9 @@ void Scene::loadAssets(const std::string i_ScenePath)
 
 	
 	renderer->SetupRenderCalls();
+
+  m_bIsInit = true;
+ 
 	
 }
 
@@ -254,6 +246,7 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
                     throw std::runtime_error("Texture not found, I will handle this properly at some point shouldn't just break!");
 
                 texture = renderer->CreateTexture((void*)pPixels, width, height);
+                m_Textures.push_back(texture);
                 fileNameImages[fileName] = texture;
                 stbi_image_free(pPixels);
             }
@@ -319,7 +312,7 @@ void Scene::loadModels(const aiScene* i_aScene)
 		}
 
 		m_Meshes[i].SetMeshIndicesInfo(iCurrentIndex, iNIndices, iVertexGeneralCount, aMesh->mNumVertices);
-    m_Models[i].SetInstanceUniforms((InstanceUBO*)((uint64_t)m_InstanceUniforms + (i * dynamicAlignment)), i);//TODO: Get rid of the instance ubo thing and let the model just have a Model matrix for now
+    m_Meshes[i].setScene(this);
     m_Models[i].SetMesh(&m_Meshes[i]);
 		m_Models[i].SetMaterial(&m_Materials[aMesh->mMaterialIndex]);
 
@@ -342,4 +335,29 @@ void Scene::loadModels(const aiScene* i_aScene)
 
 	m_VerticesBuffer = renderer->CreateVertexBuffer((void*)(GetVerticesData()), GetVerticesSize());
 	m_IndicesBuffer = renderer->CreateIndexBuffer((void*)(GetIndicesData()), GetIndicesSize());
+}
+
+void SceneManager::LoadScene(const std::string i_ScenePath)
+{
+
+    ServiceLocator::GetThreadPool()->threads[0]->addJob([=] {  
+        m_SceneData[m_LoadingSceneIndex].Init(i_ScenePath);
+        ServiceLocator::GetRenderer()->SetupRenderCalls();
+       
+
+
+        //swapScenes
+        int oldCurrentSceneIndex = m_CurrentSceneIndex;
+        m_CurrentSceneIndex = m_LoadingSceneIndex;
+        m_LoadingSceneIndex = oldCurrentSceneIndex;
+        
+       
+       
+    });
+
+   
+}
+
+void SceneManager::FreeScene()
+{
 }

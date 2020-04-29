@@ -46,14 +46,7 @@ void RendererVulkan::Update()
     m_LogicalDevice->getResourcesCache().GarbageCollect();
     if (ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->GetDirty())
     {
-        if (m_RenderPath)
-        {
-            auto& subpasses = m_RenderPath->getSubPasses();
-            for (int i = 0; i < subpasses.size(); i++)
-            {
-                subpasses[i]->setReRecordCommands();
-            }
-        }
+        reRecordCommands();
     }
 
     if (m_GUI)
@@ -74,7 +67,7 @@ float RendererVulkan::GetMainRTHeight() {
 }
 void RendererVulkan::SetupRenderCalls()
 {
-
+   reRecordCommands();
 }
 
 void RendererVulkan::ReloadShader(std::string shaderPath)
@@ -82,18 +75,9 @@ void RendererVulkan::ReloadShader(std::string shaderPath)
    
     //So, the plan is to iterate over the shader source pool and reload the shader source with the new modified source code. That will generate a new ShaderSource::Id, which is used for hashing ShaderSource. The result of this will be that when trying to fetch a shader module, it won't exist
     //in the cache so we will need to create a new one. The same for the pipeline and so on...
-
-   
     LOGDEBUG("Reloading shader: " + shaderPath);
     m_ShaderSourcePool.reloadShader(shaderPath);
-    if (m_RenderPath)
-    {
-        auto& subpasses = m_RenderPath->getSubPasses();
-        for (int i = 0; i < subpasses.size(); i++)
-        {
-            subpasses[i]->setReRecordCommands();
-        }
-    }
+    reRecordCommands();
 }
 
 
@@ -260,6 +244,18 @@ void  RendererVulkan::pickPhysicalDevice()
 
 }
 
+void RendererVulkan::reRecordCommands()
+{
+    if (m_RenderPath)
+    {
+        auto& subpasses = m_RenderPath->getSubPasses();
+        for (int i = 0; i < subpasses.size(); i++)
+        {
+            subpasses[i]->setReRecordCommands();
+        }
+    }
+}
+
 
 Buffer* RendererVulkan::CreateVertexBuffer( void*  i_data, size_t iBufferSize)
 {
@@ -286,14 +282,48 @@ Buffer* RendererVulkan::CreateIndexBuffer( void*  i_data, size_t iBufferSize)
 }
 
 
-void RendererVulkan::DeleteVertexBuffer()
+void RendererVulkan::DeleteBuffer(Buffer* buffer)
 {
-	
+    VulkanBuffer* vulkanBuffer = (VulkanBuffer*)buffer;
+    auto it = find_if(m_Buffers.begin(), m_Buffers.end(), [vulkanBuffer](VulkanBuffer& bufferInContainer) {
+        
+        return vulkanBuffer->getHandle() == bufferInContainer.getHandle();
+    
+    });
+    if (it != m_Buffers.end())
+    {
+        m_Buffers.erase(it);
+        buffer = nullptr;
+    }
 }
-void RendererVulkan::DeleteIndexBuffer()
-{
 
+void RendererVulkan::DeleteTexture(Texture* texture)
+{
+    VulkanTexture* vulkanTexture = (VulkanTexture*)texture;
+    auto itImage = find_if(m_Images.begin(), m_Images.end(), [vulkanTexture](VulkanImage& imageInContainer) {
+
+        return vulkanTexture->getImage()->getHandle() == imageInContainer.getHandle();
+
+    });
+
+    auto itImageView = find_if(m_ImageViews.begin(), m_ImageViews.end(), [vulkanTexture](VulkanImageView& imageViewInContainer) {
+
+        return vulkanTexture->getImageView()->getHandle() == imageViewInContainer.getHandle();
+
+    });
+    if (itImageView != m_ImageViews.end())
+    {
+        m_ImageViews.erase(itImageView);
+    }
+    if (itImage != m_Images.end())
+    {
+        m_Images.erase(itImage);
+    }
+    
 }
+
+
+
 
 Buffer* RendererVulkan::CreateStaticUniformBuffer( void*  i_data, size_t iBufferSize)
 {
@@ -411,47 +441,51 @@ Texture* RendererVulkan::CreateTexture(void* pPixels, int i_Widht, int i_Height)
 
     command_buffer.end();
 
-    auto& queue = m_LogicalDevice->getGraphicsQueue();
+    auto& queue = m_LogicalDevice->getResourceTransferQueue();
 
     queue.submit(command_buffer, m_LogicalDevice->requestFence());
 
     m_LogicalDevice->getFencePool().wait();
     m_LogicalDevice->getFencePool().reset();
     m_LogicalDevice->getCommandPool().reset_pool();
-    m_LogicalDevice->wait_idle();
+    //m_LogicalDevice->wait_idle();
 
     //!TODO END/////////////////////////////////////////////////////////////////////
 
 
     //I think this same sampler can be used for all the textures TODO: Make it shareable
-    VkSamplerCreateInfo samplerInfo = {};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    if (m_Samplers.empty())
+    {
+        VkSamplerCreateInfo samplerInfo = {};
+        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerInfo.magFilter = VK_FILTER_LINEAR;
+        samplerInfo.minFilter = VK_FILTER_LINEAR;
 
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    samplerInfo.maxAnisotropy = 16;
+        samplerInfo.anisotropyEnable = VK_TRUE;
+        samplerInfo.maxAnisotropy = 16;
 
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+        samplerInfo.unnormalizedCoordinates = VK_FALSE;
+        samplerInfo.compareEnable = VK_FALSE;
+        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerInfo.mipLodBias = 0.0f;
-    samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = 0.0f;
-    samplerInfo.anisotropyEnable = VK_FALSE;
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        samplerInfo.mipLodBias = 0.0f;
+        samplerInfo.minLod = 0.0f;
+        samplerInfo.maxLod = 0.0f;
+        samplerInfo.anisotropyEnable = VK_FALSE;
 
-    m_Samplers.emplace_back(*m_LogicalDevice, samplerInfo);
+        m_Samplers.emplace_back(*m_LogicalDevice, samplerInfo);
+    }
     texture->setSampler(&m_Samplers.back());
     return texture;
 }
+
 
 
 

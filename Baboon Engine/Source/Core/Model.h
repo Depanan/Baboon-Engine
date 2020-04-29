@@ -20,17 +20,12 @@ public:
   void SetMaterial(Material* i_Mat);
 	Material* GetMaterial() { return m_Material; }
 
-	void SetInstanceUniforms(InstanceUBO* i_InstanceUniforms, int i_Index) {
-		m_pInstanceUniforms = i_InstanceUniforms;
-		m_pInstanceUniforms->model = glm::mat4();
-		m_iInstanceUniformIndex = i_Index;
-	}
 
 	void Scale(const glm::vec3& i_ScaleVec);
 	void Translate(const glm::vec3& i_TranslateVec);
-	glm::vec3 GetPosition() { return m_pInstanceUniforms->model[4]; }
+	glm::vec3 GetPosition() { return m_InstanceUniforms.model[4]; }
 
-  const glm::mat4& getModelMatrix()const { return m_pInstanceUniforms->model; }
+  const glm::mat4& getModelMatrix()const { return m_InstanceUniforms.model; }
   const AABB& getAABB() { return m_AABB; }
 
   const ShaderVariant& getShaderVariant()const { return m_Variant; }
@@ -43,7 +38,7 @@ private:
 
 
   AABB m_AABB;
-	InstanceUBO* m_pInstanceUniforms = nullptr;
+	InstanceUBO m_InstanceUniforms;
 	int m_iInstanceUniformIndex;
 
   void computeShaderVariant();

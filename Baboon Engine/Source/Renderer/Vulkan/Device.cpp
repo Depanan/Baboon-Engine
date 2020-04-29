@@ -87,8 +87,8 @@ Device::Device(VkPhysicalDevice physDevice, VkSurfaceKHR surface, const std::vec
 
     for (uint32_t familyIndex = 0; familyIndex < queueFamilyPropertiesCount; ++familyIndex)
     {
-        const VkQueueFamilyProperties& familyProperty = m_QueueFamilyProperties[familyIndex];
-
+        const VkQueueFamilyProperties& familyProperty = m_QueueFamilyProperties[familyIndex];        
+        
         VkBool32 present_supported{ VK_FALSE };
 
         // Only check if surface is valid to allow for headless applications ej compute?
@@ -119,6 +119,7 @@ Device::Device(VkPhysicalDevice physDevice, VkSurfaceKHR surface, const std::vec
 
     m_CommandPool = std::make_unique<CommandPool>(*this, getQueueByFlags(VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0).getFamilyIndex()); //We get the first queue with graphics and compute
     m_FencePool = std::make_unique<FencePool>(*this);
+
 }
 
 
@@ -154,19 +155,17 @@ Device::~Device()
 
 const Queue& Device::getGraphicsQueue() const
 {
-    for (uint32_t queue_family_index = 0U; queue_family_index < m_Queues.size(); ++queue_family_index)
-    {
-        const Queue& first_queue = m_Queues[queue_family_index][0];
-
-        uint32_t queue_count = first_queue.getProperties().queueCount;
-
-        if (first_queue.canPresent() && 0 < queue_count)
-        {
-            return m_Queues[queue_family_index][0];
-        }
-    }
-
     return getQueueByFlags(VK_QUEUE_GRAPHICS_BIT, 0);
+}
+const Queue& Device::getResourceTransferQueue() const
+{
+    if (m_Queues[0].size() <= 1)//TODO: Here we are assuming first queue is graphics, may not be the case 
+    {
+        LOGINFO("Only one graphics queue available, can't use an specific queue for resource loading...");
+        return getQueueByFlags(VK_QUEUE_GRAPHICS_BIT, 0);
+    }
+       
+    return getQueueByFlags(VK_QUEUE_GRAPHICS_BIT, 1);
 }
 
 VkResult Device::wait_idle()const
