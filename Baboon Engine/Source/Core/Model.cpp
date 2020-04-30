@@ -5,7 +5,7 @@
 void Model::SetMesh(Mesh* i_Mesh)
 {
     m_Mesh = i_Mesh;
-    updateAABB();
+    
 }
 
 void Model::SetMaterial(Material* i_Mat)
@@ -44,7 +44,7 @@ void Model::computeShaderVariant()
 }
 void Model::updateAABB()
 {
-    const uint16_t* indices = nullptr;
+    const uint32_t* indices = nullptr;
     size_t nIndices;
     m_Mesh->getIndicesData(&indices, &nIndices);
     const Vertex* vertices = nullptr;

@@ -34,7 +34,7 @@ public:
 	uint32_t GetVertexStartPosition() { return m_VertexStartPosition; }
 	uint32_t GetNIndices() { return m_NIndices; }
 
-  void getIndicesData(const uint16_t** o_Indices, size_t* size);
+  void getIndicesData(const uint32_t** o_Indices, size_t* size);
   void getVertexData( const Vertex** o_Vertices, size_t* size);
 
 private:

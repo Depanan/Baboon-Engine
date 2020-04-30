@@ -50,7 +50,7 @@ void Mesh::setScene(const Scene* scene)
     m_ScenePtr = scene;
 }
 
-void Mesh::getIndicesData( const uint16_t** o_Indices, size_t* size)
+void Mesh::getIndicesData( const uint32_t** o_Indices, size_t* size)
 {
   
     *o_Indices = m_ScenePtr->GetIndicesData() + m_VertexStartPosition;

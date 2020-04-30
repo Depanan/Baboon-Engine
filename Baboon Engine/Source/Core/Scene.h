@@ -8,6 +8,7 @@
 
 
 struct aiScene;
+struct aiNode;
 class SceneManager;
 class Scene {
     friend class SceneManager;
@@ -19,7 +20,7 @@ public:
 	const int GetVerticesNumber() { return m_Vertices.size(); }
 	const size_t GetVerticesSize() { return sizeof(m_Vertices[0]) * m_Vertices.size(); }
 
-	const uint16_t* GetIndicesData()const { return m_Indices.data(); }
+	const uint32_t* GetIndicesData()const { return m_Indices.data(); }
 	const int GetIndicesNumber() { return m_Indices.size(); }
 	const size_t GetIndicesSize() { return sizeof(m_Indices[0]) * m_Indices.size(); }
 
@@ -61,15 +62,15 @@ private:
 
 	//Global data for indexed meshes
 	std::vector<Vertex> m_Vertices;
-	std::vector<uint16_t> m_Indices;
+	std::vector<uint32_t> m_Indices;
   Buffer* m_VerticesBuffer;
   Buffer* m_IndicesBuffer;
 
 
 	void loadAssets(const std::string i_ScenePath);
 	void loadMaterials(const aiScene* i_aScene, const std::string i_SceneTexturesPath);
-	void loadModels(const aiScene* i_aScene);
-
+	void loadMeshes(const aiScene* i_aScene);
+  void loadSceneRecursive(const aiNode* i_Node);
   void Init(const std::string i_ScenePath);
   void Free();
 

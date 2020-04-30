@@ -121,7 +121,11 @@ void Scene::loadAssets(const std::string i_ScenePath)
   LOGINFO("\n-----------------Attempting to open scene : "+ i_ScenePath + "-----------------------");
 
 	Assimp::Importer Importer;
-	int flags =   aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_GenSmoothNormals | aiProcess_SplitLargeMeshes;
+	/*int flags =   aiProcess_Triangulate | aiProcess_SortByPType|
+     
+      aiProcess_GenSmoothNormals |aiProcess_JoinIdenticalVertices
+      ;*/
+  int flags = aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_JoinIdenticalVertices | aiProcess_GenSmoothNormals;
 	aScene = Importer.ReadFile(i_ScenePath, flags);//TODO: Iterate filesystem and read all .obj files
 
 	if (aScene == nullptr)
@@ -135,7 +139,9 @@ void Scene::loadAssets(const std::string i_ScenePath)
 	
 
 	loadMaterials(aScene, iRootScenePath);
-	loadModels(aScene);
+	loadMeshes(aScene);
+  loadSceneRecursive(aScene->mRootNode);
+
 
 	
 	renderer->SetupRenderCalls();
@@ -264,11 +270,11 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 
 
 }
-void Scene::loadModels(const aiScene* i_aScene)
+void Scene::loadMeshes(const aiScene* i_aScene)
 {
 	int numberOfModelsInScene = i_aScene->mNumMeshes;
 
-	int dynamicAlignment = 256;//TODO: This should come from somewhere...
+
 	
 
 	m_Models.resize(numberOfModelsInScene);
@@ -283,7 +289,7 @@ void Scene::loadModels(const aiScene* i_aScene)
 		bool hasUV = aMesh->HasTextureCoords(0);
 		bool hasColor = aMesh->HasVertexColors(0);
 		bool hasNormals = aMesh->HasNormals();
-
+    
 
 		for (uint32_t v = 0; v < aMesh->mNumVertices; v++)
 		{
@@ -335,6 +341,19 @@ void Scene::loadModels(const aiScene* i_aScene)
 
 	m_VerticesBuffer = renderer->CreateVertexBuffer((void*)(GetVerticesData()), GetVerticesSize());
 	m_IndicesBuffer = renderer->CreateIndexBuffer((void*)(GetIndicesData()), GetIndicesSize());
+
+  for (auto& model : m_Models)
+      model.updateAABB();
+}
+
+void Scene::loadSceneRecursive(const aiNode* i_Node)
+{
+    LOGINFO("Loading node: " + std::string(i_Node->mName.C_Str()));
+    for (int i = 0; i < i_Node->mNumChildren; i++)
+    {
+        const aiNode* child = i_Node->mChildren[i];
+        loadSceneRecursive(child);
+    }
 }
 
 void SceneManager::LoadScene(const std::string i_ScenePath)
@@ -343,9 +362,7 @@ void SceneManager::LoadScene(const std::string i_ScenePath)
     ServiceLocator::GetThreadPool()->threads[0]->addJob([=] {  
         m_SceneData[m_LoadingSceneIndex].Init(i_ScenePath);
         ServiceLocator::GetRenderer()->SetupRenderCalls();
-       
-
-
+ 
         //swapScenes
         int oldCurrentSceneIndex = m_CurrentSceneIndex;
         m_CurrentSceneIndex = m_LoadingSceneIndex;

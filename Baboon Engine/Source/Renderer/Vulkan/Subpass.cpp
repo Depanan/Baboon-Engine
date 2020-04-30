@@ -149,7 +149,7 @@ void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, Co
 
     command_buffer->bind_vertex_buffers(0, std::move(buffers), { 0 });
     //Bind Indices buffer
-    command_buffer->bind_index_buffer(*((VulkanBuffer*)scene->GetIndicesBuffer()), 0, VK_INDEX_TYPE_UINT16);
+    command_buffer->bind_index_buffer(*((VulkanBuffer*)scene->GetIndicesBuffer()), 0, VK_INDEX_TYPE_UINT32);
 
     
     std::multimap<float, Model*> sceneOpaqueModels;//using multimap to get the sorting automatically from when inserting on it
@@ -180,6 +180,7 @@ void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, Co
     DepthStencilState depth_stencil_state{};
     command_buffer->setDepthStencilState(depth_stencil_state);
 
+   
     for (auto node_it = transparent.begin(); node_it != transparent.end(); node_it++)
     {
         Model& model = *node_it->second;

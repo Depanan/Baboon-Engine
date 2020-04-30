@@ -29,6 +29,7 @@ public:
   const AABB& getAABB() { return m_AABB; }
 
   const ShaderVariant& getShaderVariant()const { return m_Variant; }
+  void updateAABB();
 private:
    
 	Mesh* m_Mesh;
@@ -42,5 +43,5 @@ private:
 	int m_iInstanceUniformIndex;
 
   void computeShaderVariant();
-  void updateAABB();
+  
 };

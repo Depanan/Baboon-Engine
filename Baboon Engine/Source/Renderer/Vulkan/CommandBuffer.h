@@ -96,6 +96,7 @@ public:
     inline void setColorBlendState(const ColorBlendState& state_info){m_PipelineState.setColorBlendState(state_info);}
     inline void setRasterState(const RasterizationState& state_info) { m_PipelineState.setRasterizationState(state_info); }
     inline void setDepthStencilState(const DepthStencilState& state_info) { m_PipelineState.setDepthStencilState(state_info); }
+    inline void setInputAssemblyState(const InputAssemblyState& state_info) { m_PipelineState.setInputAssemblyState(state_info); }
 
     inline const ColorBlendState& getColorBlendState() { return m_PipelineState.getColorBlendState(); }
     inline const RasterizationState& getRasterState( ) { return m_PipelineState.getRasterizationState(); }
