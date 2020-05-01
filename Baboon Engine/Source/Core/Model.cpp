@@ -2,10 +2,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 
-void Model::SetMesh(Mesh* i_Mesh)
+Model::Model(const Mesh& i_Mesh):
+    m_Mesh(i_Mesh)
 {
-    m_Mesh = i_Mesh;
-    
+    m_AABB.reset();
 }
 
 void Model::SetMaterial(Material* i_Mat)
@@ -46,10 +46,10 @@ void Model::updateAABB()
 {
     const uint32_t* indices = nullptr;
     size_t nIndices;
-    m_Mesh->getIndicesData(&indices, &nIndices);
+    m_Mesh.getIndicesData(&indices, &nIndices);
     const Vertex* vertices = nullptr;
     size_t nVertices;
-    m_Mesh->getVertexData(&vertices, &nVertices);
+    m_Mesh.getVertexData(&vertices, &nVertices);
     m_AABB.update(vertices, nVertices, indices, nIndices);
     m_AABB.transform(m_InstanceUniforms.model);
 }

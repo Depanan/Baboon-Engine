@@ -13,9 +13,10 @@ struct InstanceUBO {
 class Model
 {
 public:
-	Model(){}
-  void SetMesh(Mesh* i_Mesh);
-	Mesh* GetMesh() { return m_Mesh; }
+  Model(const Mesh& mesh);
+ 
+
+	const Mesh& GetMesh() { return m_Mesh; }
 
   void SetMaterial(Material* i_Mat);
 	Material* GetMaterial() { return m_Material; }
@@ -32,7 +33,7 @@ public:
   void updateAABB();
 private:
    
-	Mesh* m_Mesh;
+	const Mesh& m_Mesh;
 	Material* m_Material;
   ShaderVariant m_Variant;
 

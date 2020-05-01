@@ -40,26 +40,26 @@ void Vertex::GetAttributesDescription(std::vector<VkVertexInputAttributeDescript
 	o_AttribDescription[3].offset = offsetof(Vertex, normal);
 }
 
-Mesh::Mesh()
+Mesh::Mesh(const Scene& scene, uint32_t iIndicesStart, uint32_t iIndicesCount, uint32_t i_VerticesStart, uint32_t i_nVertices):
+    m_Scene(scene),
+    m_IndexStartPosition(iIndicesStart),
+    m_NIndices(iIndicesCount),
+    m_VertexStartPosition(i_VerticesStart),
+    m_NVertices(i_nVertices)
 {
-    m_ScenePtr = ServiceLocator::GetSceneManager()->GetCurrentScene();
+   
 }
 
-void Mesh::setScene(const Scene* scene)
-{
-    m_ScenePtr = scene;
-}
-
-void Mesh::getIndicesData( const uint32_t** o_Indices, size_t* size)
+const void Mesh::getIndicesData( const uint32_t** o_Indices, size_t* size) const
 {
   
-    *o_Indices = m_ScenePtr->GetIndicesData() + m_VertexStartPosition;
+    *o_Indices = m_Scene.GetIndicesData() + m_IndexStartPosition;
     *size = m_NIndices;
    
 }
-void Mesh::getVertexData(  const Vertex** o_Vertices, size_t* size)
+const void Mesh::getVertexData(  const Vertex** o_Vertices, size_t* size) const 
 {
-    *o_Vertices = m_ScenePtr->GetVerticesData()+ m_VertexStartPosition;
+    *o_Vertices = m_Scene.GetVerticesData()+ m_VertexStartPosition;
     *size = m_NVertices;
 
 }

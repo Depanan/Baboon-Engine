@@ -10,7 +10,7 @@
 void Camera::Init()
 {
   size_t size = sizeof(UBOCamera);
-  m_CameraUniformBuffer = ServiceLocator::GetRenderer()->CreateStaticUniformBuffer(nullptr, size);
+ 
   m_UBOCamera.view = glm::mat4();
 	UpdateProjectionMatrix(ServiceLocator::GetRenderer()->GetMainRTWidth() / ServiceLocator::GetRenderer()->GetMainRTHeight());
 
@@ -50,12 +50,19 @@ void Camera::UpdateProjectionMatrix(float newAspectRatio)
 
   m_Dirty = true;
 }
-void Camera::Update()
+void Camera::Teleport(glm::vec3 newPosition, glm::vec3 lookAt)
 {
-    if (m_Dirty)
-    {
-        m_CameraUniformBuffer->update(&m_UBOCamera, sizeof(UBOCamera));
-    }
+    m_UBOCamera.view = glm::lookAt(newPosition, lookAt, glm::vec3(0, 1, 0));
+    m_Position = glm::vec3(m_UBOCamera.view[3]);
+
+    m_Dirty = true;
+}
+void Camera::Update(Buffer& buffer) const
+{
+   
+
+    buffer.update((void *)&m_UBOCamera, sizeof(UBOCamera));
+    
     
 }
 void Camera::UpdateViewMatrix()

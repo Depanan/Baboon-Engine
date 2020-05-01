@@ -44,13 +44,20 @@ void RendererVulkan::WaitToDestroy()
 void RendererVulkan::Update()
 {
     m_LogicalDevice->getResourcesCache().GarbageCollect();
-    if (ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->GetDirty())
-    {
-        reRecordCommands();
-    }
 
     if (m_GUI)
         m_GUI->DoUI();
+
+    if (ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->GetDirty())
+    {
+       
+        auto& renderFrames = m_RenderContext->getRenderFrames();
+        for (auto& frame : renderFrames)
+            frame->setCameraUniformDirty();
+        reRecordCommands();
+    }
+
+    
 }
 
 float RendererVulkan::GetMainRTAspectRatio()
@@ -67,7 +74,7 @@ float RendererVulkan::GetMainRTHeight() {
 }
 void RendererVulkan::SetupRenderCalls()
 {
-   reRecordCommands();
+    Update();
 }
 
 void RendererVulkan::ReloadShader(std::string shaderPath)

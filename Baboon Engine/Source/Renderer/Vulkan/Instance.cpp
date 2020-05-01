@@ -83,7 +83,7 @@ Instance::Instance(const std::vector<const char*>& i_required_extensions, bool i
 
 
 
-
+#ifndef NDEBUG
     VkDebugReportCallbackCreateInfoEXT createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
     createInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
@@ -99,7 +99,7 @@ Instance::Instance(const std::vector<const char*>& i_required_extensions, bool i
         throw std::runtime_error("failed to set up debug callback!");
     }
 
-
+#endif
 
 }
 

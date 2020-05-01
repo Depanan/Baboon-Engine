@@ -13,14 +13,15 @@ class Camera
 public:
 	void Init();
 	
-  void Update();
+  void Update(Buffer& buffer) const;
 	void UpdateViewMatrix();
 	void UpdateProjectionMatrix(float newAspectRatio);
   bool GetDirty() const{ return m_Dirty; }
   void ClearDirty() { m_Dirty = false; }
 
+  void Teleport(glm::vec3 newPosition, glm::vec3 lookAt);
+   UBOCamera& getCameraUBO() { return m_UBOCamera; }
 
-  const Buffer* GetCameraUniformBuffer()const { return m_CameraUniformBuffer; }
 	const glm::mat4& GetViewMatrix()const { return m_UBOCamera.view; }
 	const glm::mat4& GetProjMatrix()const { return m_UBOCamera.proj; }
 	const glm::vec3& GetPosition()const { return m_Position; }
@@ -49,7 +50,6 @@ private:
 
 
   UBOCamera m_UBOCamera;
-  Buffer* m_CameraUniformBuffer;
 
 
 };

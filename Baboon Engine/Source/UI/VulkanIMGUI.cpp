@@ -358,7 +358,7 @@ void VulkanImGUI::Draw(CommandBuffer& primary_commandBuffer)
     auto& device = m_VulkanContext.getDevice();
     auto& activeFrame = m_VulkanContext.getActiveFrame();
 
-    auto persistentCommands = m_PersistentCommandsPerFrame.getPersistentCommands(activeFrame.getHashId().c_str(), device, activeFrame);
+    auto persistentCommands = m_PersistentCommandsPerFrame.getPersistentCommands(activeFrame.getHashId(), device, activeFrame);
     CommandBuffer* command_buffer = persistentCommands->getCommandBuffer();
 
     if (persistentCommands->getDirty())

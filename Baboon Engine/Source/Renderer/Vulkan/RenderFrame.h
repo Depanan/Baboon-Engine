@@ -37,7 +37,10 @@ public:
    
     FencePool& getFencePool() { return m_FencePool; }
 
-    const std::string& getHashId() const { return m_HashId; }
+    const size_t& getHashId() const { return m_HashId; }
+
+    VulkanBuffer* getCameraUniformBuffer() const { return m_CameraUniformBuffer; }
+    void setCameraUniformDirty() { m_IsCameraUniformDirty = true; }
    
 private:
   
@@ -54,7 +57,11 @@ private:
     /// Descriptor sets for the frame
     std::vector<std::unique_ptr<std::unordered_map<std::size_t, DescriptorSet>>> m_DescriptorSets;
 
+    bool m_IsCameraUniformDirty{ true };
+    VulkanBuffer* m_CameraUniformBuffer;//This uniform buffer needs to be triple buffered otherwise artifacts appear trying to write at the same time one command buffer is reading from it
+
+
     SemaphorePool m_SemaphorePool;
     FencePool m_FencePool;
-    std::string m_HashId;
+    size_t m_HashId;
 };

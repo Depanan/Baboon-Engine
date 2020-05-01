@@ -21,7 +21,7 @@ CommandPool::CommandPool(Device& device, uint32_t queue_family_index, RenderFram
         break;
     case CommandBuffer::ResetMode::ResetPool:
     default:
-        flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         break;
     }
 

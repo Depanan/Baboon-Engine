@@ -303,7 +303,7 @@ void CommandBuffer::flushPipelineState()
     vkCmdBindPipeline(m_CommandBuffer,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         pipeline.getHandle());
-
+    //forceResourceBindingDirty();//TODO: Keep an eye here: Since we are changing pipeline, due the optimization I did of bindingDescriptorsets only when stuff(textures) actually change, we need to force it here cause after bindingpipeline we always need to bind descriptorset
 }
 
 

@@ -36,7 +36,7 @@ public:
 
     void bind_buffer(const VulkanBuffer& buffer, VkDeviceSize offset, VkDeviceSize range, uint32_t binding, uint32_t array_element);
 
-    void bind_image(const VulkanImageView& image_view, const VulkanSampler& sampler, uint32_t binding, uint32_t array_element);
+    bool bind_image(const VulkanImageView& image_view, const VulkanSampler& sampler, uint32_t binding, uint32_t array_element);
 
     void bind_input(const VulkanImageView& image_view, uint32_t binding, uint32_t array_element);
 

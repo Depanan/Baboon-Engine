@@ -99,7 +99,7 @@ void TestTriangleSubPass::draw(CommandBuffer& primary_commandBuffer)
     auto& activeFrame = m_RenderContext.getActiveFrame();
    
 
-    auto persistentCommands = m_PersistentCommandsPerFrame.getPersistentCommands(activeFrame.getHashId().c_str(), device,activeFrame);
+    auto persistentCommands = m_PersistentCommandsPerFrame.getPersistentCommands(activeFrame.getHashId(), device,activeFrame);
     CommandBuffer* command_buffer = persistentCommands->getCommandBuffer();
 
     if (persistentCommands->getDirty())
@@ -141,7 +141,7 @@ void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, Co
     command_buffer->setDepthStencilState(primary_commandBuffer->getDepthStencilState());
 
     //Bind the matrices uniform buffer
-    command_buffer->bind_buffer(*((VulkanBuffer*)camera->GetCameraUniformBuffer()), 0, sizeof(UBOCamera), 0, 1, 0);
+    command_buffer->bind_buffer(*(m_RenderContext.getActiveFrame().getCameraUniformBuffer()), 0, sizeof(UBOCamera), 0, 1, 0);
 
     //Bind vertex buffer
     std::vector<std::reference_wrapper<VulkanBuffer>> buffers;
@@ -152,7 +152,48 @@ void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, Co
     command_buffer->bind_index_buffer(*((VulkanBuffer*)scene->GetIndicesBuffer()), 0, VK_INDEX_TYPE_UINT32);
 
     
-    std::multimap<float, Model*> sceneOpaqueModels;//using multimap to get the sorting automatically from when inserting on it
+    std::vector<RenderBatch>& batchesOpaque = scene->GetOpaqueBatches();
+  
+    for (auto batch : batchesOpaque)
+    {
+        for (auto node_it = batch.m_ModelsByDistance.begin(); node_it != batch.m_ModelsByDistance.end(); node_it++)
+        {
+            Model& model = node_it->second;
+            drawModel(model, command_buffer);
+        }
+       
+           
+    }
+    // Enable alpha blending
+    ColorBlendAttachmentState color_blend_attachment{};
+    color_blend_attachment.m_BlendEnable = VK_TRUE;
+    color_blend_attachment.m_SrcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    color_blend_attachment.m_DstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    color_blend_attachment.m_SrcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+
+    ColorBlendState color_blend_state{};
+    color_blend_state.m_Attachments.resize(1);
+    color_blend_state.m_Attachments[0] = color_blend_attachment;
+    command_buffer->setColorBlendState(color_blend_state);
+
+    DepthStencilState depth_stencil_state{};
+    command_buffer->setDepthStencilState(depth_stencil_state);
+
+
+    std::vector<RenderBatch>& batchesTransparent = scene->GetTransparentBatches();
+    for (auto batch : batchesTransparent)
+    {
+        for (auto node_it = batch.m_ModelsByDistance.begin(); node_it != batch.m_ModelsByDistance.end(); node_it++)
+        {
+            Model& model = node_it->second;
+            drawModel(model, command_buffer);
+        }
+
+
+    }
+
+
+    /*std::multimap<float, Model*> sceneOpaqueModels;//using multimap to get the sorting automatically from when inserting on it
     std::multimap<float, Model*> transparent;
     scene->GetSortedOpaqueAndTransparent(sceneOpaqueModels, transparent);
     
@@ -187,8 +228,13 @@ void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, Co
         drawModel(model, command_buffer);
 
     }
+    
+   /* auto models = *scene->GetModels();
 
-
+    for (auto model : models)
+    {
+        drawModel(model, command_buffer);
+    }*/
 
     command_buffer->end();
 }
@@ -277,10 +323,10 @@ void TestTriangleSubPass::drawModel(Model& model, CommandBuffer* command_buffer)
     }
 
 
-    int nIndices = model.GetMesh()->GetNIndices();
-    int indexStart = model.GetMesh()->GetIndexStartPosition();
+    int nIndices = model.GetMesh().GetNIndices();
+    int indexStart = model.GetMesh().GetIndexStartPosition();
     command_buffer->pushConstants(0, model.getModelMatrix());
   
-    command_buffer->draw_indexed(nIndices, 1, indexStart, model.GetMesh()->GetVertexStartPosition(), 0);
+    command_buffer->draw_indexed(nIndices, 1, indexStart, model.GetMesh().GetVertexStartPosition(), 0);
 }
 

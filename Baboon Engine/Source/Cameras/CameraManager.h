@@ -25,7 +25,7 @@ public:
 
  
 
-	const Camera* GetCamera(eCameraType i_camType)
+	 Camera* GetCamera(eCameraType i_camType)
 	{
 		if (i_camType >= eCameraType_NCameras)
 			return nullptr;

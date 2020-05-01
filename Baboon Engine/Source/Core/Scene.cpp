@@ -1,10 +1,14 @@
+#define NOMINMAX
 #include "Scene.h"
 #include <glm/gtc/matrix_transform.hpp>
+
 #include <glm/gtc/type_ptr.hpp>
 #include "Core\ServiceLocator.h"
 #include <chrono>
 #include <cstdlib>
 #include <cstdio>
+
+#include <limits>
 
 #include "assimp\Importer.hpp"
 
@@ -66,10 +70,15 @@ void Scene::Free()
 	
   m_OpaqueModels.clear();
   m_TransparentModels.clear();
+  m_OpaqueBatch.clear();
+  m_TransparentBatch.clear();
 	m_Models.clear();
 	m_Materials.clear();
+
+
 	m_Meshes.clear();
-	m_Indices.clear();
+	
+  m_Indices.clear();
 	m_Vertices.clear();
   for (auto texture : m_Textures)
   {
@@ -84,21 +93,37 @@ void Scene::Free()
 	m_bIsInit = false;
 }
 
-void Scene::GetSortedOpaqueAndTransparent(std::multimap<float, Model*>& opaque, std::multimap<float, Model*>& transparent)
+void  Scene::getBatches(std::vector<RenderBatch>& batchList, BatchType batchType)//TODO: Don't do this sorting every frame. Only when relevant stuff changes. Probably can get away doing it onSceneLoad
 {
     auto camera = ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main);
-   
-    for (auto model : m_OpaqueModels)
+
+    auto& listToBatch = batchType == BatchType::BatchType_Opaque ? m_OpaqueModels : m_TransparentModels;
+
+    std::multimap<const std::string, std::reference_wrapper<Model>> sortedByMaterial;
+    for (Model& model : listToBatch)
     {
-        float distance = glm::length(camera->GetPosition() - model->getAABB().get_center());
-        opaque.emplace(distance, model);
+        sortedByMaterial.insert(std::pair(model.GetMaterial()->GetMaterialName(), std::ref(model)));
     }
-    for (auto model : m_TransparentModels)
+
+    for (auto material : m_Materials)
     {
-        float distance = glm::length(camera->GetPosition() - model->getAABB().get_center());
-        transparent.emplace(distance, model);
+        batchList.emplace_back(RenderBatch());
+        RenderBatch* batch = &batchList.back();
+        batch->m_Name = std::string("batch_") + material.GetMaterialName();
+        auto byMaterial = sortedByMaterial.equal_range(material.GetMaterialName());//retrieve the whole list of models using that material
+        for (auto it = byMaterial.first; it != byMaterial.second; ++it)
+        {
+            Model& model = it->second;
+            float distance = glm::length(camera->GetPosition() - model.getAABB().get_center());
+            batch->m_ModelsByDistance.emplace(distance,model);
+        }
+          
+       
     }
+
+
 }
+
 
 
 
@@ -140,11 +165,14 @@ void Scene::loadAssets(const std::string i_ScenePath)
 
 	loadMaterials(aScene, iRootScenePath);
 	loadMeshes(aScene);
-  loadSceneRecursive(aScene->mRootNode);
+  //loadSceneRecursive(aScene->mRootNode);
 
 
-	
+  getBatches(m_OpaqueBatch, BatchType::BatchType_Opaque);
+  getBatches(m_TransparentBatch, BatchType::BatchType_Transparent);
 	renderer->SetupRenderCalls();
+
+
 
   m_bIsInit = true;
  
@@ -277,8 +305,8 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 
 	
 
-	m_Models.resize(numberOfModelsInScene);
-	m_Meshes.resize(numberOfModelsInScene);//THIS IS NOT NECESSARILY TRUE DIFFERENT MODELS COULD POINT TO THE SAME MESH, TODO
+	//m_Models.resize(numberOfModelsInScene);
+	//m_Meshes.resize(numberOfModelsInScene);//THIS IS NOT NECESSARILY TRUE DIFFERENT MODELS COULD POINT TO THE SAME MESH, TODO
 
 	int iCurrentIndex = 0;
 	int iVertexGeneralCount = 0;
@@ -317,18 +345,19 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 			}
 		}
 
-		m_Meshes[i].SetMeshIndicesInfo(iCurrentIndex, iNIndices, iVertexGeneralCount, aMesh->mNumVertices);
-    m_Meshes[i].setScene(this);
-    m_Models[i].SetMesh(&m_Meshes[i]);
-		m_Models[i].SetMaterial(&m_Materials[aMesh->mMaterialIndex]);
+    m_Meshes.emplace_back(std::make_unique<Mesh>(*this, iCurrentIndex, iNIndices, iVertexGeneralCount, aMesh->mNumVertices));
+    Mesh& mesh = *m_Meshes[i];
+    m_Models.emplace_back(std::make_unique<Model>(mesh));
+    Model& model = *m_Models[i];
+    model.SetMaterial(&m_Materials[aMesh->mMaterialIndex]);
 
     if (m_Materials[aMesh->mMaterialIndex].isTransparent())
     {
-        m_TransparentModels.push_back(&m_Models[i]);
+        m_TransparentModels.push_back(*m_Models[i]);
     }
     else
     {
-        m_OpaqueModels.push_back(&m_Models[i]);
+        m_OpaqueModels.push_back(*m_Models[i]);
     }
 
 
@@ -342,8 +371,18 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 	m_VerticesBuffer = renderer->CreateVertexBuffer((void*)(GetVerticesData()), GetVerticesSize());
 	m_IndicesBuffer = renderer->CreateIndexBuffer((void*)(GetIndicesData()), GetIndicesSize());
 
+  glm::vec3 scenemin = glm::vec3(std::numeric_limits<float>::max());
+  glm::vec3 scenemax = glm::vec3(std::numeric_limits<float>::min());
+
   for (auto& model : m_Models)
-      model.updateAABB();
+  {
+      
+      model->updateAABB();
+      scenemin = glm::min(scenemin, model->getAABB().get_min());
+      scenemax = glm::max(scenemax, model->getAABB().get_max());
+  }
+  m_SceneAABB = AABB(scenemin, scenemax);
+  ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->Teleport(m_SceneAABB.get_center() - glm::vec3(1.0),m_SceneAABB.get_center());
 }
 
 void Scene::loadSceneRecursive(const aiNode* i_Node)

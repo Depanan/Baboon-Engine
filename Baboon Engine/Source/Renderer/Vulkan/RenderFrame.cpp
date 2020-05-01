@@ -1,7 +1,9 @@
 #include "RenderFrame.h"
 #include "Device.h"
 #include "Core/ServiceLocator.h"
-
+#include <glm/gtx/hash.hpp>
+#include "Cameras/Camera.h"
+#include "VulkanBuffer.h"
 
 
 
@@ -15,9 +17,16 @@ RenderFrame::RenderFrame(Device& device, std::unique_ptr<RenderTarget>&& renderT
     m_Target(std::move(renderTarget)),
     m_NThreads(nThreads),
     m_SemaphorePool(device),
-    m_FencePool(device),
-    m_HashId((const char*) this)
+    m_FencePool(device)
+    
 {
+    m_HashId = 0;
+    auto& views = m_Target->getViews();
+    std::hash<VkImageView> hasher;
+    for(auto& v: views)
+        glm::detail::hash_combine(m_HashId, hasher(v.getHandle()));
+
+
     //Allocate resources per thread
     for (size_t i = 0; i < m_NThreads; i++)
     {
@@ -25,6 +34,7 @@ RenderFrame::RenderFrame(Device& device, std::unique_ptr<RenderTarget>&& renderT
         m_DescriptorSets.push_back(std::make_unique<std::unordered_map<std::size_t, DescriptorSet>>());
     }
 
+    m_CameraUniformBuffer = (VulkanBuffer*) ServiceLocator::GetRenderer()->CreateStaticUniformBuffer(nullptr, sizeof(UBOCamera));
 }
 
 
@@ -73,6 +83,13 @@ void RenderFrame::reset()
         LOGERROR("Error waiting for fence!");
     m_FencePool.reset();
     
+    if (m_IsCameraUniformDirty)
+    {
+        auto camera = ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main);
+        camera->Update(*m_CameraUniformBuffer);
+        m_IsCameraUniformDirty = false;
+    }
+
     //reset command pools here 
     for (auto& command_pools_per_queue : m_CommandPools)
     {

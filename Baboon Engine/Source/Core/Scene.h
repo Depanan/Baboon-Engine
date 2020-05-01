@@ -10,6 +10,16 @@
 struct aiScene;
 struct aiNode;
 class SceneManager;
+
+enum class BatchType {
+    BatchType_Opaque = 0,
+    BatchType_Transparent = 1
+};
+struct RenderBatch {
+    std::string m_Name;
+    std::multimap<float,std::reference_wrapper<Model>> m_ModelsByDistance;
+};
+
 class Scene {
     friend class SceneManager;
 public:
@@ -28,36 +38,33 @@ public:
   Buffer* GetVerticesBuffer() { return m_VerticesBuffer; }
 	
 	void OnWindowResize();
-	
-
-
-	
-	
-
 
 	bool IsInit() { return m_bIsInit; }
 
+	std::vector <std::unique_ptr<Model>>* GetModels() { return &m_Models; }
+  std::vector <std::reference_wrapper<Model>>* GetOpaqueModels() { return &m_OpaqueModels; }
+  std::vector < std::reference_wrapper<Model>>* GetTransparentModels() { return &m_TransparentModels; }
 	
-
-	std::vector <Model>* GetModels() { return &m_Models; }
-  std::vector <Model*>* GetOpaqueModels() { return &m_OpaqueModels; }
-  std::vector <Model*>* GetTransparentModels() { return &m_TransparentModels; }
-	
-  void GetSortedOpaqueAndTransparent(std::multimap<float, Model*>& opaque, std::multimap<float, Model*>& transparent);
-
+  
+  std::vector<RenderBatch>& GetTransparentBatches() { return m_TransparentBatch; }
+  std::vector<RenderBatch>& GetOpaqueBatches() { return m_OpaqueBatch; }
+  const AABB& getSceneAABB()const { return m_SceneAABB; }
 private:
 
 	bool m_bIsInit = false;
 
+  AABB m_SceneAABB;
 	
   std::vector <Texture*> m_Textures;
-	std::vector <Model> m_Models;
+	std::vector <std::unique_ptr<Model>> m_Models;
 
-  std::vector <Model*> m_OpaqueModels;
-  std::vector <Model*> m_TransparentModels;
+  std::vector <std::reference_wrapper<Model>> m_OpaqueModels;
+  std::vector <std::reference_wrapper<Model>> m_TransparentModels;
+  std::vector<RenderBatch> m_OpaqueBatch;
+  std::vector<RenderBatch> m_TransparentBatch;
 
 
-	std::vector <Mesh> m_Meshes;
+	std::vector <std::unique_ptr<Mesh>> m_Meshes;
 	std::vector <Material> m_Materials;
 
 	//Global data for indexed meshes
@@ -66,7 +73,7 @@ private:
   Buffer* m_VerticesBuffer;
   Buffer* m_IndicesBuffer;
 
-
+  void getBatches(std::vector<RenderBatch>& batchList, BatchType batchType);
 	void loadAssets(const std::string i_ScenePath);
 	void loadMaterials(const aiScene* i_aScene, const std::string i_SceneTexturesPath);
 	void loadMeshes(const aiScene* i_aScene);

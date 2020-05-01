@@ -32,9 +32,7 @@ void ResourceBindingState::bind_buffer(const VulkanBuffer& buffer, VkDeviceSize 
 
 void ResourceBindingState::bind_image(const VulkanImageView& image_view, const VulkanSampler& sampler, uint32_t set, uint32_t binding, uint32_t array_element)
 {
-    m_Resource_Sets[set].bind_image(image_view, sampler, binding, array_element);
-
-    m_Dirty = true;
+    m_Dirty = m_Resource_Sets[set].bind_image(image_view, sampler, binding, array_element);
 }
 
 void ResourceBindingState::bind_input(const VulkanImageView& image_view, uint32_t set, uint32_t binding, uint32_t array_element)
@@ -84,13 +82,21 @@ void ResourceSet::bind_buffer(const VulkanBuffer& buffer, VkDeviceSize offset, V
     m_Dirty = true;
 }
 
-void ResourceSet::bind_image(const VulkanImageView& image_view, const VulkanSampler& sampler, uint32_t binding, uint32_t array_element)
+bool ResourceSet::bind_image(const VulkanImageView& image_view, const VulkanSampler& sampler, uint32_t binding, uint32_t array_element)
 {
-    m_Resource_Bindings[binding][array_element].m_Dirty = true;
-    m_Resource_Bindings[binding][array_element].m_ImageView = &image_view;
-    m_Resource_Bindings[binding][array_element].m_Sampler = &sampler;
-
-    m_Dirty = true;
+    bool dirty = false;
+    if (m_Resource_Bindings[binding][array_element].m_ImageView == nullptr || m_Resource_Bindings[binding][array_element].m_ImageView->getHandle() != image_view.getHandle())
+    {
+        dirty = true;
+        m_Resource_Bindings[binding][array_element].m_ImageView = &image_view;
+    }
+    if (m_Resource_Bindings[binding][array_element].m_Sampler == nullptr || m_Resource_Bindings[binding][array_element].m_Sampler->getHandle() != sampler.getHandle())
+    {
+        dirty = true;
+        m_Resource_Bindings[binding][array_element].m_Sampler = &sampler;
+    }
+    m_Dirty = dirty;
+    return dirty;
 }
 
 void ResourceSet::bind_input(const VulkanImageView& image_view, const uint32_t binding, const uint32_t array_element)
