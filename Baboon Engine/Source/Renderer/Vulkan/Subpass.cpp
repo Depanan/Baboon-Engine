@@ -143,6 +143,9 @@ void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, Co
     //Bind the matrices uniform buffer
     command_buffer->bind_buffer(*(m_RenderContext.getActiveFrame().getCameraUniformBuffer()), 0, sizeof(UBOCamera), 0, 1, 0);
 
+    //Bind the lights uniform buffer
+    command_buffer->bind_buffer(*((VulkanBuffer*)(scene->getLightsUniformBuffer())), 0, sizeof(UBOLight), 0, 2, 0);
+
     //Bind vertex buffer
     std::vector<std::reference_wrapper<VulkanBuffer>> buffers;
     buffers.emplace_back(std::ref(*((VulkanBuffer*)scene->GetVerticesBuffer())));
@@ -325,6 +328,7 @@ void TestTriangleSubPass::drawModel(Model& model, CommandBuffer* command_buffer)
 
     int nIndices = model.GetMesh().GetNIndices();
     int indexStart = model.GetMesh().GetIndexStartPosition();
+    command_buffer->pushConstants(0, model.getModelMatrix());
     command_buffer->pushConstants(0, model.getModelMatrix());
   
     command_buffer->draw_indexed(nIndices, 1, indexStart, model.GetMesh().GetVertexStartPosition(), 0);

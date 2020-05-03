@@ -11,7 +11,7 @@
 #include "../Renderer/Vulkan/VulkanContext.h"
 #include "../Renderer/Vulkan/VulkanBuffer.h"
 #include "../Renderer/Vulkan/CommandBuffer.h"
-#include <glm/gtc/matrix_transform.hpp>
+#include "Renderer/Common/GLMInclude.h"
 
 //glfW stuff to deal with input
 static GLFWwindow* g_Window = NULL;
@@ -388,6 +388,35 @@ void VulkanImGUI::RenderStatsWindow(bool* pOpen)
 		ImGui::Text("Scene cam Pos = (%.2f,%.2f,%.2f)",camPos.x,camPos.y,camPos.z);
 
 
+
+
+    ///TODO: MOVE THIS TO THE SCENE (OR A LIGHT MANAGER) AND PROVIDE THIS AS A FUNCTION TO THE GUI SCENE::DOGUI for example
+    auto& light = ServiceLocator::GetSceneManager()->GetCurrentScene()->getLight();
+   
+    glm::vec3 lPos = light.lightPos;
+    ImGui::SliderFloat3("Light Position", &lPos.x,-1000.0f,1000.0f);
+
+    glm::vec3 lCol = light.lightColor;
+    ImGui::ColorPicker3("Light color", &lCol.x);
+    bool bUpdateLightsBuffer = false;
+    if (lPos != glm::vec3(light.lightPos))
+    {
+        ServiceLocator::GetSceneManager()->GetCurrentScene()->setLightPosition(lPos);
+        bUpdateLightsBuffer = true;
+    }
+    if (lCol != glm::vec3(light.lightColor))
+    {
+        ServiceLocator::GetSceneManager()->GetCurrentScene()->setLightColor(lCol);
+        bUpdateLightsBuffer = true;
+    }
+    if (bUpdateLightsBuffer)
+    {
+        ServiceLocator::GetSceneManager()->GetCurrentScene()->updateLightsBuffer();
+    }
+    //////////////////////////////////////////////////////////////////////////////////////
+   
+
+   
 	
 	}
 	ImGui::End();
@@ -468,7 +497,7 @@ void VulkanImGUI::DoUI(bool i_FirstCall)
 
 	
 
-	//ImGui::ShowTestWindow();
+	ImGui::ShowTestWindow();
 	///////////////////////////////////////////////////////
 
 

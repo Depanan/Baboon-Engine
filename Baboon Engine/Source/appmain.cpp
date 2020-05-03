@@ -150,8 +150,8 @@ public:
 	void mainLoop()
 	{
 
-    // Create a FileWatcher instance that will check the current folder for changes every 5 seconds
-    FileWatcher fileWatcherShaders{ "./Shaders", std::chrono::milliseconds(5000),checkShaderChangesFunction };
+    // Create a FileWatcher instance that will check the current folder for changes every 1 seconds
+    FileWatcher fileWatcherShaders{ "./Shaders", std::chrono::milliseconds(1000),checkShaderChangesFunction };
       
     
 
@@ -257,6 +257,7 @@ int main() {
 	}
 	catch (const std::runtime_error& e) {
 		std::cerr << e.what() << std::endl;
+    getchar();
 		return EXIT_FAILURE;
 	}
 	
@@ -266,6 +267,7 @@ int main() {
 	}
 	catch (const std::runtime_error& e) {
 		std::cerr << e.what() << std::endl;
+    getchar();
 		return EXIT_FAILURE;
 	}
 	

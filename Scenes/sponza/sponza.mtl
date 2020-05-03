@@ -76,6 +76,7 @@ newmtl bricks
 	Ke 0.0000 0.0000 0.0000
 	map_Ka textures\spnza_bricks_a_diff.png
 	map_Kd textures\spnza_bricks_a_diff.png
+	map_Ks textures\spnza_bricks_a_spec.png
 	map_bump textures\spnza_bricks_a_diff.png
 
 newmtl arch
@@ -105,6 +106,7 @@ newmtl ceiling
 	Ke 0.0000 0.0000 0.0000
 	map_Ka textures\sponza_ceiling_a_diff.png
 	map_Kd textures\sponza_ceiling_a_diff.png
+	map_Ks textures\sponza_ceiling_a_spec.png
 
 newmtl column_a
 	Ns 10.0000
@@ -119,6 +121,7 @@ newmtl column_a
 	Ke 0.0000 0.0000 0.0000
 	map_Ka textures\sponza_column_a_diff.png
 	map_Kd textures\sponza_column_a_diff.png
+	map_Ks textures\sponza_column_a_spec.png
 	map_bump textures\sponza_column_a_bump.png
 
 newmtl floor

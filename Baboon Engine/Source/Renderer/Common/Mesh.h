@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glm\glm.hpp>
+#include "Renderer/Common/GLMInclude.h"
 #include "vulkan\vulkan.h"
 #include <vector>
 

@@ -52,7 +52,7 @@ Instance::Instance(const std::vector<const char*>& i_required_extensions, bool i
     applicationInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     applicationInfo.pEngineName = "Baboon Engine";
     applicationInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    applicationInfo.apiVersion = VK_API_VERSION_1_0;
+    applicationInfo.apiVersion = VK_API_VERSION_1_1;
 
 
 

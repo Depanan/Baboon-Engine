@@ -350,5 +350,8 @@
     <ClInclude Include="Source\Renderer\Vulkan\PersistentCommand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Renderer\Common\GLMInclude.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,7 +1,7 @@
 #pragma once
 #include <map>
 #include <array>
-#include <glm\glm.hpp>
+#include "Renderer/Common/GLMInclude.h"
 typedef void(*PtrFunc)(void*);
 
 struct InputFunctionWithParam

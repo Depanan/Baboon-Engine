@@ -1,9 +1,10 @@
 #define NOMINMAX
 #include "Scene.h"
-#include <glm/gtc/matrix_transform.hpp>
+#include "Renderer/Common/GLMInclude.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include "Core\ServiceLocator.h"
+#include "Renderer\Common\Buffer.h"
 #include <chrono>
 #include <cstdlib>
 #include <cstdio>
@@ -136,6 +137,22 @@ void Scene::OnWindowResize()
 	renderer->SetupRenderCalls();
 }
 
+void Scene::setLightPosition(glm::vec3 position)
+{
+    m_Light.lightPos = glm::vec4(position.x, position.y, position.z, m_Light.lightPos.w);//w component of the light is the type of light so we don't touch it when positioning
+}
+
+void Scene::setLightColor(glm::vec3 color)
+{
+    m_Light.lightColor = glm::vec4(color.x, color.y, color.z, m_Light.lightColor.w);//w component of the light is the type of light so we don't touch it when positioning
+   
+}
+
+void Scene::updateLightsBuffer()
+{
+    m_LightsUniformBuffer->update(&m_Light, sizeof(UBOLight));
+}
+
 
 void Scene::loadAssets(const std::string i_ScenePath)
 {
@@ -150,7 +167,7 @@ void Scene::loadAssets(const std::string i_ScenePath)
      
       aiProcess_GenSmoothNormals |aiProcess_JoinIdenticalVertices
       ;*/
-  int flags = aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_JoinIdenticalVertices | aiProcess_GenSmoothNormals;
+  int flags =   aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_JoinIdenticalVertices | aiProcess_GenSmoothNormals;
 	aScene = Importer.ReadFile(i_ScenePath, flags);//TODO: Iterate filesystem and read all .obj files
 
 	if (aScene == nullptr)
@@ -166,7 +183,9 @@ void Scene::loadAssets(const std::string i_ScenePath)
 	loadMaterials(aScene, iRootScenePath);
 	loadMeshes(aScene);
   //loadSceneRecursive(aScene->mRootNode);
-
+  m_Light.lightPos = glm::vec4(0, 100, 0,0);
+  m_Light.lightColor = glm::vec4(0, 0, 1.0f,0.0f);
+  m_LightsUniformBuffer = ServiceLocator::GetRenderer()->CreateStaticUniformBuffer(&m_Light, sizeof(UBOLight));
 
   getBatches(m_OpaqueBatch, BatchType::BatchType_Opaque);
   getBatches(m_TransparentBatch, BatchType::BatchType_Transparent);
@@ -253,6 +272,9 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
     for (int i = 0; i < aiTexureTypes; i++)
     {
         aiTextureType texType = (aiTextureType)i;
+        if(texType == aiTextureType_AMBIENT)//we will be using the diffuse for that
+            continue;
+
         if (pMaterial->GetTextureCount(texType) > 0)
         {
             Texture* texture = nullptr;
@@ -382,7 +404,7 @@ void Scene::loadMeshes(const aiScene* i_aScene)
       scenemax = glm::max(scenemax, model->getAABB().get_max());
   }
   m_SceneAABB = AABB(scenemin, scenemax);
-  ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->Teleport(m_SceneAABB.get_center() - glm::vec3(1.0),m_SceneAABB.get_center());
+  ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->Teleport(m_SceneAABB.get_center() - glm::vec3(100.0),m_SceneAABB.get_center());
 }
 
 void Scene::loadSceneRecursive(const aiNode* i_Node)

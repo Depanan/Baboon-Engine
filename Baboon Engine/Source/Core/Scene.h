@@ -11,6 +11,11 @@ struct aiScene;
 struct aiNode;
 class SceneManager;
 
+struct UBOLight {
+    glm::vec4 lightPos;
+    glm::vec4 lightColor;
+};
+
 enum class BatchType {
     BatchType_Opaque = 0,
     BatchType_Transparent = 1
@@ -41,6 +46,8 @@ public:
 
 	bool IsInit() { return m_bIsInit; }
 
+  Buffer* getLightsUniformBuffer() const { return m_LightsUniformBuffer; }
+
 	std::vector <std::unique_ptr<Model>>* GetModels() { return &m_Models; }
   std::vector <std::reference_wrapper<Model>>* GetOpaqueModels() { return &m_OpaqueModels; }
   std::vector < std::reference_wrapper<Model>>* GetTransparentModels() { return &m_TransparentModels; }
@@ -49,6 +56,11 @@ public:
   std::vector<RenderBatch>& GetTransparentBatches() { return m_TransparentBatch; }
   std::vector<RenderBatch>& GetOpaqueBatches() { return m_OpaqueBatch; }
   const AABB& getSceneAABB()const { return m_SceneAABB; }
+
+  const UBOLight& getLight()const { return m_Light; }
+  void setLightPosition(glm::vec3 position);
+  void setLightColor(glm::vec3 position);
+  void updateLightsBuffer();
 private:
 
 	bool m_bIsInit = false;
@@ -72,6 +84,9 @@ private:
 	std::vector<uint32_t> m_Indices;
   Buffer* m_VerticesBuffer;
   Buffer* m_IndicesBuffer;
+
+  Buffer* m_LightsUniformBuffer;
+  UBOLight m_Light;
 
   void getBatches(std::vector<RenderBatch>& batchList, BatchType batchType);
 	void loadAssets(const std::string i_ScenePath);

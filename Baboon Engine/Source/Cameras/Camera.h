@@ -1,9 +1,10 @@
 #pragma once
-#include <glm\glm.hpp>
+#include "Renderer/Common/GLMInclude.h"
 
 struct UBOCamera {
     glm::mat4 view;
     glm::mat4 proj;
+    glm::vec3 camPos;
 };
 
 class Buffer;
@@ -24,7 +25,7 @@ public:
 
 	const glm::mat4& GetViewMatrix()const { return m_UBOCamera.view; }
 	const glm::mat4& GetProjMatrix()const { return m_UBOCamera.proj; }
-	const glm::vec3& GetPosition()const { return m_Position; }
+	const glm::vec3& GetPosition()const { return m_UBOCamera.camPos; }
 	const glm::vec3& GetRotation()const { return m_Rotation; }
 
 
@@ -32,6 +33,8 @@ public:
 	static void moveRight(void* i_pCam);
 	static void moveForward(void* i_pCam);
 	static void moveBackwards(void* i_pCam);
+  static void moveUp(void* i_pCam);
+  static void moveDown(void* i_pCam);
 
 	static void startRotation(void* i_pCam);
 	static void rotate(void* i_pCam);
@@ -45,8 +48,10 @@ private:
 	bool m_bRotating;
   bool m_Dirty{ false };
 
+  glm::vec3 m_CamForward;
+  glm::vec3 m_CamRight;
+  glm::vec3 m_CamPosition;
 	glm::vec3 m_Rotation = glm::vec3();
-	glm::vec3 m_Position = glm::vec3();
 
 
   UBOCamera m_UBOCamera;
