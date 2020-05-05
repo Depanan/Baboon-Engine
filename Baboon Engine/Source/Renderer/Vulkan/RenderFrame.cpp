@@ -86,7 +86,7 @@ void RenderFrame::reset()
     if (m_IsCameraUniformDirty)
     {
         auto camera = ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main);
-        camera->Update(*m_CameraUniformBuffer);
+        camera->UpdateUniformBuffer(*m_CameraUniformBuffer);
         m_IsCameraUniformDirty = false;
     }
 

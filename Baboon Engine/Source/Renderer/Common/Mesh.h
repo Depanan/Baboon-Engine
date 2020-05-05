@@ -9,6 +9,8 @@ struct Vertex {
 	glm::vec3 color;
 	glm::vec2 texCoord;
 	glm::vec3 normal;
+  glm::vec3 tangent;
+  glm::vec3 biTangent;
 
 	static void GetVertexDescription(VkVertexInputBindingDescription* o_Description);
 	static void GetAttributesDescription(std::vector<VkVertexInputAttributeDescription>& o_Description);
@@ -18,7 +20,7 @@ class Scene;
 class Mesh
 {
 public:
-    Mesh(const Scene& scene,uint32_t iIndicesStart, uint32_t iIndicesCount, uint32_t i_VerticesStart, uint32_t i_nVertices);
+    Mesh(const Scene& scene, const Vertex* ,uint32_t iIndicesStart, uint32_t iIndicesCount, uint32_t i_VerticesStart, uint32_t i_nVertices);
 
 	
     
@@ -37,6 +39,7 @@ private:
 	uint32_t m_VertexStartPosition;//Position in the global index array
 	uint32_t m_NIndices;//Number of indices
   uint32_t m_NVertices;
+  const Vertex* m_Vertices;
 
   const Scene& m_Scene;
 

@@ -385,7 +385,9 @@ void VulkanImGUI::RenderStatsWindow(bool* pOpen)
 		ImGui::Text("FPS: %d", pRenderer->m_LastFPS);
 		const Camera* cam = ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main);
 		const glm::vec3 camPos = cam->GetPosition();
+    const glm::vec3 camForward = cam->GetForward();
 		ImGui::Text("Scene cam Pos = (%.2f,%.2f,%.2f)",camPos.x,camPos.y,camPos.z);
+    ImGui::Text("Scene cam Forward = (%.2f,%.2f,%.2f)", camForward.x, camForward.y, camForward.z);
 
 
 
@@ -394,7 +396,7 @@ void VulkanImGUI::RenderStatsWindow(bool* pOpen)
     auto& light = ServiceLocator::GetSceneManager()->GetCurrentScene()->getLight();
    
     glm::vec3 lPos = light.lightPos;
-    ImGui::SliderFloat3("Light Position", &lPos.x,-1000.0f,1000.0f);
+    ImGui::SliderFloat3("Light Position", &lPos.x,-100.0f,100.0f);
 
     glm::vec3 lCol = light.lightColor;
     ImGui::ColorPicker3("Light color", &lCol.x);

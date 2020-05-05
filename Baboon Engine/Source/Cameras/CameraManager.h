@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Camera.h"
+#include "CameraQuaternion.h"
 
 
 struct CameraUniforms {
@@ -40,7 +40,7 @@ public:
 
 
 private:
-	Camera m_Cameras[eCameraType_NCameras];
+	CameraQuaternion m_Cameras[eCameraType_NCameras];
 	CameraUniforms m_CameraUniforms;
 
 };

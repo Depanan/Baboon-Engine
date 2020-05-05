@@ -168,7 +168,7 @@ public:
       pCameraMan->Update();
       pRenderer->Update();
 			pRenderer->DrawFrame();
-      pCameraMan->EndFrame();//clears camera dirty flag mainly
+      //pCameraMan->EndFrame();//clears camera dirty flag mainly
 			pRenderer->UpdateTimesAndFPS(tStart);
       fileWatcherShaders.check();
 

@@ -12,7 +12,7 @@ void Vertex::GetVertexDescription(VkVertexInputBindingDescription* o_Description
 void Vertex::GetAttributesDescription(std::vector<VkVertexInputAttributeDescription>& o_AttribDescription)
 {
    // o_AttribDescription.resize(3);
-	o_AttribDescription.resize(4);
+	o_AttribDescription.resize(6);
 	
 	//Position
 	o_AttribDescription[0].binding = 0;
@@ -38,10 +38,23 @@ void Vertex::GetAttributesDescription(std::vector<VkVertexInputAttributeDescript
 	o_AttribDescription[3].location = 3;
 	o_AttribDescription[3].format = VK_FORMAT_R32G32B32_SFLOAT;
 	o_AttribDescription[3].offset = offsetof(Vertex, normal);
+
+  //Tangent
+  o_AttribDescription[4].binding = 0;
+  o_AttribDescription[4].location = 4;
+  o_AttribDescription[4].format = VK_FORMAT_R32G32B32_SFLOAT;
+  o_AttribDescription[4].offset = offsetof(Vertex, tangent);
+
+  //biTangent
+  o_AttribDescription[5].binding = 0;
+  o_AttribDescription[5].location = 5;
+  o_AttribDescription[5].format = VK_FORMAT_R32G32B32_SFLOAT;
+  o_AttribDescription[5].offset = offsetof(Vertex, biTangent);
 }
 
-Mesh::Mesh(const Scene& scene, uint32_t iIndicesStart, uint32_t iIndicesCount, uint32_t i_VerticesStart, uint32_t i_nVertices):
+Mesh::Mesh(const Scene& scene, const Vertex* vertices, uint32_t iIndicesStart, uint32_t iIndicesCount, uint32_t i_VerticesStart, uint32_t i_nVertices) :
     m_Scene(scene),
+    m_Vertices(vertices),
     m_IndexStartPosition(iIndicesStart),
     m_NIndices(iIndicesCount),
     m_VertexStartPosition(i_VerticesStart),
@@ -59,7 +72,7 @@ const void Mesh::getIndicesData( const uint32_t** o_Indices, size_t* size) const
 }
 const void Mesh::getVertexData(  const Vertex** o_Vertices, size_t* size) const 
 {
-    *o_Vertices = m_Scene.GetVerticesData()+ m_VertexStartPosition;
+    *o_Vertices = m_Vertices;
     *size = m_NVertices;
 
 }

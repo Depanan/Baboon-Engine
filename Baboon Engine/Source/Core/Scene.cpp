@@ -167,7 +167,7 @@ void Scene::loadAssets(const std::string i_ScenePath)
      
       aiProcess_GenSmoothNormals |aiProcess_JoinIdenticalVertices
       ;*/
-  int flags =   aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_JoinIdenticalVertices | aiProcess_GenSmoothNormals;
+  int flags =   aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_JoinIdenticalVertices | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace;
 	aScene = Importer.ReadFile(i_ScenePath, flags);//TODO: Iterate filesystem and read all .obj files
 
 	if (aScene == nullptr)
@@ -175,16 +175,14 @@ void Scene::loadAssets(const std::string i_ScenePath)
 
 	
 	
-
-	
 	std::string iRootScenePath = i_ScenePath.substr(0, i_ScenePath.find_last_of("\\/")) + "\\";
 	
 
 	loadMaterials(aScene, iRootScenePath);
 	loadMeshes(aScene);
   //loadSceneRecursive(aScene->mRootNode);
-  m_Light.lightPos = glm::vec4(0, 100, 0,0);
-  m_Light.lightColor = glm::vec4(0, 0, 1.0f,0.0f);
+  m_Light.lightPos = glm::vec4(100, 100, 100,0);
+  m_Light.lightColor = glm::vec4(1.0f, 1.0f, 1.0f,0.0f);
   m_LightsUniformBuffer = ServiceLocator::GetRenderer()->CreateStaticUniformBuffer(&m_Light, sizeof(UBOLight));
 
   getBatches(m_OpaqueBatch, BatchType::BatchType_Opaque);
@@ -214,8 +212,7 @@ const char* fromAiTexureTypesToShaderName(aiTextureType texType)
     case aiTextureType_EMISSIVE:
         break;
     case aiTextureType_HEIGHT:
-        return "heightTexture";
-        break;
+        return "normalTexture";
     case aiTextureType_NORMALS:
         return "normalTexture";
     case aiTextureType_SHININESS:
@@ -325,11 +322,6 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 	int numberOfModelsInScene = i_aScene->mNumMeshes;
 
 
-	
-
-	//m_Models.resize(numberOfModelsInScene);
-	//m_Meshes.resize(numberOfModelsInScene);//THIS IS NOT NECESSARILY TRUE DIFFERENT MODELS COULD POINT TO THE SAME MESH, TODO
-
 	int iCurrentIndex = 0;
 	int iVertexGeneralCount = 0;
 	for (uint32_t i = 0; i < numberOfModelsInScene; i++)
@@ -339,7 +331,7 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 		bool hasUV = aMesh->HasTextureCoords(0);
 		bool hasColor = aMesh->HasVertexColors(0);
 		bool hasNormals = aMesh->HasNormals();
-    
+    bool hasTangentsAndBitangents = aMesh->HasTangentsAndBitangents();
 
 		for (uint32_t v = 0; v < aMesh->mNumVertices; v++)
 		{
@@ -347,6 +339,8 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 			vertex.pos = glm::vec3(aMesh->mVertices[v].x, aMesh->mVertices[v].y, aMesh->mVertices[v].z);
 			vertex.texCoord = hasUV ? glm::vec2(aMesh->mTextureCoords[0][v].x, 1.0f - aMesh->mTextureCoords[0][v].y) : glm::vec2(0.0f);
 			vertex.normal = hasNormals ? glm::make_vec3(&aMesh->mNormals[v].x) : glm::vec3(0.0f);
+      vertex.tangent = hasTangentsAndBitangents ? glm::make_vec3(&aMesh->mTangents[v].x) : glm::vec3(0.0f);
+      vertex.biTangent = hasTangentsAndBitangents ? glm::make_vec3(&aMesh->mBitangents[v].x) : glm::vec3(0.0f);
 			vertex.color = hasColor ? glm::make_vec3(&aMesh->mColors[0][v].r) : glm::vec3(1.0f);
 			m_Vertices.push_back(vertex);
 		}
@@ -367,7 +361,7 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 			}
 		}
 
-    m_Meshes.emplace_back(std::make_unique<Mesh>(*this, iCurrentIndex, iNIndices, iVertexGeneralCount, aMesh->mNumVertices));
+    m_Meshes.emplace_back(std::make_unique<Mesh>(*this,&m_Vertices[iVertexGeneralCount], iCurrentIndex, iNIndices, iVertexGeneralCount, aMesh->mNumVertices));
     Mesh& mesh = *m_Meshes[i];
     m_Models.emplace_back(std::make_unique<Model>(mesh));
     Model& model = *m_Models[i];
@@ -404,7 +398,7 @@ void Scene::loadMeshes(const aiScene* i_aScene)
       scenemax = glm::max(scenemax, model->getAABB().get_max());
   }
   m_SceneAABB = AABB(scenemin, scenemax);
-  ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->Teleport(m_SceneAABB.get_center() - glm::vec3(100.0),m_SceneAABB.get_center());
+  ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->Teleport(m_SceneAABB.get_center() - glm::vec3(100.0,0,100.0),m_SceneAABB.get_center());
 }
 
 void Scene::loadSceneRecursive(const aiNode* i_Node)

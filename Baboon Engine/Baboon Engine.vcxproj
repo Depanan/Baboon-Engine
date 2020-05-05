@@ -26,6 +26,7 @@
     <ClCompile Include="Source\appmain.cpp" />
     <ClCompile Include="Source\Cameras\Camera.cpp" />
     <ClCompile Include="Source\Cameras\CameraManager.cpp" />
+    <ClCompile Include="Source\Cameras\CameraQuaternion.cpp" />
     <ClCompile Include="Source\Core\aabb.cpp" />
     <ClCompile Include="Source\Core\Input.cpp" />
     <ClCompile Include="Source\Core\Logger.cpp" />
@@ -78,6 +79,7 @@
     <ClInclude Include="..\External Source\imgui\imstb_truetype.h" />
     <ClInclude Include="Source\Cameras\Camera.h" />
     <ClInclude Include="Source\Cameras\CameraManager.h" />
+    <ClInclude Include="Source\Cameras\CameraQuaternion.h" />
     <ClInclude Include="Source\Core\aabb.h" />
     <ClInclude Include="Source\Core\Input.h" />
     <ClInclude Include="Source\Core\Logger.h" />

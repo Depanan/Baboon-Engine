@@ -16,11 +16,11 @@ void CameraManager::OnWindowResize(int width, int height)
 
 void CameraManager::Update()
 {
-    /*for (int i = 0; i < eCameraType_NCameras; i++)
+    for (int i = 0; i < eCameraType_NCameras; i++)
     {
         m_Cameras[i].Update();
 
-    }*/
+    }
 }
 
 void CameraManager::EndFrame()

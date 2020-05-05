@@ -39,6 +39,8 @@ public:
 	void UpdateTimesAndFPS(std::chrono::time_point<std::chrono::high_resolution_clock>  i_tStartTime) override;
 
 
+  void CameraDirty()override;
+
   //This 3 to be implemented
   virtual Texture* CreateTexture(void* i_data, int i_Widht, int i_Height) override;
   virtual void DeleteTexture(Texture*) override;

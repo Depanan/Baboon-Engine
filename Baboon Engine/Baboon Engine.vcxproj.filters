@@ -183,6 +183,9 @@
     <ClCompile Include="Source\Renderer\Vulkan\PersistentCommand.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Cameras\CameraQuaternion.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Core\Input.h">
@@ -351,6 +354,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Renderer\Common\GLMInclude.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Cameras\CameraQuaternion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

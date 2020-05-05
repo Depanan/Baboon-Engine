@@ -48,15 +48,7 @@ void RendererVulkan::Update()
     if (m_GUI)
         m_GUI->DoUI();
 
-    if (ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->GetDirty())
-    {
-       
-        auto& renderFrames = m_RenderContext->getRenderFrames();
-        for (auto& frame : renderFrames)
-            frame->setCameraUniformDirty();
-        reRecordCommands();
-    }
-
+   
     
 }
 
@@ -378,6 +370,14 @@ void RendererVulkan::UpdateTimesAndFPS(std::chrono::time_point<std::chrono::high
 		m_FrameCounter = 0.0f;
 	}
 	
+}
+
+void RendererVulkan::CameraDirty()
+{
+    auto& renderFrames = m_RenderContext->getRenderFrames();
+    for (auto& frame : renderFrames)
+        frame->setCameraUniformDirty();
+    reRecordCommands();
 }
 
 Texture* RendererVulkan::CreateTexture(void* pPixels, int i_Widht, int i_Height)
