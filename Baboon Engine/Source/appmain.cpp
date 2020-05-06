@@ -6,6 +6,7 @@
 #include "Cameras\CameraManager.h"
 #include <filesystem>
 #include <functional>
+#include "UI/GUI.h"
 
 namespace fs = std::filesystem;
 
@@ -159,12 +160,14 @@ public:
 		Scene* pScene = ServiceLocator::GetSceneManager()->GetCurrentScene();
 		Input* pInput = ServiceLocator::GetInput();
     CameraManager* pCameraMan = ServiceLocator::GetCameraManager();
+    GUI* pGui = ServiceLocator::GetGUI();
 		while (!glfwWindowShouldClose(m_window)) {
 			auto tStart = std::chrono::high_resolution_clock::now();
 			
 			glfwPollEvents();
 			
 			pInput->processInput();//Order here is important, 1.Input modifies camera, 2.Cameraman update modifies uniform buffers, 3. Renderer uses them 
+      pGui->Update();
       pCameraMan->Update();
       pRenderer->Update();
 			pRenderer->DrawFrame();
@@ -193,6 +196,7 @@ private:
 		if (width == 0 || height == 0) return;//Prevents problems when minimizing the window
 
 		GraphicGLFWApp* thisPointer = reinterpret_cast<GraphicGLFWApp*>(glfwGetWindowUserPointer(window));
+    ServiceLocator::GetGUI()->OnWindowResize();
 		ServiceLocator::GetRenderer()->OnWindowResize(width,height);
 		ServiceLocator::GetCameraManager()->OnWindowResize(width,height);
 		ServiceLocator::GetSceneManager()->GetCurrentScene()->OnWindowResize();
@@ -237,20 +241,38 @@ private:
 int main() {
 	
 	GraphicGLFWApp mainApp;
+
+  VulkanImGUI gui;
+  ServiceLocator::Provide(&gui);
+
 	RendererVulkan vulkanRenderer;//HERE WE COULD CREATE AN OPENGL RENDERER
-	SceneManager theSceneManager;
+  ServiceLocator::Provide(&vulkanRenderer);
+ 
+  SceneManager theSceneManager;
+  ServiceLocator::Provide(&theSceneManager);
+
 	Input theInput;
+  ServiceLocator::Provide(&theInput);
+
 	CameraManager camManager;
+  ServiceLocator::Provide(&camManager);
+
   Logger logger;
+  ServiceLocator::Provide(&logger);
+
   ThreadPool threadPool;
+  ServiceLocator::Provide(&threadPool);
+  
   threadPool.setThreadCount(2);
 
-	ServiceLocator::Provide(&theSceneManager);
-	ServiceLocator::Provide(&vulkanRenderer);
-	ServiceLocator::Provide(&theInput);
-	ServiceLocator::Provide(&camManager);
-  ServiceLocator::Provide(&logger);
-  ServiceLocator::Provide(&threadPool);
+	
+	
+  
+	
+	
+  
+  
+ 
 	
 	try {
 		mainApp.init();

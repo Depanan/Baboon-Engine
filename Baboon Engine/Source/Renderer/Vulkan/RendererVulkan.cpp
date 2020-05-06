@@ -23,8 +23,6 @@ void PrintVulkanSupportedExtensions()
 
 void RendererVulkan::OnWindowResize(int i_NewW, int i_NewH)
 {
-    if (m_GUI)
-        m_GUI->OnWindowResize();
     
     if (m_RenderPath)
     {
@@ -45,9 +43,7 @@ void RendererVulkan::Update()
 {
     m_LogicalDevice->getResourcesCache().GarbageCollect();
 
-    if (m_GUI)
-        m_GUI->DoUI();
-
+   
    
     
 }
@@ -105,15 +101,15 @@ int RendererVulkan::Init(std::vector<const char*>& required_extensions, GLFWwind
     auto fragmentShader = m_ShaderSourcePool.getShaderSource("./Shaders/shader.frag"); 
 
   
-    auto subpass = std::make_unique<TestTriangleSubPass>(*m_RenderContext,vertexShader,fragmentShader,p_Camera);//Here we are adding our own test subpass TODO: Add the real thing
+    auto subpass = std::make_unique<ForwardSubpass>(*m_RenderContext,vertexShader,fragmentShader,p_Camera);//Here we are adding our own test subpass TODO: Add the real thing
     m_RenderPath = std::make_unique<RenderPath>();
     m_RenderPath->add_subpass(std::move(subpass));
 
     
     
-    m_GUI = std::make_unique<VulkanImGUI>(*m_RenderContext, this);
-    m_GUI->Init(i_window);
     
+    VulkanImGUI* gui = (VulkanImGUI* )ServiceLocator::GetGUI();
+    gui->Init(i_window, m_RenderContext.get(), this);
     
     return true;
     //return (result == VK_SUCCESS);
@@ -153,9 +149,10 @@ void RendererVulkan::DrawFrame()
   if(m_RenderPath)//If we have a pipeline set, call its draw function
     m_RenderPath->draw(command_buffer, renderTarget, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
-  if (m_GUI)
+  VulkanImGUI* gui = (VulkanImGUI*)ServiceLocator::GetGUI();
+  if (gui)
   {
-      m_GUI->Draw(command_buffer);
+      gui->Draw(command_buffer);
   }
       
       

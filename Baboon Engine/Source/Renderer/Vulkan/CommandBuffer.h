@@ -36,6 +36,11 @@ struct RenderPassBinding
     const RenderPass* render_pass;
     const FrameBuffer* framebuffer;
 };
+struct VertexBufferBinding
+{   
+    VkBuffer vertexBuffer;
+    VkBuffer indexBuffer;
+};
 
 class VulkanBuffer;
 
@@ -82,7 +87,7 @@ public:
     void draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance);
     void draw_indexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, int32_t vertex_offset, uint32_t first_instance);
 
-    void bind_vertex_buffers(uint32_t first_binding, std::vector<std::reference_wrapper<VulkanBuffer>> buffers, const std::vector<VkDeviceSize>& offsets);
+    void bind_vertex_buffer(uint32_t first_binding, const VulkanBuffer& buffer, const std::vector<VkDeviceSize>& offsets);
     void bind_index_buffer(VulkanBuffer& buffer, VkDeviceSize offset, VkIndexType index_type);
 
     void bind_buffer(const VulkanBuffer& buffer, VkDeviceSize offset, VkDeviceSize range, uint32_t set, uint32_t binding, uint32_t array_element);
@@ -134,6 +139,7 @@ private:
     std::unordered_map<uint32_t, DescriptorSetLayout*> m_DescriptorSetLayout_BindingState;
     RenderPassBinding m_CurrentRenderPass{ NULL,NULL };
 
+    VertexBufferBinding m_CurrentVertexBindings{ VK_NULL_HANDLE,VK_NULL_HANDLE };
     std::unordered_map<uint32_t, DescriptorSetLayout*> m_DescriptorSet_Binding_State;
 
 

@@ -17,10 +17,10 @@ public:
     CommandBuffer& begin(CommandBuffer::ResetMode reset_mode = CommandBuffer::ResetMode::ResetPool);
     void submit(const CommandBuffer& command_buffer);
     void end(VkSemaphore semaphore);
-    RenderFrame& getActiveFrame();
-    Device& getDevice() { return m_DeviceRef; }
+    RenderFrame& getActiveFrame()const;
+    Device& getDevice() const{ return m_DeviceRef; }
     VkExtent2D getSurfaceExtent()const { return m_Surface_extent; }
-    RenderFrame& getCurrentFrame() { return *m_Frames[m_FrameIndex]; }
+    RenderFrame& getCurrentFrame() const{ return *m_Frames[m_FrameIndex]; }
     const std::vector<std::unique_ptr<RenderFrame>>& getRenderFrames()const { return m_Frames; }
 private:
     VkSemaphore submit(const Queue& queue, const CommandBuffer& command_buffer, VkSemaphore wait_semaphore, VkPipelineStageFlags wait_pipeline_stage);

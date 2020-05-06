@@ -38,7 +38,7 @@ void Subpass::setReRecordCommands()
 
 
 
-TestTriangleSubPass::TestTriangleSubPass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr<ShaderSource> fragment_shader, const Camera* p_Camera):
+ForwardSubpass::ForwardSubpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr<ShaderSource> fragment_shader, const Camera* p_Camera):
     Subpass{ render_context,vertex_shader,fragment_shader },
     m_Camera(p_Camera)
 {
@@ -77,7 +77,7 @@ TestTriangleSubPass::TestTriangleSubPass(VulkanContext& render_context, std::wea
    
 
 }
-void TestTriangleSubPass::prepare()//setup shaders, To be called when adding subpass to the pipeline
+void ForwardSubpass::prepare()//setup shaders, To be called when adding subpass to the pipeline
 {
     //Warming up shaders so vkCreateShaderModule is called
     auto& device = m_RenderContext.getDevice();
@@ -88,7 +88,7 @@ void TestTriangleSubPass::prepare()//setup shaders, To be called when adding sub
 
 
 
-void TestTriangleSubPass::draw(CommandBuffer& primary_commandBuffer) 
+void ForwardSubpass::draw(CommandBuffer& primary_commandBuffer) 
 {//render geometry within subpass
 
     auto scene = ServiceLocator::GetSceneManager()->GetCurrentScene();
@@ -114,7 +114,7 @@ void TestTriangleSubPass::draw(CommandBuffer& primary_commandBuffer)
 
 }
 
-void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, CommandBuffer* primary_commandBuffer)
+void ForwardSubpass::recordCommandBuffers(CommandBuffer* command_buffer, CommandBuffer* primary_commandBuffer)
 {
 
     auto camera = ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main);
@@ -146,13 +146,7 @@ void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, Co
     //Bind the lights uniform buffer
     command_buffer->bind_buffer(*((VulkanBuffer*)(scene->getLightsUniformBuffer())), 0, sizeof(UBOLight), 0, 4, 0);
 
-    //Bind vertex buffer
-    std::vector<std::reference_wrapper<VulkanBuffer>> buffers;
-    buffers.emplace_back(std::ref(*((VulkanBuffer*)scene->GetVerticesBuffer())));
-
-    command_buffer->bind_vertex_buffers(0, std::move(buffers), { 0 });
-    //Bind Indices buffer
-    command_buffer->bind_index_buffer(*((VulkanBuffer*)scene->GetIndicesBuffer()), 0, VK_INDEX_TYPE_UINT32);
+    
 
     
     std::vector<RenderBatch>& batchesOpaque = scene->GetOpaqueBatches();
@@ -242,7 +236,7 @@ void TestTriangleSubPass::recordCommandBuffers(CommandBuffer* command_buffer, Co
     command_buffer->end();
 }
 
-void TestTriangleSubPass::drawModel(Model& model, CommandBuffer* command_buffer)
+void ForwardSubpass::drawModel(Model& model, CommandBuffer* command_buffer)
 {
 
     auto& device = m_RenderContext.getDevice();
@@ -261,6 +255,12 @@ void TestTriangleSubPass::drawModel(Model& model, CommandBuffer* command_buffer)
         pFragmentShader = m_FragmentShader.lock();
     }
 
+    
+
+    //Bind vertex buffer
+    command_buffer->bind_vertex_buffer(0, *((VulkanBuffer*)model.GetMesh().GetVerticesBuffer()), { 0 });
+    //Bind Indices buffer
+    command_buffer->bind_index_buffer(*((VulkanBuffer*)model.GetMesh().GetIndicesBuffer()), 0, VK_INDEX_TYPE_UINT32);
 
 
     auto& vert_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader, model.getShaderVariant());
@@ -326,11 +326,11 @@ void TestTriangleSubPass::drawModel(Model& model, CommandBuffer* command_buffer)
     }
 
 
-    int nIndices = model.GetMesh().GetNIndices();
-    int indexStart = model.GetMesh().GetIndexStartPosition();
+    int nIndices = model.GetNIndices();
+    int indexStart = model.GetIndexStartPosition();
     command_buffer->pushConstants(0, model.getModelMatrix());
     command_buffer->pushConstants(0, model.getModelMatrix());
   
-    command_buffer->draw_indexed(nIndices, 1, indexStart, model.GetMesh().GetVertexStartPosition(), 0);
+    command_buffer->draw_indexed(nIndices, 1, indexStart, model.GetVertexStartPosition(), 0);
 }
 

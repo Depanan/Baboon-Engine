@@ -13,7 +13,7 @@ struct InstanceUBO {
 class Model
 {
 public:
-  Model(const Mesh& mesh);
+  Model(const Mesh& mesh, uint32_t iIndicesStart, uint32_t iIndicesCount, uint32_t i_VerticesStart, uint32_t i_nVertices);
  
 
 	const Mesh& GetMesh() { return m_Mesh; }
@@ -31,9 +31,20 @@ public:
 
   const ShaderVariant& getShaderVariant()const { return m_Variant; }
   void updateAABB();
+
+  const uint32_t GetIndexStartPosition() const { return m_IndexStartPosition; }
+  const uint32_t GetVertexStartPosition() const { return m_VertexStartPosition; }
+  const uint32_t GetNIndices() const { return m_NIndices; }
+
 private:
    
 	const Mesh& m_Mesh;
+  uint32_t m_IndexStartPosition;//Position in the global index array
+  uint32_t m_VertexStartPosition;//Position in the global index array
+  uint32_t m_NIndices;//Number of indices
+  uint32_t m_NVertices;
+
+
 	Material* m_Material;
   ShaderVariant m_Variant;
 

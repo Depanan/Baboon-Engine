@@ -58,10 +58,10 @@ class CommandPool;
 
 
 
-class TestTriangleSubPass: public Subpass
+class ForwardSubpass: public Subpass
 {
 public:
-    TestTriangleSubPass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr<ShaderSource> fragment_shader, const Camera* p_Camera);
+    ForwardSubpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr<ShaderSource> fragment_shader, const Camera* p_Camera);
     void prepare() override;
     void draw(CommandBuffer& command_buffer) override;
 

@@ -49,8 +49,16 @@ ShaderModule::ShaderModule(const Device& device,
 
         std::string infoLog;
         GLSLCompiler compiler;
-        compiler.compile_to_spirv(m_Stage, srcPtr->get_data(), m_EntryPoint,shader_variant, m_Spirv, infoLog);
-    
+        LOGINFO("Compiling shader: " + m_SourceName + "ID: " + std::to_string(shaderSource->get_id()));
+        bool success = compiler.compile_to_spirv(m_Stage, srcPtr->get_data(), m_EntryPoint,shader_variant, m_Spirv, infoLog);
+        if(success)
+            LOGINFO("Compiled!");
+        else
+        {
+            LOGERROR("Error: " + infoLog);
+            //TODO: Handle this properly
+        }
+
         readShaderResources();
     }
 }

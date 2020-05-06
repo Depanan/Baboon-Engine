@@ -196,7 +196,7 @@ VkSemaphore VulkanContext::submit(const Queue& queue, const CommandBuffer& comma
 
 }
 
-RenderFrame& VulkanContext::getActiveFrame()
+RenderFrame& VulkanContext::getActiveFrame()const
 {
     assert(m_FrameActive && "Frame is not active, please call begin_frame");
     return *(m_Frames.at(m_FrameIndex));

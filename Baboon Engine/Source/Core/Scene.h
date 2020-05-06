@@ -39,8 +39,7 @@ public:
 	const int GetIndicesNumber() { return m_Indices.size(); }
 	const size_t GetIndicesSize() { return sizeof(m_Indices[0]) * m_Indices.size(); }
 
-  Buffer* GetIndicesBuffer() { return m_IndicesBuffer; }
-  Buffer* GetVerticesBuffer() { return m_VerticesBuffer; }
+  
 	
 	void OnWindowResize();
 
@@ -61,6 +60,11 @@ public:
   void setLightPosition(glm::vec3 position);
   void setLightColor(glm::vec3 position);
   void updateLightsBuffer();
+
+
+
+  //UI functions
+  void DoLightsUI(bool* pOpen);
 private:
 
 	bool m_bIsInit = false;
@@ -82,8 +86,7 @@ private:
 	//Global data for indexed meshes
 	std::vector<Vertex> m_Vertices;
 	std::vector<uint32_t> m_Indices;
-  Buffer* m_VerticesBuffer;
-  Buffer* m_IndicesBuffer;
+  
 
   Buffer* m_LightsUniformBuffer;
   UBOLight m_Light;
@@ -103,7 +106,7 @@ class SceneManager {
     
 
 public:
-
+    SceneManager();
     void LoadScene(const std::string i_ScenePath);
     void FreeScene();
 	Scene* GetCurrentScene() {

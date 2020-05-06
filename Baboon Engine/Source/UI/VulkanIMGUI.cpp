@@ -61,36 +61,33 @@ Font::Font(const std::string& name, float size) :
 }
 
 
-VulkanImGUI::VulkanImGUI(VulkanContext& i_context, RendererVulkan* renderer) :
-    m_VulkanContext(i_context),
-    m_VulkanRenderer(renderer),
-    m_VertexShader {renderer->getShaderSourcePool().getShaderSource("./Shaders/imgui.vert")},
-    m_FragmentShader{ renderer->getShaderSourcePool().getShaderSource("./Shaders/imgui.frag") }
 
-{
- 
-}
 
 VulkanImGUI::~VulkanImGUI()
 {
 	
 }
 
-void VulkanImGUI::Init(GLFWwindow* i_window)
+void VulkanImGUI::Init(GLFWwindow* i_window, const VulkanContext* i_context, RendererVulkan* renderer)
 {
 	
+    m_VulkanContext = i_context;
+    m_VulkanRenderer = renderer;
+    m_VertexShader = renderer->getShaderSourcePool().getShaderSource("./Shaders/imgui.vert");
+    m_FragmentShader = renderer->getShaderSourcePool().getShaderSource("./Shaders/imgui.frag");
+
     g_Window = i_window;
     glfwSetMouseButtonCallback(g_Window, VulkanIMGUI_MouseButtonCallback);
     glfwSetScrollCallback(g_Window, VulkanIMGUI_ScrollCallback);
     glfwSetKeyCallback(g_Window, VulkanIMGUI_KeyCallback);
 
 
-    auto& device = m_VulkanContext.getDevice();
+    auto& device = m_VulkanContext->getDevice();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
 
     // Dimensions
-    auto     extent = m_VulkanContext.getSurfaceExtent();
+    auto     extent = m_VulkanContext->getSurfaceExtent();
     io.DisplaySize.x = static_cast<float>(extent.width);
     io.DisplaySize.y = static_cast<float>(extent.height);
     io.FontGlobalScale = 1.0f;
@@ -208,8 +205,8 @@ void VulkanImGUI::recordCommandBuffers(CommandBuffer* command_buffer, CommandBuf
 {
 
 
-    auto& device = m_VulkanContext.getDevice();
-    auto& renderTarget = m_VulkanContext.getActiveFrame().getRenderTarget();//Grab the render target
+    auto& device = m_VulkanContext->getDevice();
+    auto& renderTarget = m_VulkanContext->getActiveFrame().getRenderTarget();//Grab the render target
 
     //Set viewport and scissors
     auto& extent = renderTarget.getExtent();
@@ -313,9 +310,8 @@ void VulkanImGUI::recordCommandBuffers(CommandBuffer* command_buffer, CommandBuf
     command_buffer->pushConstants(0, push_transform);
 
 
-    std::vector<std::reference_wrapper<VulkanBuffer>> buffers;
-    buffers.push_back(*m_VertexBuffer);
-    command_buffer->bind_vertex_buffers(0, buffers, { 0 });
+   
+    command_buffer->bind_vertex_buffer(0, *m_VertexBuffer, { 0 });
 
     command_buffer->bind_index_buffer(*m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
@@ -355,8 +351,8 @@ void VulkanImGUI::recordCommandBuffers(CommandBuffer* command_buffer, CommandBuf
 
 void VulkanImGUI::Draw(CommandBuffer& primary_commandBuffer)
 {
-    auto& device = m_VulkanContext.getDevice();
-    auto& activeFrame = m_VulkanContext.getActiveFrame();
+    auto& device = m_VulkanContext->getDevice();
+    auto& activeFrame = m_VulkanContext->getActiveFrame();
 
     auto persistentCommands = m_PersistentCommandsPerFrame.getPersistentCommands(activeFrame.getHashId(), device, activeFrame);
     CommandBuffer* command_buffer = persistentCommands->getCommandBuffer();
@@ -388,70 +384,16 @@ void VulkanImGUI::RenderStatsWindow(bool* pOpen)
     const glm::vec3 camForward = cam->GetForward();
 		ImGui::Text("Scene cam Pos = (%.2f,%.2f,%.2f)",camPos.x,camPos.y,camPos.z);
     ImGui::Text("Scene cam Forward = (%.2f,%.2f,%.2f)", camForward.x, camForward.y, camForward.z);
-
-
-
-
-    ///TODO: MOVE THIS TO THE SCENE (OR A LIGHT MANAGER) AND PROVIDE THIS AS A FUNCTION TO THE GUI SCENE::DOGUI for example
-    auto& light = ServiceLocator::GetSceneManager()->GetCurrentScene()->getLight();
-   
-    glm::vec3 lPos = light.lightPos;
-    ImGui::SliderFloat3("Light Position", &lPos.x,-100.0f,100.0f);
-
-    glm::vec3 lCol = light.lightColor;
-    ImGui::ColorPicker3("Light color", &lCol.x);
-    bool bUpdateLightsBuffer = false;
-    if (lPos != glm::vec3(light.lightPos))
-    {
-        ServiceLocator::GetSceneManager()->GetCurrentScene()->setLightPosition(lPos);
-        bUpdateLightsBuffer = true;
-    }
-    if (lCol != glm::vec3(light.lightColor))
-    {
-        ServiceLocator::GetSceneManager()->GetCurrentScene()->setLightColor(lCol);
-        bUpdateLightsBuffer = true;
-    }
-    if (bUpdateLightsBuffer)
-    {
-        ServiceLocator::GetSceneManager()->GetCurrentScene()->updateLightsBuffer();
-    }
-    //////////////////////////////////////////////////////////////////////////////////////
-   
-
-   
-	
 	}
 	ImGui::End();
 }
 
-std::string BasicFileOpen()
+
+
+void VulkanImGUI::DoUI()
 {
-	std::string fileOpen = "";
-	char filename[MAX_PATH];
 
-	OPENFILENAME ofn;
-	ZeroMemory(&filename, sizeof(filename));
-	ZeroMemory(&ofn, sizeof(ofn));
-	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = NULL;  // If you have a window to center over, put its HANDLE here
-	ofn.lpstrFilter = "OBJ Files\0*.obj\0Any File\0*.*\0";
-	ofn.lpstrFile = filename;
-	ofn.nMaxFile = MAX_PATH;
-	ofn.lpstrTitle = "Select a File, yo!";
-	ofn.Flags = OFN_DONTADDTORECENT | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
-
-	if (GetOpenFileNameA(&ofn))
-	{
-		fileOpen = std::string(filename);
-	}
-
-	return fileOpen;
-}
-
-void VulkanImGUI::DoUI(bool i_FirstCall)
-{
-	ServiceLocator::GetRenderer();
-
+ 
 	m_UpdateTimer += ServiceLocator::GetRenderer()->GetDeltaTime();
 	
 	if (m_UpdateTimer < 1.0f/60.0f) {
@@ -461,35 +403,24 @@ void VulkanImGUI::DoUI(bool i_FirstCall)
 		
 	m_UpdateTimer = 0.0f;
 
-  newFrame();
+  newFrame();//TODO: Think wheter new frame should be part of GUI
+  GUI::DoUI();
 	
 	static bool bStatsWindow = false;
-	static bool bLoadScene = false;
+	
 
 	if (bStatsWindow)
 	{
 		RenderStatsWindow(&bStatsWindow);
 	}
-	if (bLoadScene)
-	{
-		
-		
-		std::string filePath = BasicFileOpen();
-		if (filePath.size() > 0)
-		{
-			ServiceLocator::GetSceneManager()->LoadScene(filePath);
-		}
-		
-
-		bLoadScene = false;
-	}
+  
 
 	if (ImGui::BeginMainMenuBar())
 	{
 		if (ImGui::BeginMenu("Options"))
 		{
 			ImGui::MenuItem("App stats", NULL, &bStatsWindow);
-			ImGui::MenuItem("Load Scene", NULL, &bLoadScene);
+			
 			ImGui::EndMenu();
 		}
 
@@ -499,7 +430,7 @@ void VulkanImGUI::DoUI(bool i_FirstCall)
 
 	
 
-	ImGui::ShowTestWindow();
+	//ImGui::ShowTestWindow();
 	///////////////////////////////////////////////////////
 
 
@@ -579,8 +510,8 @@ void VulkanImGUI::UpdateDrawBuffers()
         (m_IndexBuffer->getHandle() == VK_NULL_HANDLE) || (index_buffer_size != m_LastIndexBufferSize);
     if (bNeedsUpdate)
     {
-        auto& device = m_VulkanContext.getDevice();
-        m_VulkanContext.getCurrentFrame().getFencePool().wait();//We need to wait to make sure that the Buffers we are about to destroy are not in use by the previous frame command buffer!
+        auto& device = m_VulkanContext->getDevice();
+        m_VulkanContext->getCurrentFrame().getFencePool().wait();//We need to wait to make sure that the Buffers we are about to destroy are not in use by the previous frame command buffer!
         //vkDeviceWaitIdle(device.get_handle());
     }
 
@@ -591,7 +522,7 @@ void VulkanImGUI::UpdateDrawBuffers()
         updated = true;
 
         m_VertexBuffer.reset();
-        m_VertexBuffer = std::make_unique<VulkanBuffer>(m_VulkanContext.getDevice(), vertex_buffer_size,
+        m_VertexBuffer = std::make_unique<VulkanBuffer>(m_VulkanContext->getDevice(), vertex_buffer_size,
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VMA_MEMORY_USAGE_GPU_TO_CPU);
     }
@@ -602,7 +533,7 @@ void VulkanImGUI::UpdateDrawBuffers()
         updated = true;
 
         m_IndexBuffer.reset();
-        m_IndexBuffer = std::make_unique<VulkanBuffer>(m_VulkanContext.getDevice(), index_buffer_size,
+        m_IndexBuffer = std::make_unique<VulkanBuffer>(m_VulkanContext->getDevice(), index_buffer_size,
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
             VMA_MEMORY_USAGE_GPU_TO_CPU);
     }

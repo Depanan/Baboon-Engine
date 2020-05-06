@@ -68,6 +68,7 @@
     <ClCompile Include="Source\Renderer\Vulkan\VulkanImageView.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\VulkanResources.cpp" />
     <ClCompile Include="Source\Renderer\Vulkan\VulkanSampler.cpp" />
+    <ClCompile Include="Source\UI\GUI.cpp" />
     <ClCompile Include="Source\UI\VulkanIMGUI.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -127,6 +128,7 @@
     <ClInclude Include="Source\Renderer\Vulkan\VulkanResources.h" />
     <ClInclude Include="Source\Renderer\Vulkan\VulkanSampler.h" />
     <ClInclude Include="Source\Renderer\Vulkan\VulkanTexture.h" />
+    <ClInclude Include="Source\UI\GUI.h" />
     <ClInclude Include="Source\UI\VulkanIMGUI.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

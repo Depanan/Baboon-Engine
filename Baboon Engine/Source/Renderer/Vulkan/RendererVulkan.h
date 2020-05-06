@@ -67,7 +67,7 @@ private:
   std::list <VulkanSampler> m_Samplers;
   std::list<VulkanBuffer> m_Buffers;
 
-  std::unique_ptr <VulkanImGUI> m_GUI{ nullptr };
+  //std::unique_ptr <VulkanImGUI> m_GUI{ nullptr };
 
 	VkFormat m_SwapChainImageFormat;
 	VkFormat m_SwapChainDepthFormat;

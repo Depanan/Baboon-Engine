@@ -2,8 +2,12 @@
 #include "Renderer/Common/GLMInclude.h"
 #include <algorithm>
 
-Model::Model(const Mesh& i_Mesh):
-    m_Mesh(i_Mesh)
+Model::Model(const Mesh& i_Mesh, uint32_t iIndicesStart, uint32_t iIndicesCount, uint32_t i_VerticesStart, uint32_t i_nVertices):
+    m_Mesh(i_Mesh),
+    m_IndexStartPosition(iIndicesStart),
+    m_NIndices(iIndicesCount),
+    m_VertexStartPosition(i_VerticesStart),
+    m_NVertices(i_nVertices)
 {
     m_AABB.reset();
 }
@@ -44,12 +48,10 @@ void Model::computeShaderVariant()
 }
 void Model::updateAABB()
 {
-    const uint32_t* indices = nullptr;
-    size_t nIndices;
-    m_Mesh.getIndicesData(&indices, &nIndices);
-    const Vertex* vertices = nullptr;
-    size_t nVertices;
-    m_Mesh.getVertexData(&vertices, &nVertices);
-    m_AABB.update(vertices, nVertices, indices, nIndices);
+     
+    const uint32_t* indices = m_Mesh.GetIndicesData() + m_IndexStartPosition;
+    const Vertex* vertices = m_Mesh.GetVertexData() + m_VertexStartPosition;
+    
+    m_AABB.update(vertices, m_NVertices, indices, m_NIndices);
     m_AABB.transform(m_InstanceUniforms.model);
 }

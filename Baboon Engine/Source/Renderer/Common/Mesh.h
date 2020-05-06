@@ -16,34 +16,29 @@ struct Vertex {
 	static void GetAttributesDescription(std::vector<VkVertexInputAttributeDescription>& o_Description);
 };
 
-class Scene;
+class Buffer;
 class Mesh
 {
 public:
-    Mesh(const Scene& scene, const Vertex* ,uint32_t iIndicesStart, uint32_t iIndicesCount, uint32_t i_VerticesStart, uint32_t i_nVertices);
-
-	
-    
-	
-
-    const uint32_t GetIndexStartPosition() const { return m_IndexStartPosition; }
-  const uint32_t GetVertexStartPosition() const { return m_VertexStartPosition; }
-	const uint32_t GetNIndices() const { return m_NIndices; }
-
-  const void getIndicesData(const uint32_t** o_Indices, size_t* size) const;
-  const void getVertexData( const Vertex** o_Vertices, size_t* size) const;
-
+    ~Mesh();
+    void pushVertex(Vertex v);
+    void pushIndex(uint32_t index);
+    const Buffer* GetIndicesBuffer()const { return m_IndicesBuffer; }
+    const Buffer* GetVerticesBuffer()const { return m_VerticesBuffer; }
+    const size_t GetVerticesSize() { return sizeof(m_Vertices[0]) * m_Vertices.size(); }
+    const size_t GetIndicesSize() { return sizeof(m_Indices[0]) * m_Indices.size(); }
+    const uint32_t* GetIndicesData() const { return m_Indices.data(); };
+    const Vertex* GetVertexData() const { return m_Vertices.data(); };
+    void uploadBuffers();
 private:
-
-	uint32_t m_IndexStartPosition;//Position in the global index array
-	uint32_t m_VertexStartPosition;//Position in the global index array
-	uint32_t m_NIndices;//Number of indices
-  uint32_t m_NVertices;
-  const Vertex* m_Vertices;
-
-  const Scene& m_Scene;
-
+    std::vector<Vertex> m_Vertices;
+    std::vector<uint32_t> m_Indices;
+    Buffer* m_VerticesBuffer;
+    Buffer* m_IndicesBuffer;
 };
+
+
+
 
 
  

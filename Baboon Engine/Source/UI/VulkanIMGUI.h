@@ -7,7 +7,7 @@
 #include "../Renderer/Vulkan/resources/Shader.h"
 #include "../Core/Material.h"
 #include "../Renderer/Vulkan/PersistentCommand.h"
-
+#include "GUI.h"
 #include <memory>
 
 class VulkanContext;
@@ -38,16 +38,16 @@ public:
 struct GLFWwindow;
 
 class RendererVulkan;
-class VulkanImGUI
+class VulkanImGUI: public GUI
 {
 public:
 	~VulkanImGUI();
 
-  VulkanImGUI(VulkanContext& i_context, RendererVulkan* renderer);
-	void Init(GLFWwindow* i_window);
-	void DoUI(bool i_FirstCall = false);
+  
+	void Init(GLFWwindow* i_window, const VulkanContext* i_context, RendererVulkan* renderer);
+	void DoUI() override;
 	void Draw(CommandBuffer& m_Command);
-	void OnWindowResize();
+	void OnWindowResize() override;
 private:
 	
   void recordCommandBuffers(CommandBuffer* command_buffer, CommandBuffer* primary_commandBuffer);
@@ -60,7 +60,7 @@ private:
 
 	float m_UpdateTimer = 0.0f;
 
-  VulkanContext& m_VulkanContext;
+  const VulkanContext* m_VulkanContext;
   std::unique_ptr<VulkanImage> m_FontImage;
   std::unique_ptr<VulkanImageView> m_FontImageView;
 

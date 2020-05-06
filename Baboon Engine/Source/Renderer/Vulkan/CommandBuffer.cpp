@@ -82,6 +82,8 @@ VkResult CommandBuffer::begin(VkCommandBufferUsageFlags flags, CommandBuffer* pr
     m_PipelineState.reset();
     m_ResourceBindingState.reset();
     m_DescriptorSet_Binding_State.clear();
+    m_CurrentVertexBindings.indexBuffer = VK_NULL_HANDLE;
+    m_CurrentVertexBindings.vertexBuffer = VK_NULL_HANDLE;
 
     VkCommandBufferBeginInfo       beginInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
     VkCommandBufferInheritanceInfo inheritance { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
@@ -319,18 +321,27 @@ void CommandBuffer::copy_buffer_to_image(const VulkanBuffer& buffer, const Vulka
         regions.size(), regions.data());
 }
 
-void CommandBuffer::bind_vertex_buffers(uint32_t first_binding, std::vector<std::reference_wrapper<VulkanBuffer>> buffers, const std::vector<VkDeviceSize>& offsets)
+void CommandBuffer::bind_vertex_buffer(uint32_t first_binding, const VulkanBuffer& buffer, const std::vector<VkDeviceSize>& offsets)
 {
-    std::vector<VkBuffer> buffer_handles(buffers.size(), VK_NULL_HANDLE);
-    std::transform(buffers.begin(), buffers.end(), buffer_handles.begin(),
-        [](const VulkanBuffer& buffer) { return buffer.getHandle(); });
-    vkCmdBindVertexBuffers(getHandle(), first_binding, buffer_handles.size(), buffer_handles.data(), offsets.data());
+    if (m_CurrentVertexBindings.vertexBuffer != buffer.getHandle())
+    {
+        std::vector<VkBuffer> buffer_handles;
+        buffer_handles.push_back(buffer.getHandle());
+        vkCmdBindVertexBuffers(getHandle(), first_binding, buffer_handles.size(), buffer_handles.data(), offsets.data());
+        m_CurrentVertexBindings.vertexBuffer = buffer.getHandle();
+    }
+   
     
 }
 
 void CommandBuffer::bind_index_buffer(VulkanBuffer& buffer, VkDeviceSize offset, VkIndexType index_type)
 {
-    vkCmdBindIndexBuffer(getHandle(), buffer.getHandle(), offset, index_type);
+    if (m_CurrentVertexBindings.indexBuffer != buffer.getHandle())
+    {
+        vkCmdBindIndexBuffer(getHandle(), buffer.getHandle(), offset, index_type);
+        m_CurrentVertexBindings.indexBuffer = buffer.getHandle();
+    }
+   
 }
 void CommandBuffer::bind_image(const VulkanImageView& image_view, const VulkanSampler& sampler, uint32_t set, uint32_t binding, uint32_t array_element)
 {

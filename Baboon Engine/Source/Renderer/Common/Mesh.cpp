@@ -1,4 +1,5 @@
 #include "Mesh.h"
+#include "Buffer.h"
 #include "defines.h"
 #include "Core/ServiceLocator.h"
 
@@ -52,27 +53,26 @@ void Vertex::GetAttributesDescription(std::vector<VkVertexInputAttributeDescript
   o_AttribDescription[5].offset = offsetof(Vertex, biTangent);
 }
 
-Mesh::Mesh(const Scene& scene, const Vertex* vertices, uint32_t iIndicesStart, uint32_t iIndicesCount, uint32_t i_VerticesStart, uint32_t i_nVertices) :
-    m_Scene(scene),
-    m_Vertices(vertices),
-    m_IndexStartPosition(iIndicesStart),
-    m_NIndices(iIndicesCount),
-    m_VertexStartPosition(i_VerticesStart),
-    m_NVertices(i_nVertices)
+
+Mesh::~Mesh()
 {
-   
+    auto renderer = ServiceLocator::GetRenderer();
+    renderer->DeleteBuffer(m_IndicesBuffer);
+    renderer->DeleteBuffer(m_VerticesBuffer);
 }
 
-const void Mesh::getIndicesData( const uint32_t** o_Indices, size_t* size) const
+void Mesh::uploadBuffers()
 {
-  
-    *o_Indices = m_Scene.GetIndicesData() + m_IndexStartPosition;
-    *size = m_NIndices;
-   
+    auto renderer = ServiceLocator::GetRenderer();
+    m_VerticesBuffer = renderer->CreateVertexBuffer((void*)(m_Vertices.data()), GetVerticesSize());
+    m_IndicesBuffer = renderer->CreateIndexBuffer((void*)(m_Indices.data()), GetIndicesSize());
 }
-const void Mesh::getVertexData(  const Vertex** o_Vertices, size_t* size) const 
-{
-    *o_Vertices = m_Vertices;
-    *size = m_NVertices;
 
+void Mesh::pushVertex(Vertex v)
+{
+    m_Vertices.push_back(v);
+}
+void Mesh::pushIndex(uint32_t index)
+{
+    m_Indices.push_back(index);
 }

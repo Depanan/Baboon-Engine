@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "Scene.h"
 #include "Renderer/Common/GLMInclude.h"
+#include <imgui/imgui.h>
 
 #include <glm/gtc/type_ptr.hpp>
 #include "Core\ServiceLocator.h"
@@ -45,6 +46,7 @@ void alignedFree(void* data)
 
 Scene::Scene()
 {
+    
 
 }
 
@@ -87,8 +89,7 @@ void Scene::Free()
       delete texture;
   }
   m_Textures.clear();
-	renderer->DeleteBuffer(m_IndicesBuffer);
-	renderer->DeleteBuffer(m_VerticesBuffer);
+	
 	renderer->DeleteInstancedUniformBuffer();
 
 	m_bIsInit = false;
@@ -151,6 +152,45 @@ void Scene::setLightColor(glm::vec3 color)
 void Scene::updateLightsBuffer()
 {
     m_LightsUniformBuffer->update(&m_Light, sizeof(UBOLight));
+}
+
+void Scene::DoLightsUI(bool* pOpen)
+{
+    
+
+    if (!m_bIsInit)
+        return;
+    
+
+  
+
+    if (ImGui::Begin("Scene lights", pOpen, ImGuiWindowFlags_MenuBar))
+    {
+        glm::vec3 lPos = m_Light.lightPos;
+        ImGui::SliderFloat3("Light Position", &lPos.x, -100.0f, 100.0f);
+
+        glm::vec3 lCol = m_Light.lightColor;
+        ImGui::ColorPicker3("Light color", &lCol.x);
+        bool bUpdateLightsBuffer = false;
+        if (lPos != glm::vec3(m_Light.lightPos))
+        {
+            setLightPosition(lPos);
+            bUpdateLightsBuffer = true;
+        }
+        if (lCol != glm::vec3(m_Light.lightColor))
+        {
+            setLightColor(lCol);
+            bUpdateLightsBuffer = true;
+        }
+        if (bUpdateLightsBuffer)
+        {
+            updateLightsBuffer();
+        }
+    }
+    ImGui::End();
+
+    
+    
 }
 
 
@@ -319,12 +359,16 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 }
 void Scene::loadMeshes(const aiScene* i_aScene)
 {
-	int numberOfModelsInScene = i_aScene->mNumMeshes;
+
+  m_Meshes.emplace_back(std::make_unique<Mesh>());
+  Mesh& mesh = *m_Meshes.back();
+  
+	int numberOfMeshesInScene = i_aScene->mNumMeshes;
 
 
 	int iCurrentIndex = 0;
 	int iVertexGeneralCount = 0;
-	for (uint32_t i = 0; i < numberOfModelsInScene; i++)
+	for (uint32_t i = 0; i < numberOfMeshesInScene; i++)
 	{
 		aiMesh *aMesh = i_aScene->mMeshes[i];
 
@@ -342,7 +386,7 @@ void Scene::loadMeshes(const aiScene* i_aScene)
       vertex.tangent = hasTangentsAndBitangents ? glm::make_vec3(&aMesh->mTangents[v].x) : glm::vec3(0.0f);
       vertex.biTangent = hasTangentsAndBitangents ? glm::make_vec3(&aMesh->mBitangents[v].x) : glm::vec3(0.0f);
 			vertex.color = hasColor ? glm::make_vec3(&aMesh->mColors[0][v].r) : glm::vec3(1.0f);
-			m_Vertices.push_back(vertex);
+      mesh.pushVertex(vertex);
 		}
 		
 
@@ -356,14 +400,13 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 			}
 			for (uint32_t j = 0; j < pFace->mNumIndices; j++)
 			{
-				m_Indices.push_back(pFace->mIndices[j]);
+          mesh.pushIndex(pFace->mIndices[j]);
 				iNIndices++;
 			}
 		}
 
-    m_Meshes.emplace_back(std::make_unique<Mesh>(*this,&m_Vertices[iVertexGeneralCount], iCurrentIndex, iNIndices, iVertexGeneralCount, aMesh->mNumVertices));
-    Mesh& mesh = *m_Meshes[i];
-    m_Models.emplace_back(std::make_unique<Model>(mesh));
+    
+    m_Models.emplace_back(std::make_unique<Model>(mesh, iCurrentIndex, iNIndices, iVertexGeneralCount, aMesh->mNumVertices));
     Model& model = *m_Models[i];
     model.SetMaterial(&m_Materials[aMesh->mMaterialIndex]);
 
@@ -384,8 +427,7 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 	RendererAbstract* renderer = ServiceLocator::GetRenderer();
 	
 
-	m_VerticesBuffer = renderer->CreateVertexBuffer((void*)(GetVerticesData()), GetVerticesSize());
-	m_IndicesBuffer = renderer->CreateIndexBuffer((void*)(GetIndicesData()), GetIndicesSize());
+  mesh.uploadBuffers();
 
   glm::vec3 scenemin = glm::vec3(std::numeric_limits<float>::max());
   glm::vec3 scenemax = glm::vec3(std::numeric_limits<float>::min());
@@ -398,6 +440,10 @@ void Scene::loadMeshes(const aiScene* i_aScene)
       scenemax = glm::max(scenemax, model->getAABB().get_max());
   }
   m_SceneAABB = AABB(scenemin, scenemax);
+
+  //TODO: Create a AABB Mesh and link it somehow to the models so we can draw AABBs. Think about instancing it? Actually even as a postFX...
+
+
   ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->Teleport(m_SceneAABB.get_center() - glm::vec3(100.0,0,100.0),m_SceneAABB.get_center());
 }
 
@@ -411,6 +457,68 @@ void Scene::loadSceneRecursive(const aiNode* i_Node)
     }
 }
 
+std::string BasicFileOpen()
+{
+    std::string fileOpen = "";
+    char filename[MAX_PATH];
+
+    OPENFILENAME ofn;
+    ZeroMemory(&filename, sizeof(filename));
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = NULL;  // If you have a window to center over, put its HANDLE here
+    ofn.lpstrFilter = "OBJ Files\0*.obj\0Any File\0*.*\0";
+    ofn.lpstrFile = filename;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.lpstrTitle = "Select a File, yo!";
+    ofn.Flags = OFN_DONTADDTORECENT | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+    if (GetOpenFileNameA(&ofn))
+    {
+        fileOpen = std::string(filename);
+    }
+
+    return fileOpen;
+}
+
+SceneManager::SceneManager()
+{
+    ServiceLocator::GetGUI()->AddUIFunction([=]() {
+        
+        static bool bLoadScene = false;
+        static bool bLightsMenu = false;
+        
+        if (bLoadScene)
+        {
+            std::string filePath = BasicFileOpen();
+            if (filePath.size() > 0)
+            {
+                ServiceLocator::GetSceneManager()->LoadScene(filePath);
+            }
+            bLoadScene = false;
+        }
+
+
+        if(bLightsMenu)
+            GetCurrentScene()->DoLightsUI(&bLightsMenu);
+        
+        if (ImGui::BeginMainMenuBar())
+        {
+            if (ImGui::BeginMenu("Scene"))
+            {
+                ImGui::MenuItem("Load Scene", NULL, &bLoadScene);
+                ImGui::MenuItem("Lights", NULL, &bLightsMenu);
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMainMenuBar();
+        }
+    
+    
+    
+    });
+}
+
 void SceneManager::LoadScene(const std::string i_ScenePath)
 {
 
@@ -422,7 +530,7 @@ void SceneManager::LoadScene(const std::string i_ScenePath)
         int oldCurrentSceneIndex = m_CurrentSceneIndex;
         m_CurrentSceneIndex = m_LoadingSceneIndex;
         m_LoadingSceneIndex = oldCurrentSceneIndex;
-        
+        LOGINFO("Scene finished loading!");
        
        
     });
