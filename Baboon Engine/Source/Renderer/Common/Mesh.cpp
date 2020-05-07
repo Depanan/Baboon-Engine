@@ -68,6 +68,13 @@ void Mesh::uploadBuffers()
     m_IndicesBuffer = renderer->CreateIndexBuffer((void*)(m_Indices.data()), GetIndicesSize());
 }
 
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices):
+m_Vertices(vertices),
+m_Indices(indices)
+{
+    uploadBuffers();
+}
+
 void Mesh::pushVertex(Vertex v)
 {
     m_Vertices.push_back(v);

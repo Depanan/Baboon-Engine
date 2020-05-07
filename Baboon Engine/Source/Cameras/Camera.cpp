@@ -72,11 +72,11 @@ void Camera::UpdateProjectionMatrix(float newAspectRatio)
   m_Dirty = true;
 }
 
-void Camera::Teleport(glm::vec3 newPosition, glm::vec3 lookAt)
+void Camera::CenterAt(glm::vec3 lookAt)
 {
-    m_CamPosition = newPosition;
+    m_CamPosition = lookAt - glm::vec3(10.0, 0, 0.0);
     m_CamLookAt = lookAt;
-    m_CamForward = glm::normalize(lookAt - newPosition);
+    m_CamForward = glm::vec3(0, 0, 1);//glm::normalize(lookAt - newPosition);
     m_Rotation = glm::vec3(0.0);
 
     m_Dirty = true;

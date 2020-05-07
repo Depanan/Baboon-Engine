@@ -1,15 +1,18 @@
 #include "Model.h"
 #include "Renderer/Common/GLMInclude.h"
+#include <glm\gtx\matrix_decompose.hpp>
 #include <algorithm>
+#include <Core/ServiceLocator.h>
 
-Model::Model(const Mesh& i_Mesh, uint32_t iIndicesStart, uint32_t iIndicesCount, uint32_t i_VerticesStart, uint32_t i_nVertices):
+Model::Model(const Mesh& i_Mesh, MeshView meshView,  std::string name ):
     m_Mesh(i_Mesh),
-    m_IndexStartPosition(iIndicesStart),
-    m_NIndices(iIndicesCount),
-    m_VertexStartPosition(i_VerticesStart),
-    m_NVertices(i_nVertices)
+    m_MeshView(meshView),
+    m_Name(name)
 {
     m_AABB.reset();
+    m_Translation = glm::vec3(0.0);
+    m_Scale = glm::vec3(1.0);
+    m_Rotation = glm::quat();
 }
 
 void Model::SetMaterial(Material* i_Mat)
@@ -18,19 +21,61 @@ void Model::SetMaterial(Material* i_Mat)
     computeShaderVariant();
 }
 
+glm::vec3 Model::GetRotation()
+{
+    return glm::degrees(glm::eulerAngles(m_Rotation));
+}
+
+
+
+void Model::Rotate(const glm::vec3& i_Eulers)
+{
+    m_Rotation = glm::quat(glm::radians(i_Eulers));
+    computeModelMatrix();
+    updateAABB();
+}
 void Model::Translate(const glm::vec3& i_TranslateVec)
 {
-	
-	m_InstanceUniforms.model = glm::translate(m_InstanceUniforms.model, i_TranslateVec);
+  m_Translation = i_TranslateVec;
+  computeModelMatrix();
   updateAABB();
 }
 
 void Model::Scale(const glm::vec3& i_ScaleVec)
 {
-
-	m_InstanceUniforms.model = glm::scale(m_InstanceUniforms.model, i_ScaleVec);
+  m_Scale = i_ScaleVec;
+  computeModelMatrix();
   updateAABB();
 }
+
+
+void Model::SetTransform(glm::mat4 transformMat)
+{
+    m_InstanceUniforms.model = transformMat;
+    glm::vec3 skew;
+    glm::vec4 persp;
+    glm::decompose(transformMat, m_Scale, m_Rotation, m_Translation, skew, persp);
+
+    computeModelMatrix();
+    updateAABB();
+}
+
+void Model::computeModelMatrix()
+{
+    glm::mat4 rotationMatrix = glm::toMat4(m_Rotation);
+    glm::mat4 scaleMatrix;
+    scaleMatrix = glm::scale(scaleMatrix, m_Scale);
+    glm::mat4 translationMatrix;
+    translationMatrix = glm::translate(translationMatrix, -m_Translation);
+    m_InstanceUniforms.model = translationMatrix * rotationMatrix * scaleMatrix;
+
+    ServiceLocator::GetRenderer()->SceneDirty();//TODO:: do this better, again, listener? scene traversals?
+}
+
+
+
+
+
 void Model::computeShaderVariant()
 {
 
@@ -49,9 +94,10 @@ void Model::computeShaderVariant()
 void Model::updateAABB()
 {
      
-    const uint32_t* indices = m_Mesh.GetIndicesData() + m_IndexStartPosition;
-    const Vertex* vertices = m_Mesh.GetVertexData() + m_VertexStartPosition;
+    const uint32_t* indices = m_Mesh.GetIndicesData() + m_MeshView.m_IndicesMeshStart;
+    const Vertex* vertices = m_Mesh.GetVertexData() + m_MeshView.m_VerticesMeshStart;
     
-    m_AABB.update(vertices, m_NVertices, indices, m_NIndices);
+    m_AABB.reset();//TODO: Do I have to do all this everytime I transform? is going thru the mesh necessr?
+    m_AABB.update(vertices, m_MeshView.m_NVertices, indices, m_MeshView.m_NIndices);
     m_AABB.transform(m_InstanceUniforms.model);
 }

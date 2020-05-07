@@ -1,6 +1,7 @@
 #pragma once
 #include <queue>
 #include <string>
+#include <mutex>
 
 #define PER_FRAME_LIMIT 20 //so we don't print too much stuff per frame
 
@@ -25,4 +26,5 @@ public:
 
 private:
     static std::queue<std::string> sm_message_queue;
+    std::mutex m_LogMutex;
 };

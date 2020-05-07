@@ -5,6 +5,8 @@ std::queue<std::string> Logger::sm_message_queue;
 
 void  Logger::log(const std::string& message)
 {
+   
+    std::lock_guard<std::mutex> guard(m_LogMutex);
     sm_message_queue.push(message);
 }
 

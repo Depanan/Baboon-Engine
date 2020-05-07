@@ -19,7 +19,7 @@ public:
   bool GetDirty() const{ return m_Dirty; }
   void ClearDirty() { m_Dirty = false; }
  
-  void Teleport(glm::vec3 newPosition, glm::vec3 lookAt);
+  void CenterAt(glm::vec3 lookAt);
    UBOCamera& getCameraUBO() { return m_UBOCamera; }
 
 	const glm::mat4& GetViewMatrix()const { return m_UBOCamera.view; }

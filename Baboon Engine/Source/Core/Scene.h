@@ -62,13 +62,20 @@ public:
   void updateLightsBuffer();
 
 
+  void createBox(const glm::vec3& position);
 
   //UI functions
   void DoLightsUI(bool* pOpen);
+  void DoModelsUI(bool* pOpen);
 private:
+
+    typedef std::pair<Mesh*, MeshView> MeshWithView;
+    std::unordered_map<uint32_t, MeshWithView> m_MeshMap;
 
 	bool m_bIsInit = false;
 
+  glm::vec3 m_SceneBoundMin;
+  glm::vec3 m_SceneBoundMax;
   AABB m_SceneAABB;
 	
   std::vector <Texture*> m_Textures;

@@ -11,7 +11,7 @@ class Texture;
 class ShaderVariant
 {
 public:
-    ShaderVariant() = default;
+    ShaderVariant() { update_id(); }
 
     ShaderVariant(std::string&& preamble, std::vector<std::string>&& processes);
 
@@ -69,7 +69,7 @@ private:
 class Material
 {
 public:
-    void Init(std::string i_sMaterialName, std::vector<std::pair<std::string, Texture*>>, bool isTransparent);
+    void Init(std::string i_sMaterialName, std::vector<std::pair<std::string, Texture*>>*, bool isTransparent);
 	
 	const std::string& GetMaterialName()
 	{

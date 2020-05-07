@@ -61,6 +61,7 @@ private:
 	float m_UpdateTimer = 0.0f;
 
   const VulkanContext* m_VulkanContext;
+  PipelineLayout* m_PipelineLayout;
   std::unique_ptr<VulkanImage> m_FontImage;
   std::unique_ptr<VulkanImageView> m_FontImageView;
 
@@ -85,3 +86,5 @@ private:
   bool m_ForceUpdateGeometryBuffers{ false };
   PersistentCommandsPerFrame m_PersistentCommandsPerFrame;
 };
+
+

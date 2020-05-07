@@ -30,7 +30,9 @@ public:
 	virtual Buffer* CreateVertexBuffer(void*  i_data, size_t iBufferSize) = 0;
 	virtual Buffer* CreateIndexBuffer(void*  i_data, size_t iBufferSize) = 0;
 	virtual void DeleteBuffer(Buffer*) = 0;
+
   virtual void CameraDirty() = 0;//TODO: Replace this by listener stuff
+  virtual void SceneDirty() = 0;//TODO: Same
 
 
   virtual void ReloadShader(std::string) = 0;

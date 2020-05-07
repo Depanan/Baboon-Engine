@@ -192,6 +192,26 @@ void VulkanImGUI::Init(GLFWwindow* i_window, const VulkanContext* i_context, Ren
     m_IndexBuffer = std::make_unique<VulkanBuffer>(device, 1, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
 
 
+    // Bind pipeline layout
+    std::vector<ShaderModule*> shader_modules;
+    auto pVertexShader = m_VertexShader.lock();
+    if (!pVertexShader)
+    {
+        m_VertexShader = m_VulkanRenderer->getShaderSourcePool().getShaderSource("./Shaders/imgui.vert");
+        pVertexShader = m_VertexShader.lock();
+    }
+    auto pFragmentShader = m_FragmentShader.lock();
+    if (!pFragmentShader)
+    {
+        m_FragmentShader = m_VulkanRenderer->getShaderSourcePool().getShaderSource("./Shaders/imgui.frag");
+        pFragmentShader = m_FragmentShader.lock();
+    }
+    //TODO: Fix this shader mess
+
+    shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader, m_ShaderVariant));
+    shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader, m_ShaderVariant));
+
+    m_PipelineLayout = &device.getResourcesCache().request_pipeline_layout(shader_modules);
 
 }
 void VulkanImGUI::OnWindowResize()
@@ -273,27 +293,8 @@ void VulkanImGUI::recordCommandBuffers(CommandBuffer* command_buffer, CommandBuf
     depth_state.m_DepthWriteEnable = VK_FALSE;
     command_buffer->setDepthStencilState(depth_state);
 
-    // Bind pipeline layout
-    std::vector<ShaderModule*> shader_modules;
-    auto pVertexShader = m_VertexShader.lock();
-    if (!pVertexShader)
-    {
-        m_VertexShader = m_VulkanRenderer->getShaderSourcePool().getShaderSource("./Shaders/imgui.vert");
-        pVertexShader = m_VertexShader.lock();
-    }
-    auto pFragmentShader = m_FragmentShader.lock();
-    if (!pFragmentShader)
-    {
-        m_FragmentShader = m_VulkanRenderer->getShaderSourcePool().getShaderSource("./Shaders/imgui.frag");
-        pFragmentShader = m_FragmentShader.lock();
-    }
-    //TODO: Fix this shader mess
-    
-    shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader, m_ShaderVariant));
-    shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader, m_ShaderVariant));
 
-    auto& pipelineLayout = device.getResourcesCache().request_pipeline_layout(shader_modules);
-    command_buffer->bindPipelineLayout(pipelineLayout)   ;
+    command_buffer->bindPipelineLayout(*m_PipelineLayout)   ;
 
     command_buffer->bind_image(*m_FontImageView, *m_Sampler, 0, 0, 0);
 
@@ -430,7 +431,7 @@ void VulkanImGUI::DoUI()
 
 	
 
-	//ImGui::ShowTestWindow();
+	ImGui::ShowTestWindow();
 	///////////////////////////////////////////////////////
 
 
@@ -564,3 +565,7 @@ void VulkanImGUI::UpdateDrawBuffers()
     }
 
 }
+
+
+
+

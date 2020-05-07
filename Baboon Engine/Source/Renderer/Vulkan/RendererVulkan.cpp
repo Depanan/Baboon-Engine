@@ -62,7 +62,13 @@ float RendererVulkan::GetMainRTHeight() {
 }
 void RendererVulkan::SetupRenderCalls()
 {
-    Update();
+    if (m_RenderPath)
+    {
+        for (auto& subpass : m_RenderPath->getSubPasses())
+        {
+            subpass->prepare();//warming up shaders
+        }
+    }
 }
 
 void RendererVulkan::ReloadShader(std::string shaderPath)
@@ -374,6 +380,10 @@ void RendererVulkan::CameraDirty()
     auto& renderFrames = m_RenderContext->getRenderFrames();
     for (auto& frame : renderFrames)
         frame->setCameraUniformDirty();
+    reRecordCommands();
+}
+void RendererVulkan::SceneDirty()
+{
     reRecordCommands();
 }
 

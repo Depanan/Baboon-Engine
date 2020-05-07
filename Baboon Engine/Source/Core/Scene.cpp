@@ -20,6 +20,35 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb\stb_image.h"
 
+
+
+
+static Mesh* s_BoxMesh = nullptr;
+static Material* s_DefaultMaterial;
+static const std::vector<Vertex> s_VerticesBox = {
+{{-10.0f, -10.0f, 10.0f}, {1.0f, 0.0f, 0.0f},{0.0f, 0.0f},  {0.0f, 0.0f, 1.0f}},//0//TODO: Normals are not gonna look good here, start fetching the vertex attributes to use different variants depending on that
+{{10.0f, -10.0f, 10.0f}, {0.0f, 1.0f, 0.0f},{1.0f, 0.0f},   {0.0f, 0.0f, 1.0f}}, //1
+{{10.0f, 10.0f, 10.0f}, {0.0f, 0.0f, 1.0f},{1.0f, 1.0f},    {0.0f, 0.0f, 1.0f}},  //2
+{{-10.0f, 10.0f, 10.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 1.0f},   {0.0f, 0.0f, 1.0f}}, //3
+{{-10.0f, -10.0f, -10.0f}, {1.0f, 0.0f, 0.0f},{0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}}, //4
+{{10.0f, -10.0f, -10.0f}, {0.0f, 1.0f, 0.0f},{1.0f, 0.0f},  {0.0f, 0.0f, -1.0f}}, //5
+{{10.0f, 10.0f, -10.0f}, {0.0f, 0.0f, 1.0f},{1.0f, 1.0f},   {0.0f, 0.0f, -1.0f}}, //6
+{{-10.0f, 10.0f, -10.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 1.0f},   {0.0f, 0.0f, -1.0f}}//7
+};
+
+static const  std::vector<uint32_t> s_IndicesBox = {
+     0, 1, 2, 2, 3, 0,//front
+     0, 1, 5, 5, 4, 0,//bottom
+     1, 5, 6, 6, 2, 1,//right
+     4, 0, 3, 3, 7, 4,//left
+     4, 5, 6, 6, 7, 4,//back
+     3, 2, 6, 6, 7, 3 //top
+};
+
+
+
+
+
 //Util functions for aligned memalloc, maybe move them at some point
 void* alignedAlloc(size_t size, size_t alignment)
 {
@@ -97,6 +126,7 @@ void Scene::Free()
 
 void  Scene::getBatches(std::vector<RenderBatch>& batchList, BatchType batchType)//TODO: Don't do this sorting every frame. Only when relevant stuff changes. Probably can get away doing it onSceneLoad
 {
+    batchList.clear();
     auto camera = ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main);
 
     auto& listToBatch = batchType == BatchType::BatchType_Opaque ? m_OpaqueModels : m_TransparentModels;
@@ -122,7 +152,19 @@ void  Scene::getBatches(std::vector<RenderBatch>& batchList, BatchType batchType
           
        
     }
-
+    if(s_DefaultMaterial)
+    {
+        batchList.emplace_back(RenderBatch());
+        RenderBatch* batch = &batchList.back();
+        batch->m_Name = std::string("batch_") + s_DefaultMaterial->GetMaterialName();
+        auto byMaterial = sortedByMaterial.equal_range(s_DefaultMaterial->GetMaterialName());//retrieve the whole list of models using that material
+        for (auto it = byMaterial.first; it != byMaterial.second; ++it)
+        {
+            Model& model = it->second;
+            float distance = glm::length(camera->GetPosition() - model.getAABB().get_center());
+            batch->m_ModelsByDistance.emplace(distance, model);
+        }
+    }
 
 }
 
@@ -156,41 +198,135 @@ void Scene::updateLightsBuffer()
 
 void Scene::DoLightsUI(bool* pOpen)
 {
-    
-
     if (!m_bIsInit)
         return;
-    
-
-  
 
     if (ImGui::Begin("Scene lights", pOpen, ImGuiWindowFlags_MenuBar))
     {
-        glm::vec3 lPos = m_Light.lightPos;
-        ImGui::SliderFloat3("Light Position", &lPos.x, -100.0f, 100.0f);
 
-        glm::vec3 lCol = m_Light.lightColor;
-        ImGui::ColorPicker3("Light color", &lCol.x);
-        bool bUpdateLightsBuffer = false;
-        if (lPos != glm::vec3(m_Light.lightPos))
+        if (ImGui::TreeNode("Light"))
         {
-            setLightPosition(lPos);
-            bUpdateLightsBuffer = true;
-        }
-        if (lCol != glm::vec3(m_Light.lightColor))
-        {
-            setLightColor(lCol);
-            bUpdateLightsBuffer = true;
-        }
-        if (bUpdateLightsBuffer)
-        {
-            updateLightsBuffer();
+            glm::vec3 lPos = m_Light.lightPos;
+            bool bUpdateLightsBuffer = false;
+            const char* labelsTrans[3]{ "X","Y","Z" };
+            if (GUI::ImguiVec3Controller(lPos, labelsTrans))
+            {
+                setLightPosition(lPos);
+                bUpdateLightsBuffer = true;
+            }
+
+            glm::vec3 lCol = m_Light.lightColor;
+            ImGui::ColorPicker3("Light color", &lCol.x);
+            if (lCol != glm::vec3(m_Light.lightColor))
+            {
+                setLightColor(lCol);
+                bUpdateLightsBuffer = true;
+            }
+            if (bUpdateLightsBuffer)
+            {
+                updateLightsBuffer();
+            }
+            ImGui::TreePop();
         }
     }
     ImGui::End();
 
     
     
+}
+
+
+ void Scene::createBox(const glm::vec3& position)
+{
+
+     if (s_BoxMesh == nullptr)
+         s_BoxMesh = new Mesh(s_VerticesBox, s_IndicesBox);
+
+     MeshView meshView{ 0,s_IndicesBox.size(),0,s_VerticesBox.size(),-1 };
+
+     m_Models.emplace_back(std::make_unique<Model>(*s_BoxMesh, meshView, "Box!!"));
+     auto& model = m_Models.back();
+     if (s_DefaultMaterial == nullptr)
+     {
+         s_DefaultMaterial = new Material();
+         s_DefaultMaterial->Init("daniel_default_mat", nullptr, false);
+     }
+     model->SetMaterial(s_DefaultMaterial);
+
+     if (m_Materials[0].isTransparent())
+     {
+         m_TransparentModels.push_back(*model);
+     }
+     else
+     {
+         m_OpaqueModels.push_back(*model);
+     }
+
+     glm::mat4 transform;
+     transform = glm::translate(transform, -position);
+     model->SetTransform(transform);
+
+     getBatches(m_OpaqueBatch, BatchType::BatchType_Opaque);
+     getBatches(m_TransparentBatch, BatchType::BatchType_Transparent);
+
+}
+
+
+void Scene::DoModelsUI(bool* pOpen)
+{
+    if (!m_bIsInit)
+        return;
+
+
+
+    if (ImGui::Begin("Scene models", pOpen, ImGuiWindowFlags_MenuBar))
+    {
+        if (ImGui::TreeNode("Models"))
+        {
+            for (int i = 0; i < m_Models.size(); i++)
+            {
+                auto& model = m_Models[i];
+                if (ImGui::TreeNode((void*)(intptr_t)i, "%s", model->getName().c_str()))
+                {
+                    glm::vec3 trans = model->GetTranslation();
+                    const char* labelsTrans[3]{ "tX","tY","tZ" };
+                    if (GUI::ImguiVec3Controller(trans, labelsTrans))
+                    {
+                        model->Translate(trans);
+                        
+                    }
+                    glm::vec3 rotation = model->GetRotation();
+                    const char* labelsRot[3]{ "Yaw","Pitch","Roll" };
+                    if (GUI::ImguiVec3Controller(rotation, labelsRot))
+                    {
+                        model->Rotate(rotation);
+                        
+                    }
+                    glm::vec3 scale = model->GetScale();
+                    const char* labelsScale[3]{ "sX","sY","sZ" };
+                    if (GUI::ImguiVec3Controller(scale, labelsScale))
+                    {
+                        model->Scale(scale);
+                        
+                    }
+                    if (ImGui::Button("Goto.."))
+                    {
+                        ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->CenterAt(model->getAABB().get_center());
+                    }
+                   
+                  
+                    ImGui::TreePop();
+                }
+            }
+            ImGui::TreePop();
+        }
+        if (ImGui::Button("Create Box!"))
+        {
+            createBox(ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->GetPosition());
+        }
+    }
+    ImGui::End();
+  
 }
 
 
@@ -220,7 +356,12 @@ void Scene::loadAssets(const std::string i_ScenePath)
 
 	loadMaterials(aScene, iRootScenePath);
 	loadMeshes(aScene);
-  //loadSceneRecursive(aScene->mRootNode);
+
+  m_SceneBoundMin = glm::vec3(std::numeric_limits<float>::max());
+  m_SceneBoundMax = glm::vec3(std::numeric_limits<float>::min());
+  loadSceneRecursive(aScene->mRootNode);
+  m_SceneAABB = AABB(m_SceneBoundMin, m_SceneBoundMax);
+
   m_Light.lightPos = glm::vec4(100, 100, 100,0);
   m_Light.lightColor = glm::vec4(1.0f, 1.0f, 1.0f,0.0f);
   m_LightsUniformBuffer = ServiceLocator::GetRenderer()->CreateStaticUniformBuffer(&m_Light, sizeof(UBOLight));
@@ -230,8 +371,12 @@ void Scene::loadAssets(const std::string i_ScenePath)
 	renderer->SetupRenderCalls();
 
 
+  
 
   m_bIsInit = true;
+
+  //Only need this during creation
+  m_MeshMap.clear();
  
 	
 }
@@ -352,11 +497,18 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 		
 	
 		
-		m_Materials[i].Init(std::string(matName.C_Str()),texturesInMaterial,isTransparent);
+		m_Materials[i].Init(std::string(matName.C_Str()),&texturesInMaterial,isTransparent);
 	}
 
 
 }
+
+
+
+
+
+
+
 void Scene::loadMeshes(const aiScene* i_aScene)
 {
 
@@ -366,8 +518,8 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 	int numberOfMeshesInScene = i_aScene->mNumMeshes;
 
 
-	int iCurrentIndex = 0;
-	int iVertexGeneralCount = 0;
+	uint32_t iCurrentIndex = 0;
+  uint32_t iVertexGeneralCount = 0;
 	for (uint32_t i = 0; i < numberOfMeshesInScene; i++)
 	{
 		aiMesh *aMesh = i_aScene->mMeshes[i];
@@ -390,7 +542,7 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 		}
 		
 
-		int iNIndices = 0;
+    uint32_t iNIndices = 0;
 		for (uint32_t f = 0; f < aMesh->mNumFaces; f++)
 		{
 			aiFace* pFace = &aMesh->mFaces[f];
@@ -405,19 +557,10 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 			}
 		}
 
+    m_MeshMap.emplace(i, MeshWithView(&mesh, { iCurrentIndex, iNIndices, iVertexGeneralCount, aMesh->mNumVertices,aMesh->mMaterialIndex }));
     
-    m_Models.emplace_back(std::make_unique<Model>(mesh, iCurrentIndex, iNIndices, iVertexGeneralCount, aMesh->mNumVertices));
-    Model& model = *m_Models[i];
-    model.SetMaterial(&m_Materials[aMesh->mMaterialIndex]);
-
-    if (m_Materials[aMesh->mMaterialIndex].isTransparent())
-    {
-        m_TransparentModels.push_back(*m_Models[i]);
-    }
-    else
-    {
-        m_OpaqueModels.push_back(*m_Models[i]);
-    }
+  
+    
 
 
 		iCurrentIndex += iNIndices;
@@ -429,27 +572,56 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 
   mesh.uploadBuffers();
 
-  glm::vec3 scenemin = glm::vec3(std::numeric_limits<float>::max());
-  glm::vec3 scenemax = glm::vec3(std::numeric_limits<float>::min());
 
-  for (auto& model : m_Models)
-  {
-      
-      model->updateAABB();
-      scenemin = glm::min(scenemin, model->getAABB().get_min());
-      scenemax = glm::max(scenemax, model->getAABB().get_max());
-  }
-  m_SceneAABB = AABB(scenemin, scenemax);
+  
 
   //TODO: Create a AABB Mesh and link it somehow to the models so we can draw AABBs. Think about instancing it? Actually even as a postFX...
 
 
-  ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->Teleport(m_SceneAABB.get_center() - glm::vec3(100.0,0,100.0),m_SceneAABB.get_center());
+  
 }
 
+glm::mat4 getNodeTransformation(const aiNode* i_Node, glm::mat4 mat)
+{
+    if (i_Node->mParent)
+        return getNodeTransformation(i_Node->mParent, mat * glm::mat4(i_Node->mParent->mTransformation[0][0]));
+    else
+        return mat ;
+}
 void Scene::loadSceneRecursive(const aiNode* i_Node)
 {
     LOGINFO("Loading node: " + std::string(i_Node->mName.C_Str()));
+    if (i_Node->mNumMeshes)
+    {
+        assert(i_Node->mNumMeshes == 1,"WOOPS, What we do with more than one mesh per node");
+        for (int i = 0;i< i_Node->mNumMeshes;i++)//TODO: What happens for nodes with more than one mesh :/
+        {
+            auto meshWithView = m_MeshMap[i_Node->mMeshes[i]];
+            m_Models.emplace_back(std::make_unique<Model>(*meshWithView.first, meshWithView.second, std::string(i_Node->mName.C_Str())));
+            auto& model = m_Models.back();
+            model->SetMaterial(&m_Materials[meshWithView.second.m_MaterialIndex]);
+
+            if (m_Materials[meshWithView.second.m_MaterialIndex].isTransparent())
+            {
+                m_TransparentModels.push_back(*model);
+            }
+            else
+            {
+                m_OpaqueModels.push_back(*model);
+            }
+
+            glm::mat4 transform = getNodeTransformation(i_Node, glm::mat4(i_Node->mTransformation[0][0]));//Recursing up to get the right hierarchical transform. If we have a tree we won't need this
+            glm::mat4 checkIdentity = glm::mat4();
+            if (transform != checkIdentity)
+                LOGINFO("LLAFALW");
+            model->SetTransform(transform);
+            //model->updateAABB();//Set transform handles this
+            m_SceneBoundMin = glm::min(m_SceneBoundMin, model->getAABB().get_min());
+            m_SceneBoundMax = glm::max(m_SceneBoundMax, model->getAABB().get_max());
+           
+        }
+       
+    }
     for (int i = 0; i < i_Node->mNumChildren; i++)
     {
         const aiNode* child = i_Node->mChildren[i];
@@ -487,6 +659,7 @@ SceneManager::SceneManager()
         
         static bool bLoadScene = false;
         static bool bLightsMenu = false;
+        static bool bModelsMenu = false;
         
         if (bLoadScene)
         {
@@ -501,6 +674,8 @@ SceneManager::SceneManager()
 
         if(bLightsMenu)
             GetCurrentScene()->DoLightsUI(&bLightsMenu);
+        if (bModelsMenu)
+            GetCurrentScene()->DoModelsUI(&bModelsMenu);
         
         if (ImGui::BeginMainMenuBar())
         {
@@ -508,6 +683,7 @@ SceneManager::SceneManager()
             {
                 ImGui::MenuItem("Load Scene", NULL, &bLoadScene);
                 ImGui::MenuItem("Lights", NULL, &bLightsMenu);
+                ImGui::MenuItem("Models", NULL, &bModelsMenu);
                 ImGui::EndMenu();
             }
 
@@ -524,16 +700,21 @@ void SceneManager::LoadScene(const std::string i_ScenePath)
 
     ServiceLocator::GetThreadPool()->threads[0]->addJob([=] {  
         m_SceneData[m_LoadingSceneIndex].Init(i_ScenePath);
-        ServiceLocator::GetRenderer()->SetupRenderCalls();
- 
         //swapScenes
         int oldCurrentSceneIndex = m_CurrentSceneIndex;
         m_CurrentSceneIndex = m_LoadingSceneIndex;
         m_LoadingSceneIndex = oldCurrentSceneIndex;
+
+       
+        
+        ServiceLocator::GetRenderer()->SceneDirty();
+        ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->CenterAt(GetCurrentScene()->getSceneAABB().get_center());
         LOGINFO("Scene finished loading!");
+        ServiceLocator::GetRenderer()->SetupRenderCalls();
        
        
     });
+    
 
    
 }

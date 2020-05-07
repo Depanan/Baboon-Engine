@@ -98,14 +98,18 @@ void ShaderVariant::update_id()
 
 
 
-void Material::Init(std::string i_sMaterialName, std::vector<std::pair<std::string, Texture*>> i_Textures, bool isTransparent)
+void Material::Init(std::string i_sMaterialName, std::vector<std::pair<std::string, Texture*>>* i_Textures, bool isTransparent)
 {
     m_IsTransparent = isTransparent;
     m_sMaterialName = i_sMaterialName;
-    for (auto nameAndTexture : i_Textures)
+    if (i_Textures)
     {
-        m_Textures[nameAndTexture.first] = nameAndTexture.second;
+        for (auto nameAndTexture : *i_Textures)
+        {
+            m_Textures[nameAndTexture.first] = nameAndTexture.second;
+        }
     }
+    
 }
 
 Texture* Material::GetTextureByName(std::string name)

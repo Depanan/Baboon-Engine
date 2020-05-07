@@ -4,6 +4,15 @@
 #include "vulkan\vulkan.h"
 #include <vector>
 
+struct MeshView
+{
+    uint32_t m_IndicesMeshStart;
+    uint32_t m_NIndices;
+    uint32_t m_VerticesMeshStart;
+    uint32_t m_NVertices;
+    uint32_t m_MaterialIndex;
+};
+
 struct Vertex {
 	glm::vec3 pos;
 	glm::vec3 color;
@@ -21,6 +30,8 @@ class Mesh
 {
 public:
     ~Mesh();
+    Mesh(){}
+    Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices);
     void pushVertex(Vertex v);
     void pushIndex(uint32_t index);
     const Buffer* GetIndicesBuffer()const { return m_IndicesBuffer; }

@@ -44,14 +44,9 @@ ForwardSubpass::ForwardSubpass(VulkanContext& render_context, std::weak_ptr<Shad
 {
     auto renderer = ServiceLocator::GetRenderer();
     auto& device = render_context.getDevice();
-/*
-     std::vector<Vertex> vertices = {
-    {{-0.5f, -0.5f, -4.0f}, {1.0f, 0.0f, 0.0f},{0.0f, 0.0f}},
-    {{0.5f, -0.5f, -4.0f}, {0.0f, 1.0f, 0.0f},{1.0f, 0.0f}},
-    {{0.5f, 0.5f, -4.0f}, {0.0f, 0.0f, 1.0f},{1.0f, 1.0f}},
-    {{-0.5f, 0.5f, -4.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 1.0f}}
-    };
-   
+
+
+   /*
     VkDeviceSize size = vertices.size() * sizeof(Vertex);
     m_TrianglePos = (VulkanBuffer*)renderer->CreateVertexBuffer(vertices.data(), size);
 
@@ -81,8 +76,49 @@ void ForwardSubpass::prepare()//setup shaders, To be called when adding subpass 
 {
     //Warming up shaders so vkCreateShaderModule is called
     auto& device = m_RenderContext.getDevice();
-    //auto& vert_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, m_VertexShader);
-    //auto& frag_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT,m_FragmentShader);
+    auto renderer = (RendererVulkan*)ServiceLocator::GetRenderer();
+
+
+
+    auto pVertexShader = m_VertexShader.lock();
+    if (!pVertexShader)
+    {
+        m_VertexShader = renderer->getShaderSourcePool().getShaderSource("./Shaders/shader.vert");
+        pVertexShader = m_VertexShader.lock();
+    }
+    auto pFragmentShader = m_FragmentShader.lock();
+    if (!pFragmentShader)
+    {
+        m_FragmentShader = renderer->getShaderSourcePool().getShaderSource("./Shaders/shader.frag");
+        pFragmentShader = m_FragmentShader.lock();
+    }
+
+
+    
+    auto scene = ServiceLocator::GetSceneManager()->GetCurrentScene();
+    std::vector<RenderBatch>& batchesOpaque = scene->GetOpaqueBatches();
+    for (auto batch : batchesOpaque)
+    {
+        for (auto node_it = batch.m_ModelsByDistance.begin(); node_it != batch.m_ModelsByDistance.end(); node_it++)
+        {
+            Model& model = node_it->second;
+            auto& vert_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader, model.getShaderVariant());
+            auto& frag_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader, model.getShaderVariant());
+            
+        }
+    }
+
+    std::vector<RenderBatch>& batchesTransparent = scene->GetTransparentBatches();
+    for (auto batch : batchesTransparent)
+    {
+        for (auto node_it = batch.m_ModelsByDistance.begin(); node_it != batch.m_ModelsByDistance.end(); node_it++)
+        {
+            Model& model = node_it->second;
+            auto& vert_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader, model.getShaderVariant());
+            auto& frag_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader, model.getShaderVariant());
+            
+        }
+    }
 }
 
 
@@ -328,7 +364,6 @@ void ForwardSubpass::drawModel(Model& model, CommandBuffer* command_buffer)
 
     int nIndices = model.GetNIndices();
     int indexStart = model.GetIndexStartPosition();
-    command_buffer->pushConstants(0, model.getModelMatrix());
     command_buffer->pushConstants(0, model.getModelMatrix());
   
     command_buffer->draw_indexed(nIndices, 1, indexStart, model.GetVertexStartPosition(), 0);

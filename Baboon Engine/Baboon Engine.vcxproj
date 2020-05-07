@@ -187,7 +187,7 @@
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LinkIncremental>true</LinkIncremental>
+    <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -220,11 +220,15 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);VK_USE_PLATFORM_WIN32_KHR;GLM_ENABLE_EXPERIMENTAL</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>E:\PersonalWork\BaboonEngine\trunk\External Source\glslang;$(SolutionDir)\Baboon Engine\Source;$(SolutionDir)\External Source;E:\PersonalWork\BaboonEngine\trunk\External Source\vma\src;E:\PersonalWork\BaboonEngine\trunk\External Source\spirv-cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>$(SolutionDir)\libs\lib64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>assimp.lib;vulkan-1.lib;glfw3.lib;Debug/spirv-cross-core.lib;Debug/spirv-cross-glsl.lib;Debug/OSDependentd.lib;Debug/OGLCompilerd.lib;Debug/HLSLd.lib;Debug/SPIRVd.lib;Debug/SPVRemapperd.lib;Debug/glslang-default-resource-limitsd.lib;Debug/glslangd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -265,6 +269,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(SolutionDir)\libs\lib64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>assimp.lib;vulkan-1.lib;glfw3.lib;Release/spirv-cross-core.lib;Release/spirv-cross-glsl.lib;Release/OSDependent.lib;Release/OGLCompiler.lib;Release/HLSL.lib;Release/SPIRV.lib;Release/SPVRemapper.lib;Release/glslang-default-resource-limits.lib;Release/glslang.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <LinkTimeCodeGeneration />
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
