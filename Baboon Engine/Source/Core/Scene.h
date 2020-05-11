@@ -4,6 +4,7 @@
 #include "Core\Model.h"
 #include "Core\Material.h"
 #include <map>
+#include <functional>
 
 
 
@@ -22,7 +23,7 @@ enum class BatchType {
 };
 struct RenderBatch {
     std::string m_Name;
-    std::multimap<float,std::reference_wrapper<Model>> m_ModelsByDistance;
+    std::multimap<float, std::reference_wrapper<Model>> m_ModelsByDistance;
 };
 
 class Scene {
@@ -40,6 +41,8 @@ public:
 	const size_t GetIndicesSize() { return sizeof(m_Indices[0]) * m_Indices.size(); }
 
   
+  void SelectModel(glm::vec2 clickPoint);
+  void Update() { prepareBatches(); }
 	
 	void OnWindowResize();
 
@@ -98,6 +101,7 @@ private:
   Buffer* m_LightsUniformBuffer;
   UBOLight m_Light;
 
+  void prepareBatches();
   void getBatches(std::vector<RenderBatch>& batchList, BatchType batchType);
 	void loadAssets(const std::string i_ScenePath);
 	void loadMaterials(const aiScene* i_aScene, const std::string i_SceneTexturesPath);

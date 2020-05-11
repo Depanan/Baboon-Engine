@@ -46,31 +46,6 @@ ForwardSubpass::ForwardSubpass(VulkanContext& render_context, std::weak_ptr<Shad
     auto& device = render_context.getDevice();
 
 
-   /*
-    VkDeviceSize size = vertices.size() * sizeof(Vertex);
-    m_TrianglePos = (VulkanBuffer*)renderer->CreateVertexBuffer(vertices.data(), size);
-
-    
-    std::vector<uint16_t> indices = {
-    0, 1, 2, 2, 3, 0
-    };
-    size = indices.size() * sizeof(uint16_t);
-    m_TriangleIndices = (VulkanBuffer*)renderer->CreateIndexBuffer(indices.data(), size);
-
-  
-    
-
-
-*/
-    
-    
-   
-     //unsigned char pPixels[] = { 255,255,255,255 };
-    //m_TestTexture = (VulkanTexture*)renderer->CreateTexture(pPixels, 1, 1);
-    
-
-   
-
 }
 void ForwardSubpass::prepare()//setup shaders, To be called when adding subpass to the pipeline
 {
@@ -191,7 +166,7 @@ void ForwardSubpass::recordCommandBuffers(CommandBuffer* command_buffer, Command
     {
         for (auto node_it = batch.m_ModelsByDistance.begin(); node_it != batch.m_ModelsByDistance.end(); node_it++)
         {
-            Model& model = node_it->second;
+            const Model& model = node_it->second;
             drawModel(model, command_buffer);
         }
        
@@ -218,7 +193,7 @@ void ForwardSubpass::recordCommandBuffers(CommandBuffer* command_buffer, Command
     {
         for (auto node_it = batch.m_ModelsByDistance.begin(); node_it != batch.m_ModelsByDistance.end(); node_it++)
         {
-            Model& model = node_it->second;
+            const Model& model = node_it->second;
             drawModel(model, command_buffer);
         }
 
@@ -226,53 +201,12 @@ void ForwardSubpass::recordCommandBuffers(CommandBuffer* command_buffer, Command
     }
 
 
-    /*std::multimap<float, Model*> sceneOpaqueModels;//using multimap to get the sorting automatically from when inserting on it
-    std::multimap<float, Model*> transparent;
-    scene->GetSortedOpaqueAndTransparent(sceneOpaqueModels, transparent);
-    
-    
-    for (auto node_it = sceneOpaqueModels.begin(); node_it != sceneOpaqueModels.end(); node_it++)
-    {
-        Model& model = *node_it->second;
-        drawModel(model, command_buffer);
-       
-    }
-
-
-    // Enable alpha blending
-    ColorBlendAttachmentState color_blend_attachment{};
-    color_blend_attachment.m_BlendEnable = VK_TRUE;
-    color_blend_attachment.m_SrcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    color_blend_attachment.m_DstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    color_blend_attachment.m_SrcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-
-    ColorBlendState color_blend_state{};
-    color_blend_state.m_Attachments.resize(1);
-    color_blend_state.m_Attachments[0] = color_blend_attachment;
-    command_buffer->setColorBlendState(color_blend_state);
-
-    DepthStencilState depth_stencil_state{};
-    command_buffer->setDepthStencilState(depth_stencil_state);
-
-   
-    for (auto node_it = transparent.begin(); node_it != transparent.end(); node_it++)
-    {
-        Model& model = *node_it->second;
-        drawModel(model, command_buffer);
-
-    }
-    
-   /* auto models = *scene->GetModels();
-
-    for (auto model : models)
-    {
-        drawModel(model, command_buffer);
-    }*/
+  
 
     command_buffer->end();
 }
 
-void ForwardSubpass::drawModel(Model& model, CommandBuffer* command_buffer)
+void ForwardSubpass::drawModel(const Model& model, CommandBuffer* command_buffer)
 {
 
     auto& device = m_RenderContext.getDevice();
@@ -291,14 +225,6 @@ void ForwardSubpass::drawModel(Model& model, CommandBuffer* command_buffer)
         pFragmentShader = m_FragmentShader.lock();
     }
 
-    
-
-    //Bind vertex buffer
-    command_buffer->bind_vertex_buffer(0, *((VulkanBuffer*)model.GetMesh().GetVerticesBuffer()), { 0 });
-    //Bind Indices buffer
-    command_buffer->bind_index_buffer(*((VulkanBuffer*)model.GetMesh().GetIndicesBuffer()), 0, VK_INDEX_TYPE_UINT32);
-
-
     auto& vert_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader, model.getShaderVariant());
     auto& frag_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader, model.getShaderVariant());
     std::vector<ShaderModule*> shader_modules{ &vert_module, &frag_module };
@@ -313,22 +239,59 @@ void ForwardSubpass::drawModel(Model& model, CommandBuffer* command_buffer)
     rasterState.m_FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     command_buffer->setRasterState(rasterState);
 
-    //auto vertex_input_resources = pipeline_layout.getResources(ShaderResourceType::Input, VK_SHADER_STAGE_VERTEX_BIT);
+
+
+
+    auto vertex_input_resources = pipeline_layout.getResources(ShaderResourceType::Input, VK_SHADER_STAGE_VERTEX_BIT);
 
     VertexInputState vertex_input_state;
-    VkVertexInputBindingDescription bindingDescription = {};
-    std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {};
 
-    //This is specific for this vertex format, has to be improved, one pipeline for each vertexFormat?
-    Vertex::GetVertexDescription(&bindingDescription);
-    Vertex::GetAttributesDescription(attributeDescriptions);
-
-    vertex_input_state.m_Bindings.push_back(bindingDescription);
-    for (auto& attributeDescription : attributeDescriptions)
+    for (auto& input_resource : vertex_input_resources)
     {
-        vertex_input_state.m_Attributes.push_back(attributeDescription);
+        AttributeDescription attributeDescription;
+
+        if (!model.GetMesh().GetAttributeDescription(input_resource.name, attributeDescription))
+        {
+            continue;
+        }
+
+        VkVertexInputAttributeDescription vertex_attribute{};
+        vertex_attribute.binding = input_resource.location;
+        vertex_attribute.format = attributeDescription.m_Format;
+        vertex_attribute.location = input_resource.location;
+        vertex_attribute.offset = attributeDescription.m_Offset;
+
+        vertex_input_state.m_Attributes.push_back(vertex_attribute);
+
+        VkVertexInputBindingDescription vertex_binding{};
+        vertex_binding.binding = input_resource.location;
+        vertex_binding.stride = attributeDescription.m_Stride;
+
+        vertex_input_state.m_Bindings.push_back(vertex_binding);
     }
+
     command_buffer->setVertexInputState(vertex_input_state);
+
+    
+    //Bind Indices buffer
+    command_buffer->bind_index_buffer(*((VulkanBuffer*)model.GetMesh().GetIndicesBuffer()), 0, VK_INDEX_TYPE_UINT32);
+
+
+    for (auto& input_resource : vertex_input_resources)
+    {
+        const auto& buffer_iter = model.GetMesh().GetVerticesBuffers().find(input_resource.name);
+
+        if (buffer_iter != model.GetMesh().GetVerticesBuffers().end())
+        {
+            //std::vector<std::reference_wrapper<VulkanBuffer>> buffers;
+            VulkanBuffer* vBuff = (VulkanBuffer*)buffer_iter->second.first;
+            //buffers.emplace_back(std::ref(*vBuff));
+
+            // Bind vertex buffers only for the attribute locations defined
+            command_buffer->bind_vertex_buffer(input_resource.location, *vBuff, { 0 });
+        }
+    }
+
 
 
 

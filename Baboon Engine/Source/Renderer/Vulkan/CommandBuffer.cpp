@@ -83,7 +83,8 @@ VkResult CommandBuffer::begin(VkCommandBufferUsageFlags flags, CommandBuffer* pr
     m_ResourceBindingState.reset();
     m_DescriptorSet_Binding_State.clear();
     m_CurrentVertexBindings.indexBuffer = VK_NULL_HANDLE;
-    m_CurrentVertexBindings.vertexBuffer = VK_NULL_HANDLE;
+    for (int i = 0; i < 10; i++)
+        m_CurrentVertexBindings.vertexBuffer[i] = VK_NULL_HANDLE;
 
     VkCommandBufferBeginInfo       beginInfo { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
     VkCommandBufferInheritanceInfo inheritance { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
@@ -323,16 +324,20 @@ void CommandBuffer::copy_buffer_to_image(const VulkanBuffer& buffer, const Vulka
 
 void CommandBuffer::bind_vertex_buffer(uint32_t first_binding, const VulkanBuffer& buffer, const std::vector<VkDeviceSize>& offsets)
 {
-    if (m_CurrentVertexBindings.vertexBuffer != buffer.getHandle())
+    assert(first_binding < 10, "Fixed array of 10 for now, this will break!");
+    if (m_CurrentVertexBindings.vertexBuffer[first_binding] != buffer.getHandle())
     {
         std::vector<VkBuffer> buffer_handles;
         buffer_handles.push_back(buffer.getHandle());
         vkCmdBindVertexBuffers(getHandle(), first_binding, buffer_handles.size(), buffer_handles.data(), offsets.data());
-        m_CurrentVertexBindings.vertexBuffer = buffer.getHandle();
+        m_CurrentVertexBindings.vertexBuffer[first_binding]= buffer.getHandle();
     }
    
     
 }
+
+
+
 
 void CommandBuffer::bind_index_buffer(VulkanBuffer& buffer, VkDeviceSize offset, VkIndexType index_type)
 {

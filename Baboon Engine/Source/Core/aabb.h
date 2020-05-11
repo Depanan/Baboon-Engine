@@ -29,7 +29,7 @@ class AABB
 	 */
 	void update(const std::vector<glm::vec3> &vertex_data, const std::vector<uint32_t> &index_data);
 
-  void update(const Vertex* vertex_data, size_t nVertices, const uint32_t* index_data, size_t nIndices);
+  void update(const glm::vec3* vertex_data, size_t nVertices, const uint32_t* index_data, size_t nIndices);
 
 	/**
 	 * @brief Apply a given matrix transformation to the bounding box
@@ -65,6 +65,10 @@ class AABB
 	 * @brief Resets the min and max position coordinates
 	 */
 	void reset();
+
+  bool pointInside(const glm::vec3& point) const;
+  
+
 
   private:
 	glm::vec3 min;

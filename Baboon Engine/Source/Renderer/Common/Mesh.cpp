@@ -2,6 +2,7 @@
 #include "Buffer.h"
 #include "defines.h"
 #include "Core/ServiceLocator.h"
+#include "Core/Material.h"
 
 void Vertex::GetVertexDescription(VkVertexInputBindingDescription* o_Description)
 {
@@ -58,21 +59,77 @@ Mesh::~Mesh()
 {
     auto renderer = ServiceLocator::GetRenderer();
     renderer->DeleteBuffer(m_IndicesBuffer);
-    renderer->DeleteBuffer(m_VerticesBuffer);
+   
+    for (auto buffer : m_Buffers)
+    {
+        renderer->DeleteBuffer(buffer.second.first);
+    }
 }
 
-void Mesh::uploadBuffers()
+
+
+
+
+void Mesh::setData( const std::unordered_map<std::string, AttributeDescription>& descriptions,
+                    const std::vector<glm::vec3>& positions,  
+                    const std::vector<uint32_t>& indices,
+                    std::vector<glm::vec3>* colors,
+                    std::vector<glm::vec2>* texCoords,
+                    std::vector<glm::vec3>* normals,
+                    std::vector<glm::vec3>* tangents,
+                    std::vector<glm::vec3>* biTangents)
 {
     auto renderer = ServiceLocator::GetRenderer();
-    m_VerticesBuffer = renderer->CreateVertexBuffer((void*)(m_Vertices.data()), GetVerticesSize());
-    m_IndicesBuffer = renderer->CreateIndexBuffer((void*)(m_Indices.data()), GetIndicesSize());
+    //assert(positions.size() > 0, "Cant have mesh with no positions");
+    m_Positions = std::move(positions);
+    m_Buffers.emplace("inPosition", std::make_pair(renderer->CreateVertexBuffer((void*)(m_Positions.data()), sizeof(glm::vec3) * m_Positions.size()), descriptions.find("inPosition")->second));
+
+
+
+
+    //assert(m_Indices.size() > 0, "Cant have mesh with no indices for now");
+    m_Indices =  std::move(indices);
+    m_IndicesBuffer = renderer->CreateIndexBuffer((void*)(m_Indices.data()), sizeof(uint32_t)* m_Indices.size());
+
+
+
+    if (colors && colors->size())
+    {
+        m_Colors = std::move(*colors);
+        m_Buffers.emplace("inColor", std::make_pair(renderer->CreateVertexBuffer((void*)(m_Colors.data()), sizeof(glm::vec3) * m_Colors.size()), descriptions.find("inColor")->second));
+    }
+    if (texCoords && texCoords->size())
+    {
+        m_TexCoords = std::move(*texCoords);
+        m_Buffers.emplace("inTexCoord", std::make_pair(renderer->CreateVertexBuffer((void*)(m_TexCoords.data()), sizeof(glm::vec2) * m_TexCoords.size()), descriptions.find("inTexCoord")->second));
+    }
+    if (normals && normals->size())
+    {
+        m_Normals = std::move(*normals);
+        m_Buffers.emplace("inNormal", std::make_pair(renderer->CreateVertexBuffer((void*)(m_Normals.data()), sizeof(glm::vec3) * m_Normals.size()), descriptions.find("inNormal")->second));
+    }
+    if (tangents && tangents->size())
+    {
+        m_Tangents = std::move(*tangents);
+        m_Buffers.emplace("inTangent", std::make_pair(renderer->CreateVertexBuffer((void*)(m_Tangents.data()), sizeof(glm::vec3) * m_Tangents.size()), descriptions.find("inTangent")->second));
+    }
+    if (biTangents && biTangents->size())
+    {
+        m_BiTangents = std::move(*biTangents);
+        m_Buffers.emplace("inBiTangent", std::make_pair(renderer->CreateVertexBuffer((void*)(m_BiTangents.data()), sizeof(glm::vec3) * m_BiTangents.size()), descriptions.find("inBiTangent")->second));
+    }
 }
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices):
-m_Vertices(vertices),
-m_Indices(indices)
+bool Mesh::GetAttributeDescription(std::string name, AttributeDescription& attribute)const
 {
-    uploadBuffers();
+    auto it = m_Buffers.find(name);
+    if (it != m_Buffers.end())
+    {
+        attribute = it->second.second;
+        return true;
+       
+    }
+    return false;
 }
 
 void Mesh::pushVertex(Vertex v)
@@ -82,4 +139,14 @@ void Mesh::pushVertex(Vertex v)
 void Mesh::pushIndex(uint32_t index)
 {
     m_Indices.push_back(index);
+}
+
+void Mesh::computeShaderVariant(ShaderVariant& variant) const
+{
+    for (auto& buffer : m_Buffers)
+    {
+        std::string attrib_name = buffer.first;
+        std::transform(attrib_name.begin(), attrib_name.end(), attrib_name.begin(), ::toupper);
+        variant.add_define("HAS_" + attrib_name);
+    }
 }

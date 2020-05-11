@@ -72,7 +72,7 @@ private:
     //VulkanTexture* m_TestTexture;
     
     void recordCommandBuffers(CommandBuffer* commandBuffer, CommandBuffer* primary_command_buffer);
-    void drawModel(Model& model, CommandBuffer* commandBuffer);
+    void drawModel(const Model& model, CommandBuffer* commandBuffer);
 };
 
 

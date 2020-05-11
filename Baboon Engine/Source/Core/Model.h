@@ -21,10 +21,10 @@ public:
   Model(const Mesh& mesh, MeshView meshView, std::string name = " ");
  
 
-	const Mesh& GetMesh() { return m_Mesh; }
+	const Mesh& GetMesh()const { return m_Mesh; }
 
   void SetMaterial(Material* i_Mat);
-	Material* GetMaterial() { return m_Material; }
+	Material* GetMaterial()const { return m_Material; }
 
   void SetTransform(glm::mat4 transformMat);
 
@@ -38,7 +38,7 @@ public:
   glm::vec3 GetRotation();
 
 
-
+  bool IsVisible() { return true; }//TODO: implement visibility check here
 
 
   const glm::mat4& getModelMatrix()const { return m_InstanceUniforms.model; }
@@ -52,11 +52,12 @@ public:
   const uint32_t GetVertexStartPosition() const { return m_MeshView.m_VerticesMeshStart; }
   const uint32_t GetNIndices() const { return m_MeshView.m_NIndices; }
   const std::string& getName()const { return m_Name; }
-
+  void SetSelection(bool select) { m_Selected = select; }
 private:
    
-    std::string m_Name;
+  std::string m_Name;
 	const Mesh& m_Mesh;
+  bool m_Selected = false;
   
   MeshView m_MeshView;
 

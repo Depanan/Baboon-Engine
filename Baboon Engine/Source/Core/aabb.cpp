@@ -43,7 +43,7 @@ void AABB::update(const std::vector<glm::vec3> &vertex_data, const std::vector<u
 }
 
 
-void AABB::update(const Vertex* vertex_data, size_t nVertices, const uint32_t* index_data, size_t nIndices)
+void AABB::update(const glm::vec3* vertex_data, size_t nVertices, const uint32_t* index_data, size_t nIndices)
 {
     // Check if submesh is indexed
     if (nIndices > 0)
@@ -51,7 +51,7 @@ void AABB::update(const Vertex* vertex_data, size_t nVertices, const uint32_t* i
         // Update bounding box for each indexed vertex
         for (size_t index_id = 0; index_id < nIndices; index_id++)
         {
-            update(vertex_data[index_data[index_id]].pos);
+            update(vertex_data[index_data[index_id]]);
         }
     }
     else
@@ -59,7 +59,7 @@ void AABB::update(const Vertex* vertex_data, size_t nVertices, const uint32_t* i
         // Update bounding box for each vertex
         for (size_t vertex_id = 0; vertex_id < nVertices; vertex_id++)
         {
-            update(vertex_data[vertex_id].pos);
+            update(vertex_data[vertex_id]);
         }
     }
 }
@@ -110,4 +110,20 @@ void AABB::reset()
 	min = glm::vec3(std::numeric_limits<float>::max());
 
 	max = glm::vec3(std::numeric_limits<float>::min());
+}
+
+bool AABB::pointInside(const glm::vec3& point) const
+{
+
+    //Check if the point is less than max and greater than min
+    if (point.x > min.x&& point.x < max.x &&
+        point.y > min.y&& point.y < max.y &&
+        point.z > min.z&& point.z < max.z)
+    {
+        return true;
+    }
+
+    //If not, then return false
+    return false;
+
 }

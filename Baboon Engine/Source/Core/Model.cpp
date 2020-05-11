@@ -88,6 +88,7 @@ void Model::computeShaderVariant()
 
             m_Variant.add_define("HAS_" + tex_name);
         }
+        m_Mesh.computeShaderVariant(m_Variant);
     }
 
 }
@@ -95,9 +96,9 @@ void Model::updateAABB()
 {
      
     const uint32_t* indices = m_Mesh.GetIndicesData() + m_MeshView.m_IndicesMeshStart;
-    const Vertex* vertices = m_Mesh.GetVertexData() + m_MeshView.m_VerticesMeshStart;
+    const glm::vec3* verticesPos = m_Mesh.GetPositionsData() + m_MeshView.m_VerticesMeshStart;
     
     m_AABB.reset();//TODO: Do I have to do all this everytime I transform? is going thru the mesh necessr?
-    m_AABB.update(vertices, m_MeshView.m_NVertices, indices, m_MeshView.m_NIndices);
+    m_AABB.update(verticesPos, m_MeshView.m_NVertices, indices, m_MeshView.m_NIndices);
     m_AABB.transform(m_InstanceUniforms.model);
 }

@@ -25,15 +25,25 @@
 
 static Mesh* s_BoxMesh = nullptr;
 static Material* s_DefaultMaterial;
-static const std::vector<Vertex> s_VerticesBox = {
-{{-10.0f, -10.0f, 10.0f}, {1.0f, 0.0f, 0.0f},{0.0f, 0.0f},  {0.0f, 0.0f, 1.0f}},//0//TODO: Normals are not gonna look good here, start fetching the vertex attributes to use different variants depending on that
-{{10.0f, -10.0f, 10.0f}, {0.0f, 1.0f, 0.0f},{1.0f, 0.0f},   {0.0f, 0.0f, 1.0f}}, //1
-{{10.0f, 10.0f, 10.0f}, {0.0f, 0.0f, 1.0f},{1.0f, 1.0f},    {0.0f, 0.0f, 1.0f}},  //2
-{{-10.0f, 10.0f, 10.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 1.0f},   {0.0f, 0.0f, 1.0f}}, //3
-{{-10.0f, -10.0f, -10.0f}, {1.0f, 0.0f, 0.0f},{0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}}, //4
-{{10.0f, -10.0f, -10.0f}, {0.0f, 1.0f, 0.0f},{1.0f, 0.0f},  {0.0f, 0.0f, -1.0f}}, //5
-{{10.0f, 10.0f, -10.0f}, {0.0f, 0.0f, 1.0f},{1.0f, 1.0f},   {0.0f, 0.0f, -1.0f}}, //6
-{{-10.0f, 10.0f, -10.0f}, {1.0f, 1.0f, 1.0f},{0.0f, 1.0f},   {0.0f, 0.0f, -1.0f}}//7
+static const std::vector<glm::vec3> s_VerticesBox = {
+{-10.0f, -10.0f, 10.0f} ,//0//TODO: Normals are not gonna look good here, start fetching the vertex attributes to use different variants depending on that
+{10.0f, -10.0f, 10.0f}  , //1
+{10.0f, 10.0f, 10.0f}   ,  //2
+{-10.0f, 10.0f, 10.0f}  , //3
+{-10.0f, -10.0f, -10.0f}, //4
+{10.0f, -10.0f, -10.0f} , //5
+{10.0f, 10.0f, -10.0f}  , //6
+{-10.0f, 10.0f, -10.0f} //7
+};
+static  std::vector<glm::vec3> s_ColorsBox = {
+{1.0f, 1.0f, 0.0f} ,//0//TODO: Normals are not gonna look good here, start fetching the vertex attributes to use different variants depending on that
+{1.0f, 1.0f, 0.0f}  , //1
+{1.0f, 1.0f, 0.0f}   ,  //2
+{1.0f, 1.0f, 0.0f}  , //3
+{1.0f, 1.0f, 0.0f}, //4
+{1.0f, 1.0f, 0.0f} , //5
+{1.0f, 1.0f, 0.0f}  , //6
+{1.0f, 1.0f, 0.0f} //7
 };
 
 static const  std::vector<uint32_t> s_IndicesBox = {
@@ -124,6 +134,25 @@ void Scene::Free()
 	m_bIsInit = false;
 }
 
+void Scene::prepareBatches()
+{
+    for (auto& model : m_Models)
+    {
+        if (model->IsVisible())
+        {
+            if (model->GetMaterial()->isTransparent())
+            {
+
+            }
+            else
+            {
+
+            }
+        }
+
+    }
+}
+
 void  Scene::getBatches(std::vector<RenderBatch>& batchList, BatchType batchType)//TODO: Don't do this sorting every frame. Only when relevant stuff changes. Probably can get away doing it onSceneLoad
 {
     batchList.clear();
@@ -147,7 +176,8 @@ void  Scene::getBatches(std::vector<RenderBatch>& batchList, BatchType batchType
         {
             Model& model = it->second;
             float distance = glm::length(camera->GetPosition() - model.getAABB().get_center());
-            batch->m_ModelsByDistance.emplace(distance,model);
+           
+            batch->m_ModelsByDistance.emplace(distance, model);
         }
           
        
@@ -162,7 +192,8 @@ void  Scene::getBatches(std::vector<RenderBatch>& batchList, BatchType batchType
         {
             Model& model = it->second;
             float distance = glm::length(camera->GetPosition() - model.getAABB().get_center());
-            batch->m_ModelsByDistance.emplace(distance, model);
+     
+            batch->m_ModelsByDistance.emplace(distance,model);
         }
     }
 
@@ -171,6 +202,21 @@ void  Scene::getBatches(std::vector<RenderBatch>& batchList, BatchType batchType
 
 
 
+
+void Scene::SelectModel(glm::vec2 clickPoint)
+{
+    glm::vec3 worldPoint;
+    for (auto& model : m_Models)
+    {
+        const AABB& box = model->getAABB();
+        if (box.pointInside(worldPoint))//TODO: WE NEED A RAY NOT A POINT!
+        {
+            model->SetSelection(true);
+            
+        }
+        model->SetSelection(false);
+    }
+}
 
 void Scene::OnWindowResize()
 {
@@ -240,8 +286,16 @@ void Scene::DoLightsUI(bool* pOpen)
 {
 
      if (s_BoxMesh == nullptr)
-         s_BoxMesh = new Mesh(s_VerticesBox, s_IndicesBox);
-
+     {
+         s_BoxMesh = new Mesh();
+         std::unordered_map<std::string, AttributeDescription> descriptions;
+         AttributeDescription a{VK_FORMAT_R32G32B32_SFLOAT,12,0};
+         descriptions.emplace("inPosition", a);
+         descriptions.emplace("inColor", a);
+        
+         s_BoxMesh->setData(descriptions,s_VerticesBox, s_IndicesBox, &s_ColorsBox);
+     }
+         
      MeshView meshView{ 0,s_IndicesBox.size(),0,s_VerticesBox.size(),-1 };
 
      m_Models.emplace_back(std::make_unique<Model>(*s_BoxMesh, meshView, "Box!!"));
@@ -253,14 +307,14 @@ void Scene::DoLightsUI(bool* pOpen)
      }
      model->SetMaterial(s_DefaultMaterial);
 
-     if (m_Materials[0].isTransparent())
-     {
+     //if (m_Materials[0].isTransparent())
+     //{
          m_TransparentModels.push_back(*model);
-     }
-     else
-     {
-         m_OpaqueModels.push_back(*model);
-     }
+     //}
+     //else
+     //{
+         //m_OpaqueModels.push_back(*model);
+     //}
 
      glm::mat4 transform;
      transform = glm::translate(transform, -position);
@@ -289,10 +343,11 @@ void Scene::DoModelsUI(bool* pOpen)
                 if (ImGui::TreeNode((void*)(intptr_t)i, "%s", model->getName().c_str()))
                 {
                     glm::vec3 trans = model->GetTranslation();
+                    glm::vec3 position = -trans;
                     const char* labelsTrans[3]{ "tX","tY","tZ" };
-                    if (GUI::ImguiVec3Controller(trans, labelsTrans))
+                    if (GUI::ImguiVec3Controller(position, labelsTrans))
                     {
-                        model->Translate(trans);
+                        model->Translate(-position);
                         
                     }
                     glm::vec3 rotation = model->GetRotation();
@@ -511,6 +566,17 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 
 void Scene::loadMeshes(const aiScene* i_aScene)
 {
+    std::vector<glm::vec3> positions;
+    std::vector<glm::vec3> colors;
+    std::vector<glm::vec2> texCoords;
+    std::vector<glm::vec3> normals;
+    std::vector<glm::vec3> tangents;
+    std::vector<glm::vec3> biTangents;
+    std::vector<uint32_t>  indices;
+    std::unordered_map<std::string, AttributeDescription> descriptions;
+    AttributeDescription avec3{ VK_FORMAT_R32G32B32_SFLOAT,12,0 };
+    AttributeDescription avec2{ VK_FORMAT_R32G32_SFLOAT,8,0 };
+    descriptions.emplace("inPosition", avec3);
 
   m_Meshes.emplace_back(std::make_unique<Mesh>());
   Mesh& mesh = *m_Meshes.back();
@@ -525,20 +591,58 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 		aiMesh *aMesh = i_aScene->mMeshes[i];
 
 		bool hasUV = aMesh->HasTextureCoords(0);
+    if (hasUV)
+        descriptions.emplace("inTexCoord", avec2);
 		bool hasColor = aMesh->HasVertexColors(0);
+    if (hasUV)
+        descriptions.emplace("inColor", avec3);
 		bool hasNormals = aMesh->HasNormals();
+    if (hasUV)
+        descriptions.emplace("inNormal", avec3);
     bool hasTangentsAndBitangents = aMesh->HasTangentsAndBitangents();
+    if (hasUV)
+    {
+        descriptions.emplace("inTangent", avec3);
+        descriptions.emplace("inBiTangent", avec3);
+    }
+        
+
+
+    
+
 
 		for (uint32_t v = 0; v < aMesh->mNumVertices; v++)
 		{
-			Vertex vertex;
+        positions.push_back(glm::vec3(aMesh->mVertices[v].x, aMesh->mVertices[v].y, aMesh->mVertices[v].z));
+
+        if (hasColor)
+        {
+            colors.push_back(glm::make_vec3(&aMesh->mColors[0][v].r));
+        }
+        if (hasUV)
+        {
+            texCoords.push_back(glm::vec2(aMesh->mTextureCoords[0][v].x, 1.0f - aMesh->mTextureCoords[0][v].y));
+        }
+        if (hasNormals)
+        {
+            normals.push_back(glm::make_vec3(&aMesh->mNormals[v].x));
+        }
+        if (hasTangentsAndBitangents)
+        {
+            tangents.push_back(glm::make_vec3(&aMesh->mTangents[v].x));
+            biTangents.push_back(glm::make_vec3(&aMesh->mBitangents[v].x));
+        }
+
+
+
+			/*Vertex vertex;
 			vertex.pos = glm::vec3(aMesh->mVertices[v].x, aMesh->mVertices[v].y, aMesh->mVertices[v].z);
 			vertex.texCoord = hasUV ? glm::vec2(aMesh->mTextureCoords[0][v].x, 1.0f - aMesh->mTextureCoords[0][v].y) : glm::vec2(0.0f);
 			vertex.normal = hasNormals ? glm::make_vec3(&aMesh->mNormals[v].x) : glm::vec3(0.0f);
       vertex.tangent = hasTangentsAndBitangents ? glm::make_vec3(&aMesh->mTangents[v].x) : glm::vec3(0.0f);
       vertex.biTangent = hasTangentsAndBitangents ? glm::make_vec3(&aMesh->mBitangents[v].x) : glm::vec3(0.0f);
 			vertex.color = hasColor ? glm::make_vec3(&aMesh->mColors[0][v].r) : glm::vec3(1.0f);
-      mesh.pushVertex(vertex);
+      mesh.pushVertex(vertex);*/
 		}
 		
 
@@ -552,8 +656,9 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 			}
 			for (uint32_t j = 0; j < pFace->mNumIndices; j++)
 			{
-          mesh.pushIndex(pFace->mIndices[j]);
-				iNIndices++;
+          //mesh.pushIndex(pFace->mIndices[j]);
+          indices.push_back(pFace->mIndices[j]);
+				  iNIndices++;
 			}
 		}
 
@@ -568,16 +673,8 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 	}
 
 	RendererAbstract* renderer = ServiceLocator::GetRenderer();
-	
 
-  mesh.uploadBuffers();
-
-
-  
-
-  //TODO: Create a AABB Mesh and link it somehow to the models so we can draw AABBs. Think about instancing it? Actually even as a postFX...
-
-
+  mesh.setData(descriptions,positions, indices, &colors, &texCoords, &normals, &tangents, &biTangents);
   
 }
 
