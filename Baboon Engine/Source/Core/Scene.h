@@ -22,6 +22,7 @@ enum class BatchType {
     BatchType_Transparent = 1
 };
 struct RenderBatch {
+    BatchType m_BatchType;
     std::string m_Name;
     std::multimap<float, std::reference_wrapper<Model>> m_ModelsByDistance;
 };
@@ -108,6 +109,7 @@ private:
 	void loadMeshes(const aiScene* i_aScene);
   void loadSceneRecursive(const aiNode* i_Node);
   void Init(const std::string i_ScenePath);
+  void SetInit(){ m_bIsInit = true; }
   void Free();
 
 };

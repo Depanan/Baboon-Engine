@@ -18,7 +18,7 @@ VulkanContext::VulkanContext(Device& device, VkSurfaceKHR surface, uint32_t wind
 }
 
 
-void VulkanContext::prepare()
+void VulkanContext::prepare(size_t nThreads)
 {
     m_DeviceRef.wait_idle();//We are creating important stuff here we need idleing 
 
@@ -40,7 +40,7 @@ void VulkanContext::prepare()
             images.push_back(std::move(depth_image));
 
             std::unique_ptr<RenderTarget> renderTarget = std::make_unique<RenderTarget>(std::move(images));
-            m_Frames.emplace_back(std::make_unique<RenderFrame>(m_DeviceRef, std::move(renderTarget), 1));
+            m_Frames.emplace_back(std::make_unique<RenderFrame>(m_DeviceRef, std::move(renderTarget), nThreads));
 
         }
     }

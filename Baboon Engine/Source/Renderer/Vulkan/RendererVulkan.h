@@ -41,6 +41,7 @@ public:
 
   void CameraDirty()override;
   void SceneDirty()override;
+  void SceneLoaded()override;
 
   //This 3 to be implemented
   virtual Texture* CreateTexture(void* i_data, int i_Widht, int i_Height) override;
@@ -55,6 +56,10 @@ public:
       return m_ShaderSourcePool;
   }
 private:
+
+    size_t m_ThreadCount = 1;
+    bool m_SceneLoaded = false;
+
   std::unique_ptr<Instance> m_Instance{ nullptr };
   VkSurfaceKHR m_Surface{ VK_NULL_HANDLE };
 	VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;

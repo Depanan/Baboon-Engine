@@ -43,6 +43,20 @@ void RendererVulkan::Update()
 {
     m_LogicalDevice->getResourcesCache().GarbageCollect();
 
+    if (m_SceneLoaded)
+    {
+        if (m_RenderPath)
+        {
+            auto& subpasses = m_RenderPath->getSubPasses();
+            for (int i = 0; i < subpasses.size(); i++)
+            {
+                subpasses[i]->invalidatePersistentCommands();
+            }
+        }
+        m_SceneLoaded = false;
+    }
+    
+        
    
    
     
@@ -84,6 +98,7 @@ void RendererVulkan::ReloadShader(std::string shaderPath)
 
 int RendererVulkan::Init(std::vector<const char*>& required_extensions, GLFWwindow* i_window, const Camera* p_Camera)
 {
+    m_ThreadCount = std::thread::hardware_concurrency();
 
     PrintVulkanSupportedExtensions();
     if (m_bEnableValidationLayers)
@@ -99,7 +114,7 @@ int RendererVulkan::Init(std::vector<const char*>& required_extensions, GLFWwind
     glfwGetWindowSize(i_window, &width, &height);
 
     m_RenderContext = std::make_unique<VulkanContext>(*m_LogicalDevice, m_Surface, width, height);
-    m_RenderContext->prepare();
+    m_RenderContext->prepare(m_ThreadCount);
 
     
 
@@ -107,7 +122,7 @@ int RendererVulkan::Init(std::vector<const char*>& required_extensions, GLFWwind
     auto fragmentShader = m_ShaderSourcePool.getShaderSource("./Shaders/shader.frag"); 
 
   
-    auto subpass = std::make_unique<ForwardSubpass>(*m_RenderContext,vertexShader,fragmentShader,p_Camera);//Here we are adding our own test subpass TODO: Add the real thing
+    auto subpass = std::make_unique<ForwardSubpass>(*m_RenderContext,vertexShader,fragmentShader,p_Camera, m_ThreadCount);//Here we are adding our own test subpass TODO: Add the real thing
     m_RenderPath = std::make_unique<RenderPath>();
     m_RenderPath->add_subpass(std::move(subpass));
 
@@ -385,6 +400,11 @@ void RendererVulkan::CameraDirty()
 void RendererVulkan::SceneDirty()
 {
     reRecordCommands();
+}
+
+void RendererVulkan::SceneLoaded()
+{
+    m_SceneLoaded = true;
 }
 
 Texture* RendererVulkan::CreateTexture(void* pPixels, int i_Widht, int i_Height)

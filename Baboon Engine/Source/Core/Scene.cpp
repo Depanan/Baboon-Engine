@@ -13,7 +13,7 @@
 #include <limits>
 
 #include "assimp\Importer.hpp"
-
+#include "assimp\DefaultLogger.hpp"
 #include "assimp\scene.h"
 #include "assimp\postprocess.h"
 
@@ -168,8 +168,12 @@ void  Scene::getBatches(std::vector<RenderBatch>& batchList, BatchType batchType
 
     for (auto material : m_Materials)
     {
+        bool needsInsertion = (batchType == BatchType::BatchType_Transparent && material.isTransparent()) || (batchType == BatchType::BatchType_Opaque && !material.isTransparent());
+        if(!needsInsertion)
+            continue;
         batchList.emplace_back(RenderBatch());
         RenderBatch* batch = &batchList.back();
+        batch->m_BatchType = batchType;
         batch->m_Name = std::string("batch_") + material.GetMaterialName();
         auto byMaterial = sortedByMaterial.equal_range(material.GetMaterialName());//retrieve the whole list of models using that material
         for (auto it = byMaterial.first; it != byMaterial.second; ++it)
@@ -182,10 +186,12 @@ void  Scene::getBatches(std::vector<RenderBatch>& batchList, BatchType batchType
           
        
     }
-    if(s_DefaultMaterial)
+    if(s_DefaultMaterial && ((s_DefaultMaterial->isTransparent() && batchType == BatchType::BatchType_Transparent)|| (!s_DefaultMaterial->isTransparent() && batchType == BatchType::BatchType_Opaque)))
     {
         batchList.emplace_back(RenderBatch());
         RenderBatch* batch = &batchList.back();
+        batch->m_BatchType = batchType;
+
         batch->m_Name = std::string("batch_") + s_DefaultMaterial->GetMaterialName();
         auto byMaterial = sortedByMaterial.equal_range(s_DefaultMaterial->GetMaterialName());//retrieve the whole list of models using that material
         for (auto it = byMaterial.first; it != byMaterial.second; ++it)
@@ -303,7 +309,7 @@ void Scene::DoLightsUI(bool* pOpen)
      if (s_DefaultMaterial == nullptr)
      {
          s_DefaultMaterial = new Material();
-         s_DefaultMaterial->Init("daniel_default_mat", nullptr, false);
+         s_DefaultMaterial->Init("daniel_default_mat", nullptr, true);
      }
      model->SetMaterial(s_DefaultMaterial);
 
@@ -384,7 +390,9 @@ void Scene::DoModelsUI(bool* pOpen)
   
 }
 
-
+void myCallback(const char* msg, char* userData) {
+    LOGINFO(msg);
+}
 void Scene::loadAssets(const std::string i_ScenePath)
 {
 	RendererAbstract* renderer = ServiceLocator::GetRenderer();
@@ -394,17 +402,19 @@ void Scene::loadAssets(const std::string i_ScenePath)
   LOGINFO("\n-----------------Attempting to open scene : "+ i_ScenePath + "-----------------------");
 
 	Assimp::Importer Importer;
-	/*int flags =   aiProcess_Triangulate | aiProcess_SortByPType|
-     
-      aiProcess_GenSmoothNormals |aiProcess_JoinIdenticalVertices
-      ;*/
+  aiString supported;
+  Importer.GetExtensionList(supported);
+
+  
+  Assimp::DefaultLogger::create("", Assimp::Logger::VERBOSE, aiDefaultLogStream_STDOUT);
+
   int flags =   aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_JoinIdenticalVertices | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace;
 	aScene = Importer.ReadFile(i_ScenePath, flags);//TODO: Iterate filesystem and read all .obj files
 
 	if (aScene == nullptr)
 		throw std::runtime_error("Scene model not found, I will handle this properly at some point shouldn't just break!");
 
-	
+  Assimp::DefaultLogger::kill();
 	
 	std::string iRootScenePath = i_ScenePath.substr(0, i_ScenePath.find_last_of("\\/")) + "\\";
 	
@@ -423,12 +433,12 @@ void Scene::loadAssets(const std::string i_ScenePath)
 
   getBatches(m_OpaqueBatch, BatchType::BatchType_Opaque);
   getBatches(m_TransparentBatch, BatchType::BatchType_Transparent);
-	renderer->SetupRenderCalls();
+	//renderer->SetupRenderCalls();
 
 
   
 
-  m_bIsInit = true;
+ 
 
   //Only need this during creation
   m_MeshMap.clear();
@@ -804,11 +814,12 @@ void SceneManager::LoadScene(const std::string i_ScenePath)
 
        
         
-        ServiceLocator::GetRenderer()->SceneDirty();
+        //ServiceLocator::GetRenderer()->SceneDirty();
         ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->CenterAt(GetCurrentScene()->getSceneAABB().get_center());
         LOGINFO("Scene finished loading!");
         ServiceLocator::GetRenderer()->SetupRenderCalls();
-       
+        ServiceLocator::GetRenderer()->SceneLoaded();
+        GetCurrentScene()->SetInit();
        
     });
     

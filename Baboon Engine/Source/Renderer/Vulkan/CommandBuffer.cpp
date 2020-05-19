@@ -265,9 +265,13 @@ void CommandBuffer::bindPipelineLayout(PipelineLayout& pipeline_layout)
     m_PipelineState.setPipelineLayout(pipeline_layout);
 }
 
-void CommandBuffer::execute_commands(CommandBuffer& secondary_command_buffer)
+void CommandBuffer::execute_commands(std::vector<CommandBuffer*> secondary_command_buffers)
 {
-    vkCmdExecuteCommands(getHandle(), 1, &secondary_command_buffer.getHandle());
+    std::vector<VkCommandBuffer> sec_cmd_buf_handles(secondary_command_buffers.size(), VK_NULL_HANDLE);
+    std::transform(secondary_command_buffers.begin(), secondary_command_buffers.end(), sec_cmd_buf_handles.begin(),
+        [](const CommandBuffer* sec_cmd_buf) { return sec_cmd_buf->getHandle(); });
+
+    vkCmdExecuteCommands(getHandle(), sec_cmd_buf_handles.size(), sec_cmd_buf_handles.data());
 }
 
 void CommandBuffer::pushConstants(uint32_t offset, const std::vector<uint8_t>& values)

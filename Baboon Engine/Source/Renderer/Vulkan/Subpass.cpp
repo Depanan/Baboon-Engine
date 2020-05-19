@@ -9,7 +9,6 @@
 #include <stb/stb_image.h>
 #include "VulkanTexture.h"
 #include "RendererVulkan.h"
-
 #include "Cameras/Camera.h"
 
 
@@ -24,6 +23,7 @@ Subpass::Subpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vert
 
 Subpass::~Subpass()
 {
+    delete m_ThreadPool;
 }
 
 void Subpass::invalidatePersistentCommands()
@@ -33,19 +33,20 @@ void Subpass::invalidatePersistentCommands()
 
 void Subpass::setReRecordCommands()
 {
-    m_PersistentCommandsPerFrame.setDirty();
+    m_PersistentCommandsPerFrame.setAllDirty();
 }
 
 
 
-ForwardSubpass::ForwardSubpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr<ShaderSource> fragment_shader, const Camera* p_Camera):
+ForwardSubpass::ForwardSubpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr<ShaderSource> fragment_shader, const Camera* p_Camera, size_t nThreads):
     Subpass{ render_context,vertex_shader,fragment_shader },
     m_Camera(p_Camera)
 {
     auto renderer = ServiceLocator::GetRenderer();
     auto& device = render_context.getDevice();
 
-
+    m_ThreadPool = new ThreadPool();
+    m_ThreadPool->setThreadCount(nThreads);
 }
 void ForwardSubpass::prepare()//setup shaders, To be called when adding subpass to the pipeline
 {
@@ -97,113 +98,155 @@ void ForwardSubpass::prepare()//setup shaders, To be called when adding subpass 
 }
 
 
+void ForwardSubpass::drawBatchList(std::vector<RenderBatch>& batches, CommandBuffer* primary_commandBuffer, std::vector<CommandBuffer*>& recordedCommands)
+{
+    if (batches.size() == 0)
+        return;
+    auto& device = m_RenderContext.getDevice();
+    auto& activeFrame = m_RenderContext.getActiveFrame();
+    size_t nBatches = batches.size();
+    size_t nCommandBuffers = batches.size();
+    size_t threadsToUse = m_ThreadPool->threads.size();
+    if (nCommandBuffers < threadsToUse)
+    {
+        threadsToUse = nCommandBuffers;
+    }
+    size_t nBatchesPerThread = nBatches / threadsToUse;
+    size_t remainderBatches = nBatches % threadsToUse;
 
+
+    size_t beginIndex = 0;
+
+
+    for (int i = 0; i < threadsToUse; i++)
+    {
+        size_t nBatches = nBatchesPerThread;
+        if (remainderBatches > 0)
+        {
+            nBatches++;
+            remainderBatches--;
+        }
+        size_t endIndex = beginIndex + nBatches;
+        auto persistentCommandsPerThread = m_PersistentCommandsPerFrame.getPersistentCommands(activeFrame.getHashId(), i, device, activeFrame);
+
+        auto& command_buffers = persistentCommandsPerThread->getCommandBuffers(nBatchesPerThread);
+
+        recordedCommands.insert(recordedCommands.end(), command_buffers.begin(), command_buffers.end());
+
+        m_ThreadPool->threads[i]->addJob([this, command_buffers, &primary_commandBuffer, &batches, beginIndex, endIndex]() {recordCommandBuffers(command_buffers, primary_commandBuffer, batches, beginIndex, endIndex); });
+        //recordCommandBuffers(command_buffers, &primary_commandBuffer,batchesOpaque, beginIndex, endIndex); 
+
+        beginIndex = endIndex;
+    }
+    m_ThreadPool->wait();
+}
 
 void ForwardSubpass::draw(CommandBuffer& primary_commandBuffer) 
-{//render geometry within subpass
+{
 
     auto scene = ServiceLocator::GetSceneManager()->GetCurrentScene();
     if (!scene->IsInit())
         return;
         
-    auto& device = m_RenderContext.getDevice();
     auto& activeFrame = m_RenderContext.getActiveFrame();
-   
 
-    auto persistentCommands = m_PersistentCommandsPerFrame.getPersistentCommands(activeFrame.getHashId(), device,activeFrame);
-    CommandBuffer* command_buffer = persistentCommands->getCommandBuffer();
+    if(m_PersistentCommandsPerFrame.getDirty(activeFrame.getHashId())){
 
-    if (persistentCommands->getDirty())
-    {
+        std::vector<CommandBuffer*>& recordedCommands = m_PersistentCommandsPerFrame.startRecording(activeFrame.getHashId());
+        std::vector<RenderBatch>& batchesOpaque = scene->GetOpaqueBatches();
+        std::vector<RenderBatch>& batchesTransparent = scene->GetTransparentBatches();
+        drawBatchList(batchesOpaque, &primary_commandBuffer, recordedCommands);
+        drawBatchList(batchesTransparent, &primary_commandBuffer, recordedCommands);
+        m_PersistentCommandsPerFrame.clearDirty(activeFrame.getHashId());
        
-        recordCommandBuffers(command_buffer, &primary_commandBuffer);
-        persistentCommands->clearDirty();
-
     }
-    primary_commandBuffer.execute_commands(*command_buffer);
-
+   
+    primary_commandBuffer.execute_commands(m_PersistentCommandsPerFrame.getPreRecordedCommands(activeFrame.getHashId()));
 
 }
-
-void ForwardSubpass::recordCommandBuffers(CommandBuffer* command_buffer, CommandBuffer* primary_commandBuffer)
+void ForwardSubpass::recordBatches(CommandBuffer* command_buffer, CommandBuffer* primary_commandBuffer, std::vector<RenderBatch>& batches, size_t beginIndex, size_t endIndex)
 {
+    for (int i = 0; i < (endIndex - beginIndex); i++)
+    {
+        auto& batch = batches[beginIndex + i];
+        if (batch.m_BatchType == BatchType::BatchType_Transparent)//TODO: Look into this!
+        {
+            // Enable alpha blending
+            ColorBlendAttachmentState color_blend_attachment{};
+            color_blend_attachment.m_BlendEnable = VK_TRUE;
+            color_blend_attachment.m_SrcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+            color_blend_attachment.m_DstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            color_blend_attachment.m_SrcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 
-    auto camera = ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main);
+            ColorBlendState color_blend_state{};
+            color_blend_state.m_Attachments.resize(1);
+            color_blend_state.m_Attachments[0] = color_blend_attachment;
+            command_buffer->setColorBlendState(color_blend_state);
+
+            DepthStencilState depth_stencil_state{};
+            command_buffer->setDepthStencilState(depth_stencil_state);
+        }
+
+        for (auto node_it = batch.m_ModelsByDistance.begin(); node_it != batch.m_ModelsByDistance.end(); node_it++)
+        {
+            const Model& model = node_it->second;
+            drawModel(model, command_buffer);
+        }
+    }
+
+}
+void ForwardSubpass::recordCommandBuffers(std::vector<CommandBuffer*> command_buffers, CommandBuffer* primary_commandBuffer, std::vector<RenderBatch>& batches, size_t beginIndex, size_t endIndex)
+{
+    assert(command_buffers.size() > 0, "Command buffers cant be empty!");
+
     auto scene = ServiceLocator::GetSceneManager()->GetCurrentScene();
-
     auto& renderTarget = m_RenderContext.getActiveFrame().getRenderTarget();//Grab the render target
 
-    //Set viewport and scissors
-    auto& extent = renderTarget.getExtent();
-    VkViewport viewport{};
-    viewport.width = static_cast<float>(extent.width);
-    viewport.height = static_cast<float>(extent.height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    VkRect2D scissor{};
-    scissor.extent = extent;
-
-
-
-    command_buffer->begin(VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT , primary_commandBuffer);
-    command_buffer->setViewport(0, { viewport });
-    command_buffer->setScissor(0, { scissor });
-    command_buffer->setColorBlendState(primary_commandBuffer->getColorBlendState());
-    command_buffer->setDepthStencilState(primary_commandBuffer->getDepthStencilState());
-
-    //Bind the matrices uniform buffer
-    command_buffer->bind_buffer(*(m_RenderContext.getActiveFrame().getCameraUniformBuffer()), 0, sizeof(UBOCamera), 0, 1, 0);
-
-    //Bind the lights uniform buffer
-    command_buffer->bind_buffer(*((VulkanBuffer*)(scene->getLightsUniformBuffer())), 0, sizeof(UBOLight), 0, 4, 0);
-
-    
-
-    
-    std::vector<RenderBatch>& batchesOpaque = scene->GetOpaqueBatches();
-  
-    for (auto batch : batchesOpaque)
+    size_t nBatches = endIndex - beginIndex;
+    size_t nBatchesPerCommand= nBatches / command_buffers.size();
+    size_t remainderBatches = nBatches % command_buffers.size();
+    size_t localBeginIndex = beginIndex;
+    for (CommandBuffer* command_buffer : command_buffers)
     {
-        for (auto node_it = batch.m_ModelsByDistance.begin(); node_it != batch.m_ModelsByDistance.end(); node_it++)
+        size_t nBatches = nBatchesPerCommand;
+        if (remainderBatches > 0)
         {
-            const Model& model = node_it->second;
-            drawModel(model, command_buffer);
+            nBatches++;
+            remainderBatches--;
         }
-       
-           
-    }
-    // Enable alpha blending
-    ColorBlendAttachmentState color_blend_attachment{};
-    color_blend_attachment.m_BlendEnable = VK_TRUE;
-    color_blend_attachment.m_SrcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    color_blend_attachment.m_DstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    color_blend_attachment.m_SrcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        size_t localEndIndex = localBeginIndex + nBatches;
 
-    ColorBlendState color_blend_state{};
-    color_blend_state.m_Attachments.resize(1);
-    color_blend_state.m_Attachments[0] = color_blend_attachment;
-    command_buffer->setColorBlendState(color_blend_state);
+        //Set viewport and scissors
+        auto& extent = renderTarget.getExtent();
+        VkViewport viewport{};
+        viewport.width = static_cast<float>(extent.width);
+        viewport.height = static_cast<float>(extent.height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        VkRect2D scissor{};
+        scissor.extent = extent;
 
-    DepthStencilState depth_stencil_state{};
-    command_buffer->setDepthStencilState(depth_stencil_state);
+        command_buffer->begin(VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT, primary_commandBuffer);
+        command_buffer->setViewport(0, { viewport });
+        command_buffer->setScissor(0, { scissor });
+        command_buffer->setColorBlendState(primary_commandBuffer->getColorBlendState());
+        command_buffer->setDepthStencilState(primary_commandBuffer->getDepthStencilState());
+        //Bind the matrices uniform buffer
+        command_buffer->bind_buffer(*(m_RenderContext.getActiveFrame().getCameraUniformBuffer()), 0, sizeof(UBOCamera), 0, 1, 0);
 
+        //Bind the lights uniform buffer
+        command_buffer->bind_buffer(*((VulkanBuffer*)(scene->getLightsUniformBuffer())), 0, sizeof(UBOLight), 0, 4, 0);
 
-    std::vector<RenderBatch>& batchesTransparent = scene->GetTransparentBatches();
-    for (auto batch : batchesTransparent)
-    {
-        for (auto node_it = batch.m_ModelsByDistance.begin(); node_it != batch.m_ModelsByDistance.end(); node_it++)
-        {
-            const Model& model = node_it->second;
-            drawModel(model, command_buffer);
-        }
+        recordBatches(command_buffer, primary_commandBuffer, batches, localBeginIndex, localEndIndex);
 
+        command_buffer->end();
+
+        localBeginIndex = localEndIndex;
 
     }
-
-
   
 
-    command_buffer->end();
+    
 }
 
 void ForwardSubpass::drawModel(const Model& model, CommandBuffer* command_buffer)

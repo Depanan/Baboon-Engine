@@ -13,7 +13,7 @@ class VulkanContext{
 public:
     VulkanContext(Device& device, VkSurfaceKHR surface, uint32_t window_width, uint32_t window_height);
     void checkForSurfaceChanges();
-    void prepare();
+    void prepare(size_t nThreads);
     CommandBuffer& begin(CommandBuffer::ResetMode reset_mode = CommandBuffer::ResetMode::ResetPool);
     void submit(const CommandBuffer& command_buffer);
     void end(VkSemaphore semaphore);

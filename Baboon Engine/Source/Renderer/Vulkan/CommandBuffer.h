@@ -110,7 +110,7 @@ public:
     inline const DepthStencilState& getDepthStencilState( ) { return m_PipelineState.getDepthStencilState(); }
     inline const VertexInputState& getVertexInputState() { return m_PipelineState.getVertexInputState(); }
 
-    void execute_commands(CommandBuffer& secondary_command_buffer);
+    void execute_commands(std::vector<CommandBuffer*> secondary_command_buffers);
     
     const RenderPassBinding& get_current_render_pass() const { return m_CurrentRenderPass; }
 

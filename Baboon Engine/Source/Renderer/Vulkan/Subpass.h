@@ -6,13 +6,16 @@
 #include <unordered_map>
 #include <memory>
 #include "PersistentCommand.h"
+#include <Core/Scene.h>
+#include <mutex>
 
+//#include "Core/ThreadPool.hpp"
 class CommandBuffer;
 
 //Here is where the drawing actually happens!
 class VulkanContext;
 class PersistentCommandsPerFrame;
-
+class ThreadPool;
 class Subpass
 {
 public:
@@ -46,6 +49,8 @@ protected:
 
     /// Default to swapchain output attachment
     std::vector<uint32_t> m_OutputAttachments = { 0 };
+
+    ThreadPool* m_ThreadPool;
 };
 
 
@@ -61,7 +66,7 @@ class CommandPool;
 class ForwardSubpass: public Subpass
 {
 public:
-    ForwardSubpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr<ShaderSource> fragment_shader, const Camera* p_Camera);
+    ForwardSubpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr<ShaderSource> fragment_shader, const Camera* p_Camera, size_t nThreads = 1);
     void prepare() override;
     void draw(CommandBuffer& command_buffer) override;
 
@@ -70,8 +75,9 @@ private:
     const Camera* m_Camera;
 
     //VulkanTexture* m_TestTexture;
-    
-    void recordCommandBuffers(CommandBuffer* commandBuffer, CommandBuffer* primary_command_buffer);
+    void drawBatchList(std::vector<RenderBatch>& batches, CommandBuffer* primary_command_buffer, std::vector<CommandBuffer*>& commands);
+    void recordBatches(CommandBuffer* commandBuffer, CommandBuffer* primary_command_buffer, std::vector<RenderBatch>& batches, size_t beginIndex, size_t endIndex);
+    void recordCommandBuffers(std::vector<CommandBuffer*> commandBuffers, CommandBuffer* primary_command_buffer, std::vector<RenderBatch>& batches, size_t beginIndex, size_t endIndex);
     void drawModel(const Model& model, CommandBuffer* commandBuffer);
 };
 

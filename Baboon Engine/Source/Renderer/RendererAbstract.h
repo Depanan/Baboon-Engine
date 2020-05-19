@@ -33,7 +33,7 @@ public:
 
   virtual void CameraDirty() = 0;//TODO: Replace this by listener stuff
   virtual void SceneDirty() = 0;//TODO: Same
-
+  virtual void SceneLoaded() = 0;//TODO: Same merged with top one and enum type message
 
   virtual void ReloadShader(std::string) = 0;
   virtual Buffer* CreateStaticUniformBuffer( void* i_data, size_t iBufferSize) = 0;
