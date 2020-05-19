@@ -9,13 +9,14 @@
 #include "VulkanContext.h"
 #include "RenderPath.h"
 #include <list>
+#include "Core/Observer.h"
 
 class VulkanImGUI;
-class RendererVulkan : public RendererAbstract
+class RendererVulkan : public RendererAbstract, public Observer
 {
     friend class VulkanImGUI;
 public:
-	
+	virtual ~RendererVulkan(){}
 	int Init(std::vector<const char*>& required_extensions,  GLFWwindow* i_window, const Camera* p_Camera) override;
 	void Destroy() override;
 	void DrawFrame() override;
@@ -34,14 +35,12 @@ public:
   Buffer* CreateInstancedUniformBuffer( void*  i_data, size_t iBufferSize) override;
 	void DeleteStaticUniformBuffer() override;
 	void DeleteInstancedUniformBuffer() override;
-	void SetupRenderCalls() override;
   void ReloadShader(std::string) override;
 	void UpdateTimesAndFPS(std::chrono::time_point<std::chrono::high_resolution_clock>  i_tStartTime) override;
 
 
-  void CameraDirty()override;
-  void SceneDirty()override;
-  void SceneLoaded()override;
+  void ObserverUpdate(int message, void* data)override;
+  
 
   //This 3 to be implemented
   virtual Texture* CreateTexture(void* i_data, int i_Widht, int i_Height) override;
@@ -59,6 +58,7 @@ private:
 
     size_t m_ThreadCount = 1;
     bool m_SceneLoaded = false;
+    bool m_Dirty = false;
 
   std::unique_ptr<Instance> m_Instance{ nullptr };
   VkSurfaceKHR m_Surface{ VK_NULL_HANDLE };

@@ -157,7 +157,7 @@ public:
     
 
 		RendererAbstract* pRenderer = ServiceLocator::GetRenderer();
-		Scene* pScene = ServiceLocator::GetSceneManager()->GetCurrentScene();
+		SceneManager* pSceneManager = ServiceLocator::GetSceneManager();
 		Input* pInput = ServiceLocator::GetInput();
     CameraManager* pCameraMan = ServiceLocator::GetCameraManager();
     GUI* pGui = ServiceLocator::GetGUI();
@@ -169,6 +169,7 @@ public:
 			pInput->processInput();//Order here is important, 1.Input modifies camera, 2.Cameraman update modifies uniform buffers, 3. Renderer uses them 
       pGui->Update();
       pCameraMan->Update();
+      pSceneManager->Update();
       pRenderer->Update();
 			pRenderer->DrawFrame();
       //pCameraMan->EndFrame();//clears camera dirty flag mainly
@@ -199,7 +200,6 @@ private:
     ServiceLocator::GetGUI()->OnWindowResize();
 		ServiceLocator::GetRenderer()->OnWindowResize(width,height);
 		ServiceLocator::GetCameraManager()->OnWindowResize(width,height);
-		ServiceLocator::GetSceneManager()->GetCurrentScene()->OnWindowResize();
 	}
 
 

@@ -136,7 +136,7 @@ void Scene::Free()
 
 void Scene::prepareBatches()
 {
-    for (auto& model : m_Models)
+    /*for (auto& model : m_Models)
     {
         if (model->IsVisible())
         {
@@ -150,7 +150,9 @@ void Scene::prepareBatches()
             }
         }
 
-    }
+    }*/
+    getBatches(m_OpaqueBatch, BatchType::BatchType_Opaque);
+    getBatches(m_TransparentBatch, BatchType::BatchType_Transparent);
 }
 
 void  Scene::getBatches(std::vector<RenderBatch>& batchList, BatchType batchType)//TODO: Don't do this sorting every frame. Only when relevant stuff changes. Probably can get away doing it onSceneLoad
@@ -224,13 +226,32 @@ void Scene::SelectModel(glm::vec2 clickPoint)
     }
 }
 
-void Scene::OnWindowResize()
+void Scene::Update()
 {
-	if (!m_bIsInit)
-		return;
-	RendererAbstract* renderer = ServiceLocator::GetRenderer();
-	renderer->SetupRenderCalls();
+    if (!m_bIsInit)
+        return;
+    if (!m_bIsDirty)
+        return;
+    bool hasBeenNotified = false;
+    for (auto& model : m_Models)
+    {
+        if (model->GetDirty())
+        {
+            model->computeModelMatrix();
+            if(!hasBeenNotified)
+            {
+                ServiceLocator::GetSceneManager()->GetSubject().Notify(Subject::Message::SCENEDIRTY);
+                hasBeenNotified = true;
+            }
+        }
+    }
+    if(hasBeenNotified)
+        prepareBatches();//Reordering geometry
+
+    m_bIsDirty = false;
 }
+
+
 
 void Scene::setLightPosition(glm::vec3 position)
 {
@@ -326,8 +347,7 @@ void Scene::DoLightsUI(bool* pOpen)
      transform = glm::translate(transform, -position);
      model->SetTransform(transform);
 
-     getBatches(m_OpaqueBatch, BatchType::BatchType_Opaque);
-     getBatches(m_TransparentBatch, BatchType::BatchType_Transparent);
+    
 
 }
 
@@ -395,7 +415,6 @@ void myCallback(const char* msg, char* userData) {
 }
 void Scene::loadAssets(const std::string i_ScenePath)
 {
-	RendererAbstract* renderer = ServiceLocator::GetRenderer();
 
 	const aiScene* aScene;
 
@@ -432,19 +451,11 @@ void Scene::loadAssets(const std::string i_ScenePath)
   m_Light.lightColor = glm::vec4(1.0f, 1.0f, 1.0f,0.0f);
   m_LightsUniformBuffer = ServiceLocator::GetRenderer()->CreateStaticUniformBuffer(&m_Light, sizeof(UBOLight));
 
-  getBatches(m_OpaqueBatch, BatchType::BatchType_Opaque);
-  getBatches(m_TransparentBatch, BatchType::BatchType_Transparent);
-	//renderer->SetupRenderCalls();
-
-
   
-
- 
 
   //Only need this during creation
   m_MeshMap.clear();
  
-	
 }
 
 const char* fromAiTexureTypesToShaderName(aiTextureType texType)
@@ -560,20 +571,9 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
             }
         }
     }
-		
-	
-		
 		m_Materials[i].Init(std::string(matName.C_Str()),&texturesInMaterial,isTransparent);
 	}
-
-
 }
-
-
-
-
-
-
 
 void Scene::loadMeshes(const aiScene* i_aScene)
 {
@@ -683,8 +683,6 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 		iVertexGeneralCount += aMesh->mNumVertices;
 	}
 
-	RendererAbstract* renderer = ServiceLocator::GetRenderer();
-
   mesh.setData(descriptions,positions, indices, &colors, &texCoords, &normals, &tangents, &biTangents);
   
 }
@@ -722,8 +720,13 @@ void Scene::loadSceneRecursive(const aiNode* i_Node)
             glm::mat4 checkIdentity = glm::mat4();
             if (transform != checkIdentity)
                 LOGINFO("LLAFALW");
+           
             model->SetTransform(transform);
-            //model->updateAABB();//Set transform handles this
+            //////////
+            model->computeModelMatrix();
+            model->updateAABB();//Set transform handles this normally but we need the AABBs for computing the scene AABB
+            model->SetDirty();
+            ////////
             m_SceneBoundMin = glm::min(m_SceneBoundMin, model->getAABB().get_min());
             m_SceneBoundMax = glm::max(m_SceneBoundMax, model->getAABB().get_max());
            
@@ -813,13 +816,9 @@ void SceneManager::LoadScene(const std::string i_ScenePath)
         m_CurrentSceneIndex = m_LoadingSceneIndex;
         m_LoadingSceneIndex = oldCurrentSceneIndex;
 
-       
-        
-        //ServiceLocator::GetRenderer()->SceneDirty();
         ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->CenterAt(GetCurrentScene()->getSceneAABB().get_center());
         LOGINFO("Scene finished loading!");
-        ServiceLocator::GetRenderer()->SetupRenderCalls();
-        ServiceLocator::GetRenderer()->SceneLoaded();
+        m_SceneSubject.Notify(Subject::Message::SCENELOADED);
         GetCurrentScene()->SetInit();
        
     });

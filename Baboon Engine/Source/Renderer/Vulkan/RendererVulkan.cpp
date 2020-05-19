@@ -51,9 +51,16 @@ void RendererVulkan::Update()
             for (int i = 0; i < subpasses.size(); i++)
             {
                 subpasses[i]->invalidatePersistentCommands();
+                subpasses[i]->prepare();
+                
             }
         }
         m_SceneLoaded = false;
+    }
+    if (m_Dirty)
+    {
+        reRecordCommands();
+        m_Dirty = false;
     }
     
         
@@ -73,16 +80,6 @@ float RendererVulkan::GetMainRTWidth()
 }
 float RendererVulkan::GetMainRTHeight() {
 	return m_RenderContext->getSurfaceExtent().height;
-}
-void RendererVulkan::SetupRenderCalls()
-{
-    if (m_RenderPath)
-    {
-        for (auto& subpass : m_RenderPath->getSubPasses())
-        {
-            subpass->prepare();//warming up shaders
-        }
-    }
 }
 
 void RendererVulkan::ReloadShader(std::string shaderPath)
@@ -132,6 +129,11 @@ int RendererVulkan::Init(std::vector<const char*>& required_extensions, GLFWwind
     VulkanImGUI* gui = (VulkanImGUI* )ServiceLocator::GetGUI();
     gui->Init(i_window, m_RenderContext.get(), this);
     
+
+
+    ServiceLocator::GetSceneManager()->GetSubject().Register(this);
+    ServiceLocator::GetCameraManager()->GetSubject().Register(this);
+
     return true;
     //return (result == VK_SUCCESS);
 
@@ -390,22 +392,32 @@ void RendererVulkan::UpdateTimesAndFPS(std::chrono::time_point<std::chrono::high
 	
 }
 
-void RendererVulkan::CameraDirty()
+void RendererVulkan::ObserverUpdate(int message, void* data)
 {
-    auto& renderFrames = m_RenderContext->getRenderFrames();
-    for (auto& frame : renderFrames)
-        frame->setCameraUniformDirty();
-    reRecordCommands();
-}
-void RendererVulkan::SceneDirty()
-{
-    reRecordCommands();
+    if (message == Subject::Message::SCENELOADED)
+    {
+        //LOGINFO("Renderer knows scene loaded");
+        m_SceneLoaded = true;
+      
+    }
+   
+    else if (message == Subject::CAMERADIRTY)
+    {
+        //LOGINFO("Renderer knows CAMERADIRTY");
+        auto& renderFrames = m_RenderContext->getRenderFrames();
+        for (auto& frame : renderFrames)
+            frame->setCameraUniformDirty();
+        m_Dirty = true;
+    }
+    else if (message == Subject::SCENEDIRTY)
+    {
+        m_Dirty = true;
+    }
 }
 
-void RendererVulkan::SceneLoaded()
-{
-    m_SceneLoaded = true;
-}
+
+
+
 
 Texture* RendererVulkan::CreateTexture(void* pPixels, int i_Widht, int i_Height)
 {

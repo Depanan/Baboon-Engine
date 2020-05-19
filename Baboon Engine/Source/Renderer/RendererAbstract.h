@@ -19,7 +19,6 @@ public:
   virtual void Update() = 0;
 	virtual void OnWindowResize(int i_NewW, int i_NewH) = 0;
 	virtual void WaitToDestroy() {}//Function to wait till we can delete renderer stuff, like in vulkan we have to wait for vkDeviceWaitIdle(device);
-  virtual void SetupRenderCalls() = 0;
 	virtual float GetMainRTAspectRatio() = 0;
 	virtual float GetMainRTWidth() = 0;
 	virtual float GetMainRTHeight() = 0;
@@ -31,9 +30,6 @@ public:
 	virtual Buffer* CreateIndexBuffer(void*  i_data, size_t iBufferSize) = 0;
 	virtual void DeleteBuffer(Buffer*) = 0;
 
-  virtual void CameraDirty() = 0;//TODO: Replace this by listener stuff
-  virtual void SceneDirty() = 0;//TODO: Same
-  virtual void SceneLoaded() = 0;//TODO: Same merged with top one and enum type message
 
   virtual void ReloadShader(std::string) = 0;
   virtual Buffer* CreateStaticUniformBuffer( void* i_data, size_t iBufferSize) = 0;

@@ -267,6 +267,8 @@ void CommandBuffer::bindPipelineLayout(PipelineLayout& pipeline_layout)
 
 void CommandBuffer::execute_commands(std::vector<CommandBuffer*> secondary_command_buffers)
 {
+    if (secondary_command_buffers.size() == 0)
+        return;
     std::vector<VkCommandBuffer> sec_cmd_buf_handles(secondary_command_buffers.size(), VK_NULL_HANDLE);
     std::transform(secondary_command_buffers.begin(), secondary_command_buffers.end(), sec_cmd_buf_handles.begin(),
         [](const CommandBuffer* sec_cmd_buf) { return sec_cmd_buf->getHandle(); });

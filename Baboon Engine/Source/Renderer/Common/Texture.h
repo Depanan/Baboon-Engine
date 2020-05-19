@@ -4,7 +4,7 @@
 class Texture
 {
 public:
-   
+   virtual ~Texture(){}
     
     
 protected:

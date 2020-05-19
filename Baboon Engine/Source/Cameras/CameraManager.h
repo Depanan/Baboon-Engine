@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CameraQuaternion.h"
-
+#include "Core/Observer.h"
 
 struct CameraUniforms {
 	glm::mat4 view;
@@ -38,8 +38,9 @@ public:
 	void BindCameraUniforms(eCameraType i_camType);
 	
 
-
+  Subject& GetSubject() { return m_SceneSubject; }
 private:
+  Subject m_SceneSubject;
 	CameraQuaternion m_Cameras[eCameraType_NCameras];
 	CameraUniforms m_CameraUniforms;
 

@@ -5,7 +5,7 @@
 #include "Core\Material.h"
 #include <map>
 #include <functional>
-
+#include "Observer.h"
 
 
 struct aiScene;
@@ -27,7 +27,7 @@ struct RenderBatch {
     std::multimap<float, std::reference_wrapper<Model>> m_ModelsByDistance;
 };
 
-class Scene {
+class Scene{
     friend class SceneManager;
 public:
 	Scene();
@@ -43,9 +43,8 @@ public:
 
   
   void SelectModel(glm::vec2 clickPoint);
-  void Update() { prepareBatches(); }
+  void Update();
 	
-	void OnWindowResize();
 
 	bool IsInit() { return m_bIsInit; }
 
@@ -71,12 +70,17 @@ public:
   //UI functions
   void DoLightsUI(bool* pOpen);
   void DoModelsUI(bool* pOpen);
+
+ 
+  void SetDirty() { m_bIsDirty = true; }
+
 private:
 
     typedef std::pair<Mesh*, MeshView> MeshWithView;
     std::unordered_map<uint32_t, MeshWithView> m_MeshMap;
 
 	bool m_bIsInit = false;
+  bool m_bIsDirty = true;
 
   glm::vec3 m_SceneBoundMin;
   glm::vec3 m_SceneBoundMax;
@@ -120,14 +124,15 @@ class SceneManager {
 
 public:
     SceneManager();
+    void Update() { GetCurrentScene()->Update(); }
     void LoadScene(const std::string i_ScenePath);
     void FreeScene();
 	Scene* GetCurrentScene() {
 		return &m_SceneData[m_CurrentSceneIndex];
 	}
-
-
+  Subject& GetSubject() { return m_SceneSubject; }
 private:
+  Subject m_SceneSubject;
 	Scene m_SceneData[2];
   int m_CurrentSceneIndex = 0;
   int m_LoadingSceneIndex = 1;

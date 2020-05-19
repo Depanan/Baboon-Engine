@@ -21,7 +21,7 @@ Subpass::Subpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vert
    
 }
 
-Subpass::~Subpass()
+ Subpass::~Subpass()
 {
     delete m_ThreadPool;
 }
@@ -105,11 +105,11 @@ void ForwardSubpass::drawBatchList(std::vector<RenderBatch>& batches, CommandBuf
     auto& device = m_RenderContext.getDevice();
     auto& activeFrame = m_RenderContext.getActiveFrame();
     size_t nBatches = batches.size();
-    size_t nCommandBuffers = batches.size();
+    size_t nCommandBuffers = 1;//batches.size();
     size_t threadsToUse = m_ThreadPool->threads.size();
-    if (nCommandBuffers < threadsToUse)
+    if (nBatches < threadsToUse)
     {
-        threadsToUse = nCommandBuffers;
+        threadsToUse = nBatches;
     }
     size_t nBatchesPerThread = nBatches / threadsToUse;
     size_t remainderBatches = nBatches % threadsToUse;
@@ -129,7 +129,7 @@ void ForwardSubpass::drawBatchList(std::vector<RenderBatch>& batches, CommandBuf
         size_t endIndex = beginIndex + nBatches;
         auto persistentCommandsPerThread = m_PersistentCommandsPerFrame.getPersistentCommands(activeFrame.getHashId(), i, device, activeFrame);
 
-        auto& command_buffers = persistentCommandsPerThread->getCommandBuffers(nBatchesPerThread);
+        auto& command_buffers = persistentCommandsPerThread->getCommandBuffers(nCommandBuffers);
 
         recordedCommands.insert(recordedCommands.end(), command_buffers.begin(), command_buffers.end());
 

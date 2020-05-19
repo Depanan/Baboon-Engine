@@ -31,21 +31,24 @@ glm::vec3 Model::GetRotation()
 void Model::Rotate(const glm::vec3& i_Eulers)
 {
     m_Rotation = glm::quat(glm::radians(i_Eulers));
-    computeModelMatrix();
-    updateAABB();
+    m_Dirty = true;
+    ServiceLocator::GetSceneManager()->GetCurrentScene()->SetDirty();//All this dirty stuff can be improved with a tree and the models hanging from the Scene root node propagating dirty upwards
+
 }
 void Model::Translate(const glm::vec3& i_TranslateVec)
 {
   m_Translation = i_TranslateVec;
-  computeModelMatrix();
-  updateAABB();
+  m_Dirty = true;
+  ServiceLocator::GetSceneManager()->GetCurrentScene()->SetDirty();
+
 }
 
 void Model::Scale(const glm::vec3& i_ScaleVec)
 {
   m_Scale = i_ScaleVec;
-  computeModelMatrix();
-  updateAABB();
+  m_Dirty = true;
+  ServiceLocator::GetSceneManager()->GetCurrentScene()->SetDirty();
+
 }
 
 
@@ -56,8 +59,9 @@ void Model::SetTransform(glm::mat4 transformMat)
     glm::vec4 persp;
     glm::decompose(transformMat, m_Scale, m_Rotation, m_Translation, skew, persp);
 
-    computeModelMatrix();
-    updateAABB();
+    m_Dirty = true;
+    ServiceLocator::GetSceneManager()->GetCurrentScene()->SetDirty();
+    
 }
 
 void Model::computeModelMatrix()
@@ -69,7 +73,9 @@ void Model::computeModelMatrix()
     translationMatrix = glm::translate(translationMatrix, -m_Translation);
     m_InstanceUniforms.model = translationMatrix * rotationMatrix * scaleMatrix;
 
-    ServiceLocator::GetRenderer()->SceneDirty();//TODO:: do this better, again, listener? scene traversals?
+    //ServiceLocator::GetRenderer()->SceneDirty();//TODO:: do this better, again, listener? scene traversals?
+    updateAABB();
+    m_Dirty = false;
 }
 
 

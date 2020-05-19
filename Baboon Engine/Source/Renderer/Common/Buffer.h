@@ -5,6 +5,7 @@
 class Buffer
 {
 public:
+    virtual ~Buffer() {}
     Buffer(uint64_t size);
     Buffer(Buffer&& other);
     Buffer& operator=(const Buffer&) = delete;

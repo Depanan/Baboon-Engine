@@ -53,6 +53,9 @@ public:
   const uint32_t GetNIndices() const { return m_MeshView.m_NIndices; }
   const std::string& getName()const { return m_Name; }
   void SetSelection(bool select) { m_Selected = select; }
+
+  bool GetDirty() { return m_Dirty; }
+  void SetDirty() { m_Dirty = true; }
 private:
    
   std::string m_Name;
@@ -65,6 +68,7 @@ private:
   ShaderVariant m_Variant;
 
 
+  bool m_Dirty = false;
 
   AABB m_AABB;
 

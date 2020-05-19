@@ -55,7 +55,7 @@ void Camera::Update()
 {
     m_UBOCamera.camPos = m_CamPosition;
     m_UBOCamera.view = glm::lookAt(m_CamPosition, m_CamLookAt, m_CamUp);
-    ServiceLocator::GetRenderer()->CameraDirty();
+    ServiceLocator::GetCameraManager()->GetSubject().Notify(Subject::CAMERADIRTY, this);
     m_Dirty = false;
 }
 void Camera::UpdateProjectionMatrix(float newAspectRatio)

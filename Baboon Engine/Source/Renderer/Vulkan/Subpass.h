@@ -20,7 +20,7 @@ class Subpass
 {
 public:
     Subpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr <ShaderSource> fragment_shader);
-    ~Subpass();
+    virtual ~Subpass();
     virtual void prepare() = 0;
     virtual void draw(CommandBuffer& command_buffer) = 0;
 
