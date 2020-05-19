@@ -414,6 +414,7 @@ void Scene::loadAssets(const std::string i_ScenePath)
 	if (aScene == nullptr)
 		throw std::runtime_error("Scene model not found, I will handle this properly at some point shouldn't just break!");
 
+ 
   Assimp::DefaultLogger::kill();
 	
 	std::string iRootScenePath = i_ScenePath.substr(0, i_ScenePath.find_last_of("\\/")) + "\\";
