@@ -13,7 +13,7 @@ class VulkanContext{
 public:
     VulkanContext(Device& device, VkSurfaceKHR surface, uint32_t window_width, uint32_t window_height);
     void checkForSurfaceChanges();
-    void prepare(size_t nThreads);
+    void prepare(size_t nThreads, RenderTarget::CreateFunc createRenderTargetfunc = RenderTarget::DEFAULT_CREATE_FUNC);
     CommandBuffer& begin(CommandBuffer::ResetMode reset_mode = CommandBuffer::ResetMode::ResetPool);
     void submit(const CommandBuffer& command_buffer);
     void end(VkSemaphore semaphore);
@@ -32,7 +32,7 @@ private:
     bool m_FrameActive{ false };
     uint32_t m_FrameIndex{ 0 };
     VkSemaphore m_FrameSemaphore;
-
+    RenderTarget::CreateFunc m_CreateRenderTargetFunction = RenderTarget::DEFAULT_CREATE_FUNC;
     void recreate(uint32_t window_width, uint32_t window_height);
     void waitFrame();
 

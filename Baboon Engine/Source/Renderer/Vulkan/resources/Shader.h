@@ -150,6 +150,7 @@ private:
 
     void readShaderResources();
     void readInputs(spirv_cross::CompilerGLSL* compiler);
+    void readInputAttachments(spirv_cross::CompilerGLSL* compiler);
     void readOutputs(spirv_cross::CompilerGLSL* compiler);
     void readSamplers(spirv_cross::CompilerGLSL* compiler);
     void readUniforms(spirv_cross::CompilerGLSL* compiler);

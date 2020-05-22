@@ -18,8 +18,9 @@ VulkanContext::VulkanContext(Device& device, VkSurfaceKHR surface, uint32_t wind
 }
 
 
-void VulkanContext::prepare(size_t nThreads)
+void VulkanContext::prepare(size_t nThreads, RenderTarget::CreateFunc createRenderTargetfunc)
 {
+    m_CreateRenderTargetFunction = createRenderTargetfunc;
     m_DeviceRef.wait_idle();//We are creating important stuff here we need idleing 
 
     if (m_SwapChain)
@@ -28,18 +29,9 @@ void VulkanContext::prepare(size_t nThreads)
         for (const VkImage& imageHandle : m_SwapChain->get_images())
         {
             VulkanImage swapChainImage(m_DeviceRef, imageHandle, extent, m_SwapChain->get_format(), m_SwapChain->get_image_usage());
-            //TODO: Get into the render target and RenderFrame stuff.
-
-            VulkanImage depth_image{ m_DeviceRef, extent,
-                          VK_FORMAT_D32_SFLOAT,
-                          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
-                          VMA_MEMORY_USAGE_GPU_ONLY };
-
-            std::vector<VulkanImage> images;
-            images.push_back(std::move(swapChainImage));
-            images.push_back(std::move(depth_image));
-
-            std::unique_ptr<RenderTarget> renderTarget = std::make_unique<RenderTarget>(std::move(images));
+            
+            auto renderTarget = m_CreateRenderTargetFunction(std::move(swapChainImage));
+           
             m_Frames.emplace_back(std::make_unique<RenderFrame>(m_DeviceRef, std::move(renderTarget), nThreads));
 
         }
@@ -64,16 +56,7 @@ void VulkanContext::recreate(uint32_t window_width, uint32_t window_height)
     {
         VulkanImage swapChainImage(m_DeviceRef, imageHandle, extent, m_SwapChain->get_format(), m_SwapChain->get_image_usage());
 
-        VulkanImage depth_image{ m_DeviceRef, extent,
-                           VK_FORMAT_D32_SFLOAT,
-                           VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
-                           VMA_MEMORY_USAGE_GPU_ONLY };
-
-        std::vector<VulkanImage> images;
-        images.push_back(std::move(swapChainImage));
-        images.push_back(std::move(depth_image));
-
-        std::unique_ptr<RenderTarget> renderTarget = std::make_unique<RenderTarget>(std::move(images));
+        auto renderTarget = m_CreateRenderTargetFunction(std::move(swapChainImage));
        
 
         if (frame_it != m_Frames.end())

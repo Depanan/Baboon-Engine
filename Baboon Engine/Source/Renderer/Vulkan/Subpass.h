@@ -30,7 +30,10 @@ public:
     bool getDisableDepthAttachment() { return m_DisableDepthAttachment; }
     const  std::vector<uint32_t>& getInputAttachments()const { return m_InputAttachments; }
     const  std::vector<uint32_t>& getOutputAttachments()const { return m_OutputAttachments; }
+    void setOutputAttachments(std::vector<uint32_t> attachments) { m_OutputAttachments = attachments; }
+    void setInputAttachments(std::vector<uint32_t> attachments) { m_InputAttachments = attachments; }
 
+    void updateRenderTargetAttachments();
 
     void invalidatePersistentCommands();
     void setReRecordCommands();
@@ -79,6 +82,14 @@ private:
     void recordBatches(CommandBuffer* commandBuffer, CommandBuffer* primary_command_buffer, std::vector<RenderBatch>& batches, size_t beginIndex, size_t endIndex);
     void recordCommandBuffers(std::vector<CommandBuffer*> commandBuffers, CommandBuffer* primary_command_buffer, std::vector<RenderBatch>& batches, size_t beginIndex, size_t endIndex);
     void drawModel(const Model& model, CommandBuffer* commandBuffer);
+};
+
+class EmptySubpass : public Subpass
+{
+public:
+    EmptySubpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr<ShaderSource> fragment_shader);
+    void prepare() override {}
+    void draw(CommandBuffer& command_buffer) override;
 };
 
 

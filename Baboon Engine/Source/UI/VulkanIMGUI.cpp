@@ -367,7 +367,7 @@ void VulkanImGUI::Draw(CommandBuffer& primary_commandBuffer)
 
     }
     primary_commandBuffer.execute_commands(m_PersistentCommandsPerFrame.getPreRecordedCommands(activeFrame.getHashId()));
-
+    
 }
 
 

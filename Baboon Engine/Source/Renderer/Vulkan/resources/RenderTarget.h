@@ -3,6 +3,7 @@
 #include "../VulkanImage.h"
 #include "../VulkanImageView.h"
 #include <vector>
+#include <functional>
 
 class CommandBuffer;
 struct Attachment
@@ -24,6 +25,12 @@ struct Attachment
 class RenderTarget
 {
 public:
+
+
+    using CreateFunc = std::function<std::unique_ptr<RenderTarget>(VulkanImage&&)>;
+    static const CreateFunc DEFAULT_CREATE_FUNC;
+    static const CreateFunc DEFERRED_CREATE_FUNC;
+
     RenderTarget(std::vector<VulkanImage>&& images);
 
 
@@ -43,10 +50,20 @@ public:
     void presentFrameMemoryBarrier(CommandBuffer& commandBuffer);
 
     VkExtent2D getExtent() const { return m_Extent; }
+    void setOutputAttachments(std::vector<uint32_t>& output);
+  
+    const std::vector<uint32_t>& getOutputAttachments() const;
+
+    void setInputAttachments(std::vector<uint32_t>& input);
+
+    const std::vector<uint32_t>& getInputAttachments() const;
+    
 private:
     std::vector<VulkanImage> m_Images;
     std::vector<VulkanImageView> m_ImageViews;
     std::vector<Attachment> m_Attachments;
     VkExtent2D m_Extent;
+    std::vector<uint32_t> m_OutputAttachments = { 0 };
+    std::vector<uint32_t> m_InputAttachments = { 0 };
 
 };

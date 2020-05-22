@@ -4,6 +4,7 @@
 #include "Subpass.h"
 #include <vector>
 #include <memory>
+#include "resources/RenderPass.h"
 
 class CommandBuffer;
 class RenderTarget;
@@ -16,7 +17,10 @@ public:
     void draw(CommandBuffer& command_buffer, RenderTarget& render_target, VkSubpassContents contents = VK_SUBPASS_CONTENTS_INLINE);
 
     std::vector<std::unique_ptr<Subpass>>& getSubPasses() { return m_Subpasses; }
+    void setClearValue(std::vector<VkClearValue>& clearValues) { m_ClearValue = clearValues; }
+    void setLoadStoreValue(std::vector<LoadStoreInfo>& loadStore) { m_LoadStore = loadStore; }
 private:
     std::vector<std::unique_ptr<Subpass>> m_Subpasses;
-
+    std::vector<VkClearValue> m_ClearValue = std::vector<VkClearValue>(2);
+    std::vector<LoadStoreInfo> m_LoadStore = std::vector<LoadStoreInfo>(2);
 };

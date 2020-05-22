@@ -325,7 +325,7 @@ void Scene::DoLightsUI(bool* pOpen)
          
      MeshView meshView{ 0,s_IndicesBox.size(),0,s_VerticesBox.size(),-1 };
 
-     m_Models.emplace_back(std::make_unique<Model>(*s_BoxMesh, meshView, "Box!!"));
+     m_Models.emplace_back(std::make_unique<Model>(*s_BoxMesh, meshView,*this, "Box!!"));
      auto& model = m_Models.back();
      if (s_DefaultMaterial == nullptr)
      {
@@ -703,7 +703,7 @@ void Scene::loadSceneRecursive(const aiNode* i_Node)
         for (int i = 0;i< i_Node->mNumMeshes;i++)//TODO: What happens for nodes with more than one mesh :/
         {
             auto meshWithView = m_MeshMap[i_Node->mMeshes[i]];
-            m_Models.emplace_back(std::make_unique<Model>(*meshWithView.first, meshWithView.second, std::string(i_Node->mName.C_Str())));
+            m_Models.emplace_back(std::make_unique<Model>(*meshWithView.first, meshWithView.second,*this, std::string(i_Node->mName.C_Str())));
             auto& model = m_Models.back();
             model->SetMaterial(&m_Materials[meshWithView.second.m_MaterialIndex]);
 

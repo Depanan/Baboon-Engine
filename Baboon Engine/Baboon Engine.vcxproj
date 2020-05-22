@@ -32,6 +32,7 @@
     <ClCompile Include="Source\Core\Logger.cpp" />
     <ClCompile Include="Source\Core\Material.cpp" />
     <ClCompile Include="Source\Core\Model.cpp" />
+    <ClCompile Include="Source\Core\Observer.cpp" />
     <ClCompile Include="Source\Core\Scene.cpp" />
     <ClCompile Include="Source\Core\ServiceLocator.cpp" />
     <ClCompile Include="Source\Renderer\Common\Buffer.cpp" />
@@ -86,6 +87,7 @@
     <ClInclude Include="Source\Core\Logger.h" />
     <ClInclude Include="Source\Core\Material.h" />
     <ClInclude Include="Source\Core\Model.h" />
+    <ClInclude Include="Source\Core\Observer.h" />
     <ClInclude Include="Source\Core\Scene.h" />
     <ClInclude Include="Source\Core\ServiceLocator.h" />
     <ClInclude Include="Source\Core\ThreadPool.hpp" />

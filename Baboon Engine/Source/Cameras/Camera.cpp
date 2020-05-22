@@ -55,6 +55,7 @@ void Camera::Update()
 {
     m_UBOCamera.camPos = m_CamPosition;
     m_UBOCamera.view = glm::lookAt(m_CamPosition, m_CamLookAt, m_CamUp);
+    m_UBOCamera.inverseViewProj = glm::inverse(m_UBOCamera.proj* m_UBOCamera.view);
     ServiceLocator::GetCameraManager()->GetSubject().Notify(Subject::CAMERADIRTY, this);
     m_Dirty = false;
 }

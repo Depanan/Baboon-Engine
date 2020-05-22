@@ -72,7 +72,7 @@ public:
     void beginRenderPass(const RenderTarget& render_target, const std::vector<LoadStoreInfo>& load_store_infos, const std::vector<VkClearValue>& clear_values, const std::vector<std::unique_ptr<Subpass>>& subpasses, VkSubpassContents contents = VK_SUBPASS_CONTENTS_INLINE);
     void endRenderPass();
 
-    void nextSubpass();
+    void nextSubpass(VkSubpassContents contents);
 
     void imageBarrier(VulkanImageView& image_view, const ImageMemoryBarrier& memory_barrier);
 
@@ -94,6 +94,10 @@ public:
 
     void bind_buffer(const VulkanBuffer& buffer, VkDeviceSize offset, VkDeviceSize range, uint32_t set, uint32_t binding, uint32_t array_element);
     void bind_image(const VulkanImageView& image_view, const VulkanSampler& sampler, uint32_t set, uint32_t binding, uint32_t array_element);
+
+
+    void bind_input(const VulkanImageView& image_view, uint32_t set, uint32_t binding, uint32_t array_element);
+
 
     void copy_buffer_to_image(const VulkanBuffer& buffer, const VulkanImage& image, const std::vector<VkBufferImageCopy>& regions);
 

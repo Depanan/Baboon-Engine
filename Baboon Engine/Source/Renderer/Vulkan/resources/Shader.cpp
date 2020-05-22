@@ -91,6 +91,7 @@ void ShaderModule::readShaderResources()
 {
     spirv_cross::CompilerGLSL compiler{ m_Spirv };
     readInputs(&compiler);
+    readInputAttachments(&compiler);
     readOutputs(&compiler);
     readSamplers(&compiler);
     readUniforms(&compiler);
@@ -115,6 +116,32 @@ void ShaderModule::readInputs(spirv_cross::CompilerGLSL* compiler)
         shader_resource.columns = spirv_type.columns;
 
         shader_resource.location = compiler->get_decoration(resource.id, spv::DecorationLocation);
+        shader_resource.array_size = spirv_type.array.size() ? spirv_type.array[0] : 1;
+        m_Resources.push_back(shader_resource);
+    }
+}
+
+void ShaderModule::readInputAttachments(spirv_cross::CompilerGLSL* compiler)
+{
+    auto shaderInputs = compiler->get_shader_resources().subpass_inputs;
+
+    for (auto& resource : shaderInputs)
+    {
+        ShaderResource shader_resource{};
+        shader_resource.type = ShaderResourceType::InputAttachment;
+        shader_resource.stages = m_Stage;
+        shader_resource.name = resource.name;
+
+        const auto& spirv_type = compiler->get_type_from_variable(resource.id);
+
+        shader_resource.vec_size = spirv_type.vecsize;
+        shader_resource.columns = spirv_type.columns;
+
+        shader_resource.input_attachment_index = compiler->get_decoration(resource.id, spv::DecorationInputAttachmentIndex);
+        shader_resource.set = compiler->get_decoration(resource.id, spv::DecorationDescriptorSet);
+        shader_resource.binding = compiler->get_decoration(resource.id, spv::DecorationBinding);
+
+
         shader_resource.array_size = spirv_type.array.size() ? spirv_type.array[0] : 1;
         m_Resources.push_back(shader_resource);
     }

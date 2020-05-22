@@ -3,10 +3,12 @@
 #include <glm\gtx\matrix_decompose.hpp>
 #include <algorithm>
 #include <Core/ServiceLocator.h>
+#include "Core/Scene.h"
 
-Model::Model(const Mesh& i_Mesh, MeshView meshView,  std::string name ):
+Model::Model(const Mesh& i_Mesh, MeshView meshView, Scene& parentScene,  std::string name ):
     m_Mesh(i_Mesh),
     m_MeshView(meshView),
+    m_ParentScene(parentScene),
     m_Name(name)
 {
     m_AABB.reset();
@@ -32,14 +34,14 @@ void Model::Rotate(const glm::vec3& i_Eulers)
 {
     m_Rotation = glm::quat(glm::radians(i_Eulers));
     m_Dirty = true;
-    ServiceLocator::GetSceneManager()->GetCurrentScene()->SetDirty();//All this dirty stuff can be improved with a tree and the models hanging from the Scene root node propagating dirty upwards
+    m_ParentScene.SetDirty();//All this dirty stuff can be improved with a tree and the models hanging from the Scene root node propagating dirty upwards
 
 }
 void Model::Translate(const glm::vec3& i_TranslateVec)
 {
   m_Translation = i_TranslateVec;
   m_Dirty = true;
-  ServiceLocator::GetSceneManager()->GetCurrentScene()->SetDirty();
+  m_ParentScene.SetDirty();
 
 }
 
@@ -47,7 +49,7 @@ void Model::Scale(const glm::vec3& i_ScaleVec)
 {
   m_Scale = i_ScaleVec;
   m_Dirty = true;
-  ServiceLocator::GetSceneManager()->GetCurrentScene()->SetDirty();
+  m_ParentScene.SetDirty();
 
 }
 
@@ -60,7 +62,7 @@ void Model::SetTransform(glm::mat4 transformMat)
     glm::decompose(transformMat, m_Scale, m_Rotation, m_Translation, skew, persp);
 
     m_Dirty = true;
-    ServiceLocator::GetSceneManager()->GetCurrentScene()->SetDirty();
+    m_ParentScene.SetDirty();
     
 }
 

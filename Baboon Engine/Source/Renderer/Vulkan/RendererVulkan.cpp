@@ -111,20 +111,53 @@ int RendererVulkan::Init(std::vector<const char*>& required_extensions, GLFWwind
     glfwGetWindowSize(i_window, &width, &height);
 
     m_RenderContext = std::make_unique<VulkanContext>(*m_LogicalDevice, m_Surface, width, height);
-    m_RenderContext->prepare(m_ThreadCount);
+    m_RenderContext->prepare(m_ThreadCount,RenderTarget::DEFERRED_CREATE_FUNC);
 
     
 
-    auto vertexShader = m_ShaderSourcePool.getShaderSource("./Shaders/shader.vert");
-    auto fragmentShader = m_ShaderSourcePool.getShaderSource("./Shaders/shader.frag"); 
+    auto vertexShader = m_ShaderSourcePool.getShaderSource("./Shaders/geo.vert");
+    auto fragmentShader = m_ShaderSourcePool.getShaderSource("./Shaders/geo.frag"); 
 
   
-    auto subpass = std::make_unique<ForwardSubpass>(*m_RenderContext,vertexShader,fragmentShader,p_Camera, m_ThreadCount);//Here we are adding our own test subpass TODO: Add the real thing
+    auto subpass = std::make_unique<ForwardSubpass>(*m_RenderContext,vertexShader,fragmentShader,p_Camera, m_ThreadCount);
+    subpass->setOutputAttachments({ 1,2,3 });
+
+    auto vertexLight = m_ShaderSourcePool.getShaderSource("./Shaders/light.vert");
+    auto fragmentLight = m_ShaderSourcePool.getShaderSource("./Shaders/light.frag");
+    auto emptySubpass = std::make_unique<EmptySubpass>(*m_RenderContext, vertexLight, fragmentLight);
+    emptySubpass->setInputAttachments({ 1,2,3 });
+
     m_RenderPath = std::make_unique<RenderPath>();
     m_RenderPath->add_subpass(std::move(subpass));
+    m_RenderPath->add_subpass(std::move(emptySubpass));
+    
 
-    
-    
+    std::vector<VkClearValue> clear_value{ 4 };
+    clear_value[0].color = { {0.4f, 0.4f, 0.4f, 1.0f} };
+    clear_value[1].depthStencil = { 1.0f, 0 };
+    clear_value[2].color = { {0.4f, 0.4f, 0.4f, 1.0f} };
+    clear_value[3].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+
+    std::vector<LoadStoreInfo> load_store{ 4 };
+
+    // Swapchain
+    load_store[0].load_op = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    load_store[0].store_op = VK_ATTACHMENT_STORE_OP_STORE;
+
+    // Depth
+    load_store[1].load_op = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    load_store[1].store_op = VK_ATTACHMENT_STORE_OP_STORE;
+
+    // Albedo
+    load_store[2].load_op = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    load_store[2].store_op = VK_ATTACHMENT_STORE_OP_STORE;
+
+    // Normal
+    load_store[3].load_op = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    load_store[3].store_op = VK_ATTACHMENT_STORE_OP_STORE;
+
+    m_RenderPath->setClearValue(clear_value);
+    m_RenderPath->setLoadStoreValue(load_store);
     
     VulkanImGUI* gui = (VulkanImGUI* )ServiceLocator::GetGUI();
     gui->Init(i_window, m_RenderContext.get(), this);

@@ -7,7 +7,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 
-
+class Scene;
 struct InstanceUBO {
 	glm::mat4 model;
 
@@ -18,7 +18,7 @@ struct InstanceUBO {
 class Model
 {
 public:
-  Model(const Mesh& mesh, MeshView meshView, std::string name = " ");
+  Model(const Mesh& mesh, MeshView meshView, Scene& parent, std::string name = " ");
  
 
 	const Mesh& GetMesh()const { return m_Mesh; }
@@ -71,7 +71,7 @@ private:
   bool m_Dirty = false;
 
   AABB m_AABB;
-
+  Scene& m_ParentScene; //To be replaced by the tree hierarchy
 
   glm::vec3 m_Translation;
   glm::vec3 m_Scale;

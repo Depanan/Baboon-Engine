@@ -100,7 +100,9 @@ VkResult CommandBuffer::begin(VkCommandBufferUsageFlags flags, CommandBuffer* pr
 
         inheritance.renderPass = m_CurrentRenderPass.render_pass->getHandle();
         inheritance.framebuffer = m_CurrentRenderPass.framebuffer->getHandle();
-        inheritance.subpass = primary_cmd_buf->get_current_subpass_index();
+
+        m_PipelineState.setSubpassIndex(primary_cmd_buf->get_current_subpass_index());
+        inheritance.subpass = m_PipelineState.getSubpassIndex();
 
         beginInfo.pInheritanceInfo = &inheritance;
     }
@@ -170,7 +172,7 @@ void CommandBuffer::endRenderPass()
     vkCmdEndRenderPass(m_CommandBuffer);
 }
 
-void CommandBuffer::nextSubpass()
+void CommandBuffer::nextSubpass(VkSubpassContents contents)
 {
 
     // Increment subpass index
@@ -188,7 +190,7 @@ void CommandBuffer::nextSubpass()
     // Clear stored push constants
     //stored_push_constants.clear();
 
-    vkCmdNextSubpass(m_CommandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdNextSubpass(m_CommandBuffer, contents);
 
 
 }
@@ -357,6 +359,11 @@ void CommandBuffer::bind_index_buffer(VulkanBuffer& buffer, VkDeviceSize offset,
 void CommandBuffer::bind_image(const VulkanImageView& image_view, const VulkanSampler& sampler, uint32_t set, uint32_t binding, uint32_t array_element)
 {
     m_ResourceBindingState.bind_image(image_view, sampler, set, binding, array_element);
+}
+
+void CommandBuffer::bind_input(const VulkanImageView& image_view, uint32_t set, uint32_t binding, uint32_t array_element)
+{
+    m_ResourceBindingState.bind_input(image_view, set, binding, array_element);
 }
 
 
