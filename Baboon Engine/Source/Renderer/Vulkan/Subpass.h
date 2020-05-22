@@ -19,7 +19,7 @@ class ThreadPool;
 class Subpass
 {
 public:
-    Subpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr <ShaderSource> fragment_shader);
+    Subpass(VulkanContext& render_context, std::string vertex_shader, std::string fragment_shader);
     virtual ~Subpass();
     virtual void prepare() = 0;
     virtual void draw(CommandBuffer& command_buffer) = 0;
@@ -28,6 +28,7 @@ public:
     //const ShaderSource& getFragmentShader() const{ return *m_FragmentShader;}
 
     bool getDisableDepthAttachment() { return m_DisableDepthAttachment; }
+    void setDisableDepthAttachment() { m_DisableDepthAttachment = true; }
     const  std::vector<uint32_t>& getInputAttachments()const { return m_InputAttachments; }
     const  std::vector<uint32_t>& getOutputAttachments()const { return m_OutputAttachments; }
     void setOutputAttachments(std::vector<uint32_t> attachments) { m_OutputAttachments = attachments; }
@@ -37,9 +38,17 @@ public:
 
     void invalidatePersistentCommands();
     void setReRecordCommands();
+
+
+   
 protected:
     std::weak_ptr<ShaderSource> m_VertexShader;
+    std::string m_VertexShaderPath;
     std::weak_ptr<ShaderSource> m_FragmentShader;
+    std::string m_FragmentShaderPath;
+
+
+
     VulkanContext& m_RenderContext;
 
     PersistentCommandsPerFrame m_PersistentCommandsPerFrame;
@@ -54,6 +63,15 @@ protected:
     std::vector<uint32_t> m_OutputAttachments = { 0 };
 
     ThreadPool* m_ThreadPool;
+
+    std::shared_ptr<ShaderSource> getVertexShader();
+    std::shared_ptr<ShaderSource> getFragmentShader();
+
+
+    void drawBatchList(std::vector<RenderBatch>& batches, CommandBuffer* primary_command_buffer, std::vector<CommandBuffer*>& commands);
+    void recordBatches(CommandBuffer* commandBuffer, CommandBuffer* primary_command_buffer, std::vector<RenderBatch>& batches, size_t beginIndex, size_t endIndex);
+    void recordCommandBuffers(std::vector<CommandBuffer*> commandBuffers, CommandBuffer* primary_command_buffer, std::vector<RenderBatch>& batches, size_t beginIndex, size_t endIndex);
+    void drawModel(const Model& model, CommandBuffer* commandBuffer);
 };
 
 
@@ -66,31 +84,35 @@ class CommandPool;
 
 
 
-class ForwardSubpass: public Subpass
+class GeometrySubpass: public Subpass
 {
 public:
-    ForwardSubpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr<ShaderSource> fragment_shader, const Camera* p_Camera, size_t nThreads = 1);
+    GeometrySubpass(VulkanContext& render_context, std::string vertex_shader, std::string fragment_shader, size_t nThreads = 1);
     void prepare() override;
     void draw(CommandBuffer& command_buffer) override;
 
-private:
     
-    const Camera* m_Camera;
-
-    //VulkanTexture* m_TestTexture;
-    void drawBatchList(std::vector<RenderBatch>& batches, CommandBuffer* primary_command_buffer, std::vector<CommandBuffer*>& commands);
-    void recordBatches(CommandBuffer* commandBuffer, CommandBuffer* primary_command_buffer, std::vector<RenderBatch>& batches, size_t beginIndex, size_t endIndex);
-    void recordCommandBuffers(std::vector<CommandBuffer*> commandBuffers, CommandBuffer* primary_command_buffer, std::vector<RenderBatch>& batches, size_t beginIndex, size_t endIndex);
-    void drawModel(const Model& model, CommandBuffer* commandBuffer);
+    
 };
 
-class EmptySubpass : public Subpass
+class LightSubpass : public Subpass
 {
 public:
-    EmptySubpass(VulkanContext& render_context, std::weak_ptr<ShaderSource> vertex_shader, std::weak_ptr<ShaderSource> fragment_shader);
+    LightSubpass(VulkanContext& render_context,  std::string vertex_shader, std::string fragment_shader);
     void prepare() override {}
     void draw(CommandBuffer& command_buffer) override;
 };
+
+class TransparentSubpass : public Subpass
+{
+public:
+    TransparentSubpass(VulkanContext& render_context, std::string vertex_shader, std::string fragment_shader, size_t nThreads = 1);
+    void prepare() override;
+    void draw(CommandBuffer& command_buffer) override;
+
+
+};
+
 
 
 

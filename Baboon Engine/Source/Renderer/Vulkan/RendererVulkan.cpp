@@ -113,23 +113,22 @@ int RendererVulkan::Init(std::vector<const char*>& required_extensions, GLFWwind
     m_RenderContext = std::make_unique<VulkanContext>(*m_LogicalDevice, m_Surface, width, height);
     m_RenderContext->prepare(m_ThreadCount,RenderTarget::DEFERRED_CREATE_FUNC);
 
-    
-
-    auto vertexShader = m_ShaderSourcePool.getShaderSource("./Shaders/geo.vert");
-    auto fragmentShader = m_ShaderSourcePool.getShaderSource("./Shaders/geo.frag"); 
-
+   
   
-    auto subpass = std::make_unique<ForwardSubpass>(*m_RenderContext,vertexShader,fragmentShader,p_Camera, m_ThreadCount);
-    subpass->setOutputAttachments({ 1,2,3 });
+    auto geoSubPass = std::make_unique<GeometrySubpass>(*m_RenderContext, "./Shaders/geo.vert", "./Shaders/geo.frag", m_ThreadCount);
+    geoSubPass->setOutputAttachments({ 1,2,3 });
 
-    auto vertexLight = m_ShaderSourcePool.getShaderSource("./Shaders/light.vert");
-    auto fragmentLight = m_ShaderSourcePool.getShaderSource("./Shaders/light.frag");
-    auto emptySubpass = std::make_unique<EmptySubpass>(*m_RenderContext, vertexLight, fragmentLight);
-    emptySubpass->setInputAttachments({ 1,2,3 });
+   
+    auto lightSubPass = std::make_unique<LightSubpass>(*m_RenderContext, "./Shaders/light.vert", "./Shaders/light.frag");
+    lightSubPass->setInputAttachments({ 1,2,3 });
+    lightSubPass->setDisableDepthAttachment();//We can't read and write to depth!
+
+    auto transparentSubpass = std::make_unique<TransparentSubpass>(*m_RenderContext, "./Shaders/transparent.vert", "./Shaders/transparent.frag", m_ThreadCount);
 
     m_RenderPath = std::make_unique<RenderPath>();
-    m_RenderPath->add_subpass(std::move(subpass));
-    m_RenderPath->add_subpass(std::move(emptySubpass));
+    m_RenderPath->add_subpass(std::move(geoSubPass));
+    m_RenderPath->add_subpass(std::move(lightSubPass));
+    m_RenderPath->add_subpass(std::move(transparentSubpass));
     
 
     std::vector<VkClearValue> clear_value{ 4 };
@@ -195,11 +194,12 @@ void RendererVulkan::DrawFrame()
   viewport.height = static_cast<float>(extent.height);
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
-  //command_buffer.setViewport(0, { viewport });
+  command_buffer.setViewport(0, { viewport });
 
   VkRect2D scissor{};
   scissor.extent = extent;
-  //command_buffer.setScissor(0, { scissor });
+  command_buffer.setScissor(0, { scissor });
+ 
 
  
   if(m_RenderPath)//If we have a pipeline set, call its draw function

@@ -228,22 +228,8 @@ void VulkanImGUI::recordCommandBuffers(CommandBuffer* command_buffer, CommandBuf
     auto& device = m_VulkanContext->getDevice();
     auto& renderTarget = m_VulkanContext->getActiveFrame().getRenderTarget();//Grab the render target
 
-    //Set viewport and scissors
-    auto& extent = renderTarget.getExtent();
-    VkViewport viewport{};
-    viewport.width = static_cast<float>(extent.width);
-    viewport.height = static_cast<float>(extent.height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    VkRect2D scissor{};
-    scissor.extent = extent;
-
-
-
     command_buffer->begin(VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT, primary_commandBuffer);
-    command_buffer->setViewport(0, { viewport });
-    command_buffer->setScissor(0, { scissor });
-
+   
     // Vertex input state
     VkVertexInputBindingDescription vertex_input_binding{};
     vertex_input_binding.stride = sizeof(ImDrawVert);

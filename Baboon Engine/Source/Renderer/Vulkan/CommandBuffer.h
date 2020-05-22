@@ -148,6 +148,12 @@ private:
     VertexBufferBinding m_CurrentVertexBindings{ VK_NULL_HANDLE,VK_NULL_HANDLE };
     std::unordered_map<uint32_t, DescriptorSetLayout*> m_DescriptorSet_Binding_State;
 
+    std::vector<VkViewport> m_Viewports;
+    std::vector<VkRect2D> m_Scissors;
+    bool m_ViewportDirty = true;
+    bool m_ScissorDirty = true;
+
+
 
     void flushPipelineState();//Submits changes if any and binds the pipeline
     void flushDescriptorState();
