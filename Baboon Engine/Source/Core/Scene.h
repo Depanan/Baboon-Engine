@@ -12,9 +12,20 @@ struct aiScene;
 struct aiNode;
 class SceneManager;
 
-struct UBOLight {
+#define MAX_DEFERRED_LIGHTS 32
+struct alignas(16)Light {
     glm::vec4 lightPos;
     glm::vec4 lightColor;
+};
+struct alignas(16) UBODeferredLights
+{
+    size_t lightCount;
+    Light lights[MAX_DEFERRED_LIGHTS];
+} ;
+enum class LightType {
+    LightType_Point = 0,
+    LightType_Spot = 1,
+    LightType_Directional = 2
 };
 
 enum class BatchType {
@@ -59,13 +70,15 @@ public:
   std::vector<RenderBatch>& GetOpaqueBatches() { return m_OpaqueBatch; }
   const AABB& getSceneAABB()const { return m_SceneAABB; }
 
-  const UBOLight& getLight()const { return m_Light; }
-  void setLightPosition(glm::vec3 position);
-  void setLightColor(glm::vec3 position);
+  const Light& getLight(size_t index)const { return m_DeferredLights.lights[index]; }
+  void setLightPosition(size_t index,glm::vec3 position);
+  void setLightColor(size_t index,glm::vec3 position);
+  void setLightAttenuation(size_t index, float attenuation);
   void updateLightsBuffer();
 
 
   void createBox(const glm::vec3& position);
+  void createLight(const glm::vec3& position, const glm::vec3& color,float attenuation, LightType lightType);
 
   //UI functions
   void DoLightsUI(bool* pOpen);
@@ -104,7 +117,7 @@ private:
   
 
   Buffer* m_LightsUniformBuffer;
-  UBOLight m_Light;
+  UBODeferredLights m_DeferredLights;
 
   void prepareBatches();
   void getBatches(std::vector<RenderBatch>& batchList, BatchType batchType);

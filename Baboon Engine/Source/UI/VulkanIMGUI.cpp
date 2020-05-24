@@ -415,7 +415,7 @@ void VulkanImGUI::DoUI()
 
 	
 
-	ImGui::ShowTestWindow();
+	//ImGui::ShowTestWindow();
 	///////////////////////////////////////////////////////
 
 

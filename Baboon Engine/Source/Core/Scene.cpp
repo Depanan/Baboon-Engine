@@ -252,21 +252,25 @@ void Scene::Update()
 }
 
 
-
-void Scene::setLightPosition(glm::vec3 position)
+//TODO: Add many lights!
+void Scene::setLightPosition(size_t index,glm::vec3 position)
 {
-    m_Light.lightPos = glm::vec4(position.x, position.y, position.z, m_Light.lightPos.w);//w component of the light is the type of light so we don't touch it when positioning
+    m_DeferredLights.lights[index].lightPos = glm::vec4(position.x, position.y, position.z, m_DeferredLights.lights[index].lightPos.w);//w component of the light is the type of light so we don't touch it when positioning
+}
+void Scene::setLightAttenuation(size_t index, float attenuation)
+{
+    m_DeferredLights.lights[index].lightColor.w = attenuation;
 }
 
-void Scene::setLightColor(glm::vec3 color)
+void Scene::setLightColor(size_t index,glm::vec3 color)
 {
-    m_Light.lightColor = glm::vec4(color.x, color.y, color.z, m_Light.lightColor.w);//w component of the light is the type of light so we don't touch it when positioning
+    m_DeferredLights.lights[index].lightColor = glm::vec4(color.x, color.y, color.z, m_DeferredLights.lights[index].lightColor.w);//w component of the light is the type of light so we don't touch it when positioning
    
 }
 
 void Scene::updateLightsBuffer()
 {
-    m_LightsUniformBuffer->update(&m_Light, sizeof(UBOLight));
+    m_LightsUniformBuffer->update(&m_DeferredLights, sizeof(UBODeferredLights));
 }
 
 void Scene::DoLightsUI(bool* pOpen)
@@ -277,35 +281,69 @@ void Scene::DoLightsUI(bool* pOpen)
     if (ImGui::Begin("Scene lights", pOpen, ImGuiWindowFlags_MenuBar))
     {
 
-        if (ImGui::TreeNode("Light"))
+        if (ImGui::TreeNode("Lights"))
         {
-            glm::vec3 lPos = m_Light.lightPos;
-            bool bUpdateLightsBuffer = false;
-            const char* labelsTrans[3]{ "X","Y","Z" };
-            if (GUI::ImguiVec3Controller(lPos, labelsTrans))
+            for (int i = 0; i < m_DeferredLights.lightCount; i++)
             {
-                setLightPosition(lPos);
-                bUpdateLightsBuffer = true;
-            }
+                auto& light = m_DeferredLights.lights[i];
+                std::string lightName = "Light" + std::to_string(i);
+                if (ImGui::TreeNode((void*)(intptr_t)i, "%s", lightName.c_str()))
+                {
+                    glm::vec3 lPos = light.lightPos;
+                    bool bUpdateLightsBuffer = false;
+                    const char* labelsTrans[3]{ "X","Y","Z" };
+                    if (GUI::ImguiVec3Controller(lPos, labelsTrans))
+                    {
+                        setLightPosition(i, lPos);
+                        bUpdateLightsBuffer = true;
+                    }
 
-            glm::vec3 lCol = m_Light.lightColor;
-            ImGui::ColorPicker3("Light color", &lCol.x);
-            if (lCol != glm::vec3(m_Light.lightColor))
-            {
-                setLightColor(lCol);
-                bUpdateLightsBuffer = true;
-            }
-            if (bUpdateLightsBuffer)
-            {
-                updateLightsBuffer();
+                    float attenuation = light.lightColor.w;
+                    const char* labelAtt = "Attenuation";
+                    if (GUI::ImguiFloatSlider(attenuation, labelAtt, 0.001f, 0.1f))
+                    {
+                        setLightAttenuation(i, attenuation);
+                        bUpdateLightsBuffer = true;
+                    }
+
+                    glm::vec3 lCol = light.lightColor;
+                    ImGui::ColorPicker3("Light color", &lCol.x);
+                    if (lCol != glm::vec3(light.lightColor))
+                    {
+                        setLightColor(i, lCol);
+                        bUpdateLightsBuffer = true;
+                    }
+                    if (bUpdateLightsBuffer)
+                    {
+                        updateLightsBuffer();
+                    }
+
+
+                    ImGui::TreePop();
+                }
             }
             ImGui::TreePop();
+        }
+        
+        if (ImGui::Button("Create Light!"))
+        {
+            createLight(ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->GetPosition(),glm::vec3(1.0f),0.01f,LightType::LightType_Point);
         }
     }
     ImGui::End();
 
     
     
+}
+void Scene::createLight(const glm::vec3& position, const glm::vec3& color,float attenuation, LightType lightType)
+{
+    if (m_DeferredLights.lightCount >= MAX_DEFERRED_LIGHTS)
+        return;
+
+    m_DeferredLights.lights[m_DeferredLights.lightCount].lightPos = glm::vec4(position.x, position.y, position.z, 0.0);
+    m_DeferredLights.lights[m_DeferredLights.lightCount].lightColor = glm::vec4(color.r, color.g, color.b, attenuation);
+    m_DeferredLights.lightCount++;
+    updateLightsBuffer();
 }
 
 
@@ -447,11 +485,17 @@ void Scene::loadAssets(const std::string i_ScenePath)
   loadSceneRecursive(aScene->mRootNode);
   m_SceneAABB = AABB(m_SceneBoundMin, m_SceneBoundMax);
 
-  m_Light.lightPos = glm::vec4(100, 100, 100,0);
-  m_Light.lightColor = glm::vec4(1.0f, 1.0f, 1.0f,0.0f);
-  m_LightsUniformBuffer = ServiceLocator::GetRenderer()->CreateStaticUniformBuffer(&m_Light, sizeof(UBOLight));
 
   
+  m_DeferredLights.lightCount = 2;
+  m_DeferredLights.lights[0].lightPos = glm::vec4(100, 100, 100, 0);;
+  m_DeferredLights.lights[0].lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.01f);
+  m_DeferredLights.lights[1].lightPos = glm::vec4(400, 100, 100, 0);
+  m_DeferredLights.lights[1].lightColor = glm::vec4(0.0f, 1.0f, 0.0f, 0.01f);
+  //createLight(glm::vec3(100, 100, 100), glm::vec3(1.0f), 0.01f, LightType::LightType_Point);
+  //createLight(glm::vec3(400, 100, 100), glm::vec3(1.0f), 0.01f, LightType::LightType_Point);
+
+  m_LightsUniformBuffer = ServiceLocator::GetRenderer()->CreateStaticUniformBuffer(&m_DeferredLights, sizeof(UBODeferredLights));
 
   //Only need this during creation
   m_MeshMap.clear();

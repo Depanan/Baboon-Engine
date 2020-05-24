@@ -21,11 +21,17 @@ layout(set = 0, binding = 1) uniform UniformBufferObject {
 	vec3 camPos;
 } ubo;
 
-layout(set = 0, binding = 4) uniform LightUniform {
-	vec3 lightPos;
-	vec3 lightColor;
-} lightUniform;
-
+struct Light
+{
+    vec4 lightPos;         // position.w represents type of light
+    vec4 lightColor;            // color.w represents light intensity
+   
+};
+layout(set = 0, binding = 4) uniform LightsInfo
+{
+    uint  count;
+    Light lights[32];
+}lightUniform;
 
 
 layout(location = 3) in vec3 fragPos;
@@ -74,16 +80,22 @@ void main() {
 		#endif
 		
 		
-		vec3 lightPos = vec3(ubo.camPos.x,ubo.camPos.y,ubo.camPos.z);//TODO: Investigate the bloody mess with the coordinates flipped in Vulkan, I need to negate the light for it to get the right effect
+		vec3 world_to_cam = normalize(ubo.camPos-fragPos.xyz);
+	
+	vec3 lightContribution =ambient * albedo.rgb;
+	
+	for(int i = 0;i<lightUniform.count;i++)
+	{
+		vec3 lightPos =lightUniform.lights[i].lightPos.xyz;
 		vec3 world_to_light = lightPos.xyz - fragPos.xyz;
 		float dist = length(world_to_light);
-		float atten = 1.0 / (dist *0.01);
+		float atten = 1.0 / (dist *lightUniform.lights[i].lightColor.w);
 		world_to_light = normalize(world_to_light);
 		float ndotl = clamp(dot(N, world_to_light), 0.0, 1.0);
-		vec3 world_to_cam = normalize(ubo.camPos-fragPos.xyz);
 		vec3 R = normalize(reflect(-world_to_light, N));
 		float specular = pow(max(dot(R, world_to_cam), 0.0), 64.0);
-		vec3 lightContribution = (ndotl * albedo.rgb + specular * spec) *atten * lightUniform.lightColor + ambient * albedo.rgb;
+		lightContribution += (ndotl * albedo.rgb + specular * spec) *atten * lightUniform.lights[i].lightColor.rgb;
+	}
 
 		
 

@@ -103,9 +103,6 @@ VkResult CommandBuffer::begin(VkCommandBufferUsageFlags flags, CommandBuffer* pr
         //Copiying state of the parent cmd
         m_ResourceBindingState = primary_cmd_buf->m_ResourceBindingState;
         m_PipelineState = primary_cmd_buf->m_PipelineState;
-        setScissor(0,primary_cmd_buf->m_Scissors);
-        setViewport(0, primary_cmd_buf->m_Viewports);
-
 
 
         inheritance.renderPass = m_CurrentRenderPass.render_pass->getHandle();
@@ -117,7 +114,15 @@ VkResult CommandBuffer::begin(VkCommandBufferUsageFlags flags, CommandBuffer* pr
         beginInfo.pInheritanceInfo = &inheritance;
     }
 
-    return vkBeginCommandBuffer(m_CommandBuffer, &beginInfo);
+    auto resul = vkBeginCommandBuffer(m_CommandBuffer, &beginInfo);
+    if (m_Level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
+    {
+        setScissor(0, primary_cmd_buf->m_Scissors);
+        setViewport(0, primary_cmd_buf->m_Viewports);
+    }
+
+    return resul;
+ 
 }
 
 VkResult CommandBuffer::end()
@@ -246,16 +251,16 @@ void CommandBuffer::imageBarrier(VulkanImageView& image_view, const ImageMemoryB
 
 void CommandBuffer::setViewport(uint32_t first_viewport, const std::vector<VkViewport>& viewports)
 {
-    //vkCmdSetViewport(m_CommandBuffer, first_viewport, viewports.size(), viewports.data());
+    vkCmdSetViewport(m_CommandBuffer, first_viewport, viewports.size(), viewports.data());
     m_Viewports = viewports;
-    m_ViewportDirty = true;
+    //m_ViewportDirty = true;
 }
                                                         
 void CommandBuffer::setScissor(uint32_t first_scissor, const std::vector<VkRect2D>& scissors)
 {
-    //vkCmdSetScissor(m_CommandBuffer, first_scissor, scissors.size(), scissors.data());
+    vkCmdSetScissor(m_CommandBuffer, first_scissor, scissors.size(), scissors.data());
     m_Scissors = scissors;
-    m_ScissorDirty = true;
+    //m_ScissorDirty = true;
 
 }
 
@@ -331,7 +336,7 @@ void CommandBuffer::flushPipelineState()
         pipeline.getHandle());
     //forceResourceBindingDirty();//TODO: Keep an eye here: Since we are changing pipeline, due the optimization I did of bindingDescriptorsets only when stuff(textures) actually change, we need to force it here cause after bindingpipeline we always need to bind descriptorset
 
-    if (m_ViewportDirty)
+    /*if (m_ViewportDirty)
     {
         vkCmdSetViewport(m_CommandBuffer, 0, m_Viewports.size(), m_Viewports.data());
         m_ViewportDirty = false;
@@ -341,7 +346,7 @@ void CommandBuffer::flushPipelineState()
         vkCmdSetScissor(m_CommandBuffer, 0, m_Scissors.size(), m_Scissors.data());
         m_ScissorDirty = false;
     }
-
+    */
 }
 
 

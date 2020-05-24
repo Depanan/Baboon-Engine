@@ -405,7 +405,7 @@ void LightSubpass::draw(CommandBuffer& primary_command)
     command_buffer.bind_buffer(*(m_RenderContext.getActiveFrame().getCameraUniformBuffer()), 0, sizeof(UBOCamera), 0, 3, 0);
 
     //Bind the lights uniform buffer
-    command_buffer.bind_buffer(*((VulkanBuffer*)(scene->getLightsUniformBuffer())), 0, sizeof(UBOLight), 0, 4, 0);
+    command_buffer.bind_buffer(*((VulkanBuffer*)(scene->getLightsUniformBuffer())), 0, sizeof(UBODeferredLights), 0, 4, 0);
 
     // Set cull mode to front as full screen triangle is clock-wise
     RasterizationState rasterization_state;
@@ -477,7 +477,7 @@ void TransparentSubpass::draw(CommandBuffer& primary_commandBuffer)
         std::vector<CommandBuffer*>& recordedCommands = m_PersistentCommandsPerFrame.startRecording(activeFrame.getHashId());
         std::vector<RenderBatch>& batchesTransparent = scene->GetTransparentBatches();
         primary_commandBuffer.bind_buffer(*(m_RenderContext.getActiveFrame().getCameraUniformBuffer()), 0, sizeof(UBOCamera), 0, 1, 0);
-        primary_commandBuffer.bind_buffer(*((VulkanBuffer*)(scene->getLightsUniformBuffer())), 0, sizeof(UBOLight), 0, 4, 0);
+        primary_commandBuffer.bind_buffer(*((VulkanBuffer*)(scene->getLightsUniformBuffer())), 0, sizeof(UBODeferredLights), 0, 4, 0);
 
         // Enable alpha blending
         ColorBlendAttachmentState color_blend_attachment{};
