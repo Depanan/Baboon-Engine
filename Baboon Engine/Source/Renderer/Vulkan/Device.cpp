@@ -58,7 +58,7 @@ Device::Device(VkPhysicalDevice physDevice, VkSurfaceKHR surface, const std::vec
     }
 
     VkPhysicalDeviceFeatures deviceFeatures = {};
-
+    deviceFeatures.geometryShader = 1;
     VkDeviceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     createInfo.pQueueCreateInfos = queueCreateInfos.data();

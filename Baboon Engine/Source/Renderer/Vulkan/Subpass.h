@@ -16,6 +16,7 @@ class CommandBuffer;
 class VulkanContext;
 class PersistentCommandsPerFrame;
 class ThreadPool;
+class RenderTarget;
 class Subpass
 {
 public:
@@ -34,7 +35,7 @@ public:
     void setOutputAttachments(std::vector<uint32_t> attachments) { m_OutputAttachments = attachments; }
     void setInputAttachments(std::vector<uint32_t> attachments) { m_InputAttachments = attachments; }
 
-    void updateRenderTargetAttachments();
+    void updateRenderTargetAttachments(RenderTarget& renderTarget);
 
     void invalidatePersistentCommands();
     void setReRecordCommands();
@@ -46,6 +47,7 @@ protected:
     std::string m_VertexShaderPath;
     std::weak_ptr<ShaderSource> m_FragmentShader;
     std::string m_FragmentShaderPath;
+
 
 
 
@@ -72,6 +74,8 @@ protected:
     void recordBatches(CommandBuffer* commandBuffer, CommandBuffer* primary_command_buffer, std::vector<RenderBatch>& batches, size_t beginIndex, size_t endIndex);
     void recordCommandBuffers(std::vector<CommandBuffer*> commandBuffers, CommandBuffer* primary_command_buffer, std::vector<RenderBatch>& batches, size_t beginIndex, size_t endIndex);
     void drawModel(const Model& model, CommandBuffer* commandBuffer);
+
+    virtual  void bindModelPipelineLayout(CommandBuffer* commandBuffer, const Model& model);
 };
 
 
@@ -91,8 +95,8 @@ public:
     void prepare() override;
     void draw(CommandBuffer& command_buffer) override;
 
-    
-    
+protected:
+    void bindModelPipelineLayout(CommandBuffer* commandBuffer, const Model& model) override;
 };
 
 class LightSubpass : public Subpass
@@ -109,7 +113,22 @@ public:
     TransparentSubpass(VulkanContext& render_context, std::string vertex_shader, std::string fragment_shader, size_t nThreads = 1);
     void prepare() override;
     void draw(CommandBuffer& command_buffer) override;
+    void bindModelPipelineLayout(CommandBuffer* commandBuffer, const Model& model) override;
 
+
+};
+class ShadowSubpass : public Subpass
+{
+public:
+    ShadowSubpass(VulkanContext& render_context, std::string vertex_shader, std::string geo_shader, size_t nThreads = 1);
+    void prepare() override;
+    void draw(CommandBuffer& command_buffer) override;
+
+private:
+    std::weak_ptr<ShaderSource> m_GeoShader;
+    std::string m_GeoShaderPath;
+    std::shared_ptr<ShaderSource> getGeoShader();
+    void bindModelPipelineLayout(CommandBuffer* commandBuffer, const Model& model) override;
 
 };
 

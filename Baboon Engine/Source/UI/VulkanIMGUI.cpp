@@ -364,7 +364,7 @@ void VulkanImGUI::RenderStatsWindow(bool* pOpen)
 	if (ImGui::Begin("App stats", pOpen, ImGuiWindowFlags_MenuBar))
 	{
 		ImGui::Text("FPS: %d", pRenderer->m_LastFPS);
-		const Camera* cam = ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main);
+		const Camera* cam = ServiceLocator::GetCameraManager()->GetCamera("mainCamera");
 		const glm::vec3 camPos = cam->GetPosition();
     const glm::vec3 camForward = cam->GetForward();
 		ImGui::Text("Scene cam Pos = (%.2f,%.2f,%.2f)",camPos.x,camPos.y,camPos.z);

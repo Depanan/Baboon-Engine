@@ -19,7 +19,7 @@ public:
     virtual void Notify(int message, void* data = nullptr);
     void Register(Observer* observer);
     void Unregister(Observer* toRemoveObserver);
-    enum Message { CAMERADIRTY,SCENELOADED, SCENEDIRTY};//TODO: Not sure if this is the best place to declare de messages think about it
+    enum Message { CAMERADIRTY,SCENELOADED, SCENEDIRTY,LIGHTDIRTY,MATERIALDIRTY};//TODO: Not sure if this is the best place to declare de messages think about it
 
 private:
 

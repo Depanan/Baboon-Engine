@@ -132,10 +132,10 @@ int RendererVulkan::Init(std::vector<const char*>& required_extensions, GLFWwind
     
 
     std::vector<VkClearValue> clear_value{ 4 };
-    clear_value[0].color = { {0.4f, 0.4f, 0.4f, 1.0f} };
+    clear_value[0].color = { {0.4f, 0.4f, 0.4f, 0.0f} };//w is the specular
     clear_value[1].depthStencil = { 1.0f, 0 };
-    clear_value[2].color = { {0.4f, 0.4f, 0.4f, 1.0f} };
-    clear_value[3].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+    clear_value[2].color = { {0.4f, 0.4f, 0.4f, 0.0f} };
+    clear_value[3].color = { {0.0f, 0.0f, 0.0f, 0.0f} };//First 3 components are the normal, last is the ambient. Initialised to 1.0 since the "sky" needs all the ambient. TODO: make last component material id instead
 
     std::vector<LoadStoreInfo> load_store{ 4 };
 
@@ -163,6 +163,31 @@ int RendererVulkan::Init(std::vector<const char*>& required_extensions, GLFWwind
     
 
 
+    //Shadow stuff init
+    VkExtent3D shadowExtent = { SHADOWMAP_RESOLUTION,SHADOWMAP_RESOLUTION,1 };
+    VulkanImage shadowMap= VulkanImage(            *m_LogicalDevice, shadowExtent,
+                                                            SHADOWMAP_FORMAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                            VMA_MEMORY_USAGE_GPU_ONLY, VK_SAMPLE_COUNT_1_BIT,
+                                                            1, MAX_DEFERRED_DIR_LIGHTS);//TODO: Assuming the dir lights are the shadow casters
+
+    m_ShadowRT = RenderTarget::SHADOWMAP_CREATE_FUNC(std::move(shadowMap));
+    m_ShadowPath = std::make_unique<RenderPath>();
+    auto shadowSubpass = std::make_unique<ShadowSubpass>(*m_RenderContext, "./Shaders/shadow.vert", "./Shaders/shadow.geom");
+    m_ShadowPath->add_subpass(std::move(shadowSubpass));
+
+    std::vector<VkClearValue> shadowClear{ 1 };
+    shadowClear[0].depthStencil = { 1.0f, 0 };
+    std::vector<LoadStoreInfo> shadow_LoadStore{ 1 };
+    shadow_LoadStore[0].load_op = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    shadow_LoadStore[0].store_op = VK_ATTACHMENT_STORE_OP_STORE;
+    m_ShadowPath->setClearValue(shadowClear);
+    m_ShadowPath->setLoadStoreValue(shadow_LoadStore);
+    ////////////////////////////////////////////////Shadow stuff init/////////////////////////////
+
+
+
+
+
     ServiceLocator::GetSceneManager()->GetSubject().Register(this);
     ServiceLocator::GetCameraManager()->GetSubject().Register(this);
 
@@ -176,7 +201,71 @@ int RendererVulkan::Init(std::vector<const char*>& required_extensions, GLFWwind
 
 void RendererVulkan::DrawFrame()
 {
+
+  
+
+
+
+
   auto& command_buffer = m_RenderContext->begin();//Grab a command buffer from the render context
+
+
+
+   //Shadows should not depend on previous frames therefore doing it before all the swapchain sync stuff
+  if (ServiceLocator::GetSceneManager()->GetCurrentScene()->IsInit() && m_ShadowPath)
+  {
+      auto& command_bufferShadows = m_RenderContext->getActiveFrame().requestCommandBuffer(m_LogicalDevice->getGraphicsQueue());
+      auto res = command_bufferShadows.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);//Call begin to start recording commands
+      assert(!res, "Error starting commandbuffer recording");
+
+
+      ImageMemoryBarrier beginBarrier{};
+      beginBarrier.old_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+      beginBarrier.new_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+      beginBarrier.src_access_mask = 0;
+      beginBarrier.dst_access_mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+      beginBarrier.src_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+      beginBarrier.dst_stage_mask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+
+      command_bufferShadows.imageBarrier(m_ShadowRT->getViews()[0], beginBarrier);
+
+
+
+      VkViewport viewport{};
+      viewport.width = SHADOWMAP_RESOLUTION;
+      viewport.height = SHADOWMAP_RESOLUTION;
+      viewport.minDepth = 0.0f;
+      viewport.maxDepth = 1.0f;
+      command_bufferShadows.setViewport(0, { viewport });
+
+      VkRect2D scissor{};
+      scissor.extent = VkExtent2D{ SHADOWMAP_RESOLUTION,SHADOWMAP_RESOLUTION };
+      command_bufferShadows.setScissor(0, { scissor });
+
+
+
+      m_ShadowPath->draw(command_bufferShadows, *m_ShadowRT);
+      command_bufferShadows.endRenderPass();
+
+      //TODO: This is very harsh sync when it works make it proper
+      ImageMemoryBarrier memory_barrier{};
+      memory_barrier.old_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+      memory_barrier.new_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      memory_barrier.src_access_mask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+      memory_barrier.src_stage_mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+      memory_barrier.dst_stage_mask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+
+      command_bufferShadows.imageBarrier(m_ShadowRT->getViews()[0], memory_barrier);
+      command_bufferShadows.end();
+      m_LogicalDevice->getGraphicsQueue().submit(command_bufferShadows, m_LogicalDevice->requestFence());
+      m_LogicalDevice->getFencePool().wait();
+      m_LogicalDevice->getFencePool().reset();
+      m_LogicalDevice->getCommandPool().reset_pool();
+  }
+  
+
+
+
   auto result = command_buffer.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);//Call begin to start recording commands
   assert(!result, "Error starting commandbuffer recording");
 
@@ -444,6 +533,14 @@ void RendererVulkan::ObserverUpdate(int message, void* data)
     }
     else if (message == Subject::SCENEDIRTY)
     {
+        m_Dirty = true;
+    }
+    else if (message == Subject::LIGHTDIRTY)
+    {
+        m_Dirty = true;
+        auto& renderFrames = m_RenderContext->getRenderFrames();
+        for (auto& frame : renderFrames)
+            frame->setShadowsUniformDirty();
         m_Dirty = true;
     }
 }

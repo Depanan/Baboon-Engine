@@ -10,9 +10,11 @@ FrameBuffer::FrameBuffer(const Device& device, const RenderTarget& render_target
 {
 
     std::vector<VkImageView> attachments;
-
+    size_t layers = 1;
     for (auto& view : render_target.getViews())
     {
+        size_t viewLayers = view.getSubresourceLayers().layerCount;
+        layers = viewLayers > layers ? viewLayers : layers;
         attachments.emplace_back(view.getHandle());
     }
 
@@ -24,7 +26,7 @@ FrameBuffer::FrameBuffer(const Device& device, const RenderTarget& render_target
     create_info.pAttachments = attachments.data();
     create_info.width = m_Extent.width;
     create_info.height = m_Extent.height;
-    create_info.layers = 1;
+    create_info.layers = layers;
 
     auto result = vkCreateFramebuffer(m_Device.get_handle(), &create_info, nullptr, &m_Framebuffer);
 

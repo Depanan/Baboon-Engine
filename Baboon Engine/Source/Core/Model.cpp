@@ -20,6 +20,7 @@ Model::Model(const Mesh& i_Mesh, MeshView meshView, Scene& parentScene,  std::st
 void Model::SetMaterial(Material* i_Mat)
 {
     m_Material = i_Mat;
+    m_InstanceUniforms.matId = i_Mat->getMaterialIndex();
     computeShaderVariant();
 }
 

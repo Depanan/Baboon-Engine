@@ -68,6 +68,11 @@ private:
   std::unique_ptr<RenderPath> m_RenderPath{ nullptr };
 
 
+#define SHADOWMAP_RESOLUTION 1024
+#define SHADOWMAP_FORMAT VK_FORMAT_D32_SFLOAT_S8_UINT
+  std::unique_ptr<RenderPath> m_ShadowPath{ nullptr };
+  std::unique_ptr<RenderTarget> m_ShadowRT{ nullptr };
+
   std::list<VulkanImage> m_Images;//Using lists here so pointers remain valid!
   std::list<VulkanImageView> m_ImageViews;
   std::list <VulkanSampler> m_Samplers;

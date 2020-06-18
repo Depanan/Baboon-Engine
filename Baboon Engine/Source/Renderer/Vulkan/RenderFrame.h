@@ -40,7 +40,9 @@ public:
     const size_t& getHashId() const { return m_HashId; }
 
     VulkanBuffer* getCameraUniformBuffer() const { return m_CameraUniformBuffer; }
+    VulkanBuffer* getShadowsUniformBuffer() const { return m_ShadowsUniformBuffer; }
     void setCameraUniformDirty() { m_IsCameraUniformDirty = true; }
+    void setShadowsUniformDirty() { m_IsShadowsUniformDirty = true; }
    
 private:
   
@@ -59,6 +61,8 @@ private:
 
     bool m_IsCameraUniformDirty{ true };
     VulkanBuffer* m_CameraUniformBuffer;//This uniform buffer needs to be triple buffered otherwise artifacts appear trying to write at the same time one command buffer is reading from it
+    bool m_IsShadowsUniformDirty{ true };
+    VulkanBuffer* m_ShadowsUniformBuffer;
 
 
     SemaphorePool m_SemaphorePool;

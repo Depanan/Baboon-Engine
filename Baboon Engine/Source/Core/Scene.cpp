@@ -115,6 +115,12 @@ void Scene::Free()
   m_OpaqueBatch.clear();
   m_TransparentBatch.clear();
 	m_Models.clear();
+
+  for (auto material : m_Materials)
+  {
+    delete material;
+  }
+  s_DefaultMaterial = nullptr;
 	m_Materials.clear();
 
 
@@ -130,6 +136,12 @@ void Scene::Free()
   m_Textures.clear();
 	
 	renderer->DeleteInstancedUniformBuffer();
+
+
+
+  m_DirLightCount = 0;
+  m_SpotLightCount = 0;
+  m_PointLightCount = 0;
 
 	m_bIsInit = false;
 }
@@ -158,7 +170,7 @@ void Scene::prepareBatches()
 void  Scene::getBatches(std::vector<RenderBatch>& batchList, BatchType batchType)//TODO: Don't do this sorting every frame. Only when relevant stuff changes. Probably can get away doing it onSceneLoad
 {
     batchList.clear();
-    auto camera = ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main);
+    auto camera = ServiceLocator::GetCameraManager()->GetCamera("mainCamera");
 
     auto& listToBatch = batchType == BatchType::BatchType_Opaque ? m_OpaqueModels : m_TransparentModels;
 
@@ -170,14 +182,15 @@ void  Scene::getBatches(std::vector<RenderBatch>& batchList, BatchType batchType
 
     for (auto material : m_Materials)
     {
-        bool needsInsertion = (batchType == BatchType::BatchType_Transparent && material.isTransparent()) || (batchType == BatchType::BatchType_Opaque && !material.isTransparent());
+        bool needsInsertion = (batchType == BatchType::BatchType_Transparent && material->isTransparent()) || (batchType == BatchType::BatchType_Opaque && !material->isTransparent());
         if(!needsInsertion)
             continue;
         batchList.emplace_back(RenderBatch());
         RenderBatch* batch = &batchList.back();
+        batch->m_MaterialIndex = material->getMaterialIndex();
         batch->m_BatchType = batchType;
-        batch->m_Name = std::string("batch_") + material.GetMaterialName();
-        auto byMaterial = sortedByMaterial.equal_range(material.GetMaterialName());//retrieve the whole list of models using that material
+        batch->m_Name = std::string("batch_") + material->GetMaterialName();
+        auto byMaterial = sortedByMaterial.equal_range(material->GetMaterialName());//retrieve the whole list of models using that material
         for (auto it = byMaterial.first; it != byMaterial.second; ++it)
         {
             Model& model = it->second;
@@ -253,7 +266,7 @@ void Scene::Update()
 
 
 //TODO: Add many lights!
-void Scene::setLightPosition(size_t index,glm::vec3 position)
+/*void Scene::setLightPosition(size_t index,glm::vec3 position)
 {
     m_DeferredLights.lights[index].lightPos = glm::vec4(position.x, position.y, position.z, m_DeferredLights.lights[index].lightPos.w);//w component of the light is the type of light so we don't touch it when positioning
 }
@@ -266,11 +279,56 @@ void Scene::setLightColor(size_t index,glm::vec3 color)
 {
     m_DeferredLights.lights[index].lightColor = glm::vec4(color.x, color.y, color.z, m_DeferredLights.lights[index].lightColor.w);//w component of the light is the type of light so we don't touch it when positioning
    
-}
+}*/
 
 void Scene::updateLightsBuffer()
 {
     m_LightsUniformBuffer->update(&m_DeferredLights, sizeof(UBODeferredLights));
+    ServiceLocator::GetCameraManager()->GetSubject().Notify(Subject::LIGHTDIRTY, this);
+
+}
+void Scene::updateMaterialsBuffer()
+{
+  m_MaterialsUniformBuffer->update(&m_MaterialParametersUBO, sizeof(UBOMaterial));
+  ServiceLocator::GetCameraManager()->GetSubject().Notify(Subject::MATERIALDIRTY, this);
+}
+void Scene::DoLightUI(Light& light, std::string& lightName)
+{
+ 
+    glm::vec3 lPos = light.lightPos;
+    bool bUpdateLightsBuffer = false;
+    const char* labelsTrans[3]{ "X","Y","Z" };
+    if (GUI::ImguiVec3Controller(lPos, labelsTrans))
+    {
+      //setLightPosition(i, lPos);
+      light.lightPos = glm::vec4(lPos.x, lPos.y, lPos.z, 0.0);
+      bUpdateLightsBuffer = true;
+    }
+
+    float attenuation = light.lightColor.w;
+    const char* labelAtt = "Attenuation";
+    if (GUI::ImguiFloatSlider(attenuation, labelAtt, 0.001f, 0.1f))
+    {
+      //setLightAttenuation(i, attenuation);
+      light.lightColor.w = attenuation;
+      bUpdateLightsBuffer = true;
+    }
+
+    glm::vec3 lCol = light.lightColor;
+    ImGui::ColorPicker3("Light color", &lCol.x);
+    if (lCol != glm::vec3(light.lightColor))
+    {
+      //setLightColor(i, lCol);
+      light.lightColor = glm::vec4(lCol.x, lCol.y, lCol.z, light.lightColor.w);
+      bUpdateLightsBuffer = true;
+    }
+    if (bUpdateLightsBuffer)
+    {
+      updateLightsBuffer();
+    }
+
+
+   
 }
 
 void Scene::DoLightsUI(bool* pOpen)
@@ -283,51 +341,45 @@ void Scene::DoLightsUI(bool* pOpen)
 
         if (ImGui::TreeNode("Lights"))
         {
-            for (int i = 0; i < m_DeferredLights.lightCount; i++)
+            for (int i = 0; i <m_PointLightCount; i++)
             {
-                auto& light = m_DeferredLights.lights[i];
-                std::string lightName = "Light" + std::to_string(i);
+                auto& light = m_DeferredLights.pointLights[i];
+                std::string lightName = "PointLight" + std::to_string(i);
                 if (ImGui::TreeNode((void*)(intptr_t)i, "%s", lightName.c_str()))
                 {
-                    glm::vec3 lPos = light.lightPos;
-                    bool bUpdateLightsBuffer = false;
-                    const char* labelsTrans[3]{ "X","Y","Z" };
-                    if (GUI::ImguiVec3Controller(lPos, labelsTrans))
-                    {
-                        setLightPosition(i, lPos);
-                        bUpdateLightsBuffer = true;
-                    }
-
-                    float attenuation = light.lightColor.w;
-                    const char* labelAtt = "Attenuation";
-                    if (GUI::ImguiFloatSlider(attenuation, labelAtt, 0.001f, 0.1f))
-                    {
-                        setLightAttenuation(i, attenuation);
-                        bUpdateLightsBuffer = true;
-                    }
-
-                    glm::vec3 lCol = light.lightColor;
-                    ImGui::ColorPicker3("Light color", &lCol.x);
-                    if (lCol != glm::vec3(light.lightColor))
-                    {
-                        setLightColor(i, lCol);
-                        bUpdateLightsBuffer = true;
-                    }
-                    if (bUpdateLightsBuffer)
-                    {
-                        updateLightsBuffer();
-                    }
-
-
-                    ImGui::TreePop();
+                DoLightUI(light, lightName);
+                ImGui::TreePop();
                 }
+               
+            }
+            for (int i = 0; i < m_SpotLightCount; i++)
+            {
+              auto& light = m_DeferredLights.spotLights[i];
+              std::string lightName = "SpotLight" + std::to_string(i);
+              if (ImGui::TreeNode((void*)(intptr_t)(i +m_PointLightCount) , "%s", lightName.c_str()))
+              {
+                DoLightUI(light, lightName);
+                ImGui::TreePop();
+              }
+
+            }
+            for (int i = 0; i < m_DirLightCount; i++)
+            {
+              auto& light = m_DeferredLights.dirLights[i];
+              std::string lightName = "DirLight" + std::to_string(i);
+              if (ImGui::TreeNode((void*)(intptr_t)(i + m_PointLightCount + m_SpotLightCount), "%s", lightName.c_str()))
+              {
+                DoLightUI(light, lightName);
+                ImGui::TreePop();
+              }
+
             }
             ImGui::TreePop();
         }
         
         if (ImGui::Button("Create Light!"))
         {
-            createLight(ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->GetPosition(),glm::vec3(1.0f),0.01f,LightType::LightType_Point);
+            createLight(ServiceLocator::GetCameraManager()->GetCamera("mainCamera")->GetPosition(),glm::vec3(1.0f),0.01f,LightType::LightType_Point);
         }
     }
     ImGui::End();
@@ -337,13 +389,80 @@ void Scene::DoLightsUI(bool* pOpen)
 }
 void Scene::createLight(const glm::vec3& position, const glm::vec3& color,float attenuation, LightType lightType)
 {
-    if (m_DeferredLights.lightCount >= MAX_DEFERRED_LIGHTS)
-        return;
 
-    m_DeferredLights.lights[m_DeferredLights.lightCount].lightPos = glm::vec4(position.x, position.y, position.z, 0.0);
-    m_DeferredLights.lights[m_DeferredLights.lightCount].lightColor = glm::vec4(color.r, color.g, color.b, attenuation);
-    m_DeferredLights.lightCount++;
+
+  switch (lightType)
+  {
+  case LightType::LightType_Point:
+    createPointLight(position, color,attenuation);
+    break;
+  case LightType::LightType_Spot:
+    createSpotLight(position, color, attenuation);
+    break;
+  case LightType::LightType_Directional:
+    createDirLight(position, color);
+    break;
+  default:
+    break;
+  }
+
+    ServiceLocator::GetCameraManager()->GetSubject().Notify(Subject::LIGHTDIRTY, this);
     updateLightsBuffer();
+}
+
+void Scene::createPointLight(const glm::vec3& position, const glm::vec3& color, float attenuation)
+{
+  if (m_PointLightCount >= MAX_DEFERRED_POINT_LIGHTS)
+    return;
+  m_DeferredLights.pointLights[m_PointLightCount].lightPos = glm::vec4(position.x, position.y, position.z, 0.0);
+  m_DeferredLights.pointLights[m_PointLightCount].lightColor = glm::vec4(color.r, color.g, color.b, attenuation);
+  m_PointLightCount++;
+
+}
+void Scene::createSpotLight(const glm::vec3& position, const glm::vec3& color, float attenuation)
+{
+  if (m_SpotLightCount >= MAX_DEFERRED_SPOT_LIGHTS)
+    return;
+
+  m_DeferredLights.spotLights[m_SpotLightCount].lightPos = glm::vec4(position.x, position.y, position.z, 0.0);
+  m_DeferredLights.spotLights[m_SpotLightCount].lightColor = glm::vec4(color.r, color.g, color.b, attenuation);
+  m_SpotLightCount++;
+}
+void Scene::createDirLight(const glm::vec3& position, const glm::vec3& color)
+{
+  if (m_DirLightCount >= MAX_DEFERRED_DIR_LIGHTS)
+    return;
+
+  glm::vec3 direction = glm::normalize(position);//This is the direction not the position
+
+  m_DeferredLights.dirLights[m_DirLightCount].lightPos = glm::vec4(direction.x, direction.y, direction.z, 0.0);
+  m_DeferredLights.dirLights[m_DirLightCount].lightColor = glm::vec4(color.r, color.g, color.b, 0.0);
+  m_DirLightCount++;
+  //TODO: Only dirlights are gonna be casting shadows for now
+  std::string camId = "ShadowCam" + std::to_string(m_DirLightCount);
+  ServiceLocator::GetCameraManager()->AddShadowCamera(camId);
+  
+  float offset = glm::distance(m_SceneAABB.get_max(), m_SceneAABB.get_min());
+  offset = 50.0f;
+
+  ServiceLocator::GetCameraManager()->GetCamera(camId)->CenterAt(m_SceneAABB.get_center(), glm::vec3(offset)*-direction, direction);
+}
+
+Material* Scene::createMaterial(std::string i_sMaterialName, std::vector<std::pair<std::string, Texture*>>* i_Textures, bool isTransparent, glm::vec4 diffuse, glm::vec4  ambient, glm::vec4 specular, bool updateBuffer)
+{
+  uint8_t matIndex = m_Materials.size();
+  m_MaterialParametersUBO.m_Materials[matIndex].m_Diffuse = diffuse;
+  m_MaterialParametersUBO.m_Materials[matIndex].m_Ambient = ambient;
+  m_MaterialParametersUBO.m_Materials[matIndex].m_Specular = specular;
+
+  m_Materials.push_back(new Material());
+  m_Materials[matIndex]->Init(i_sMaterialName, i_Textures, isTransparent, &m_MaterialParametersUBO.m_Materials[matIndex], matIndex);
+  Material* mat = m_Materials[matIndex];
+
+  if (updateBuffer)
+    updateMaterialsBuffer();
+
+  return mat;
 }
 
 
@@ -367,8 +486,9 @@ void Scene::createLight(const glm::vec3& position, const glm::vec3& color,float 
      auto& model = m_Models.back();
      if (s_DefaultMaterial == nullptr)
      {
-         s_DefaultMaterial = new Material();
-         s_DefaultMaterial->Init("daniel_default_mat", nullptr, true);
+         
+       s_DefaultMaterial = createMaterial("daniel_default_mat", nullptr, true, glm::vec4(0.0f), glm::vec4(1.0f), glm::vec4(0.0f), 0.0);
+         //s_DefaultMaterial->Init("daniel_default_mat", nullptr, true);
      }
      model->SetMaterial(s_DefaultMaterial);
 
@@ -430,7 +550,7 @@ void Scene::DoModelsUI(bool* pOpen)
                     }
                     if (ImGui::Button("Goto.."))
                     {
-                        ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->CenterAt(model->getAABB().get_center());
+                        ServiceLocator::GetCameraManager()->GetCamera("mainCamera")->CenterAt(model->getAABB().get_center());
                     }
                    
                   
@@ -441,7 +561,7 @@ void Scene::DoModelsUI(bool* pOpen)
         }
         if (ImGui::Button("Create Box!"))
         {
-            createBox(ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->GetPosition());
+            createBox(ServiceLocator::GetCameraManager()->GetCamera("mainCamera")->GetPosition());
         }
     }
     ImGui::End();
@@ -477,7 +597,13 @@ void Scene::loadAssets(const std::string i_ScenePath)
 	std::string iRootScenePath = i_ScenePath.substr(0, i_ScenePath.find_last_of("\\/")) + "\\";
 	
 
+  m_MaterialsUniformBuffer = ServiceLocator::GetRenderer()->CreateStaticUniformBuffer(&m_MaterialParametersUBO, sizeof(UBOMaterial));
+  createMaterial("BackgroundMaterial", nullptr, false, glm::vec4(0.0f), glm::vec4(0.4f), glm::vec4(0.0f), false);//TODO: Material list has to be empty before loadmaterials if not the index stored in the mesh is invalid
 	loadMaterials(aScene, iRootScenePath);
+  
+
+  updateMaterialsBuffer();
+
 	loadMeshes(aScene);
 
   m_SceneBoundMin = glm::vec3(std::numeric_limits<float>::max());
@@ -487,15 +613,13 @@ void Scene::loadAssets(const std::string i_ScenePath)
 
 
   
-  m_DeferredLights.lightCount = 2;
-  m_DeferredLights.lights[0].lightPos = glm::vec4(100, 100, 100, 0);;
-  m_DeferredLights.lights[0].lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.01f);
-  m_DeferredLights.lights[1].lightPos = glm::vec4(400, 100, 100, 0);
-  m_DeferredLights.lights[1].lightColor = glm::vec4(0.0f, 1.0f, 0.0f, 0.01f);
-  //createLight(glm::vec3(100, 100, 100), glm::vec3(1.0f), 0.01f, LightType::LightType_Point);
-  //createLight(glm::vec3(400, 100, 100), glm::vec3(1.0f), 0.01f, LightType::LightType_Point);
-
+  
   m_LightsUniformBuffer = ServiceLocator::GetRenderer()->CreateStaticUniformBuffer(&m_DeferredLights, sizeof(UBODeferredLights));
+  
+  
+
+
+ 
 
   //Only need this during creation
   m_MeshMap.clear();
@@ -548,7 +672,7 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
 	RendererAbstract* renderer = ServiceLocator::GetRenderer();
   std::unordered_map<std::string, Texture*> fileNameImages;//Map to avoid loading the same texture more than once
 	int numberOfMaterialsInScene =i_aScene->mNumMaterials;
-	m_Materials.resize(numberOfMaterialsInScene);
+	//m_Materials.resize(numberOfMaterialsInScene);
 
 	for (int i = 0; i < numberOfMaterialsInScene; i++)
 	{
@@ -615,7 +739,15 @@ void Scene::loadMaterials(const aiScene* i_aScene, const std::string i_SceneText
             }
         }
     }
-		m_Materials[i].Init(std::string(matName.C_Str()),&texturesInMaterial,isTransparent);
+    aiColor3D diffuse, ambient, specular;
+    float shininess = 0.0f;
+    pMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
+    pMaterial->Get(AI_MATKEY_COLOR_AMBIENT, ambient);
+    pMaterial->Get(AI_MATKEY_COLOR_SPECULAR, specular);
+    pMaterial->Get(AI_MATKEY_SHININESS, shininess);
+
+
+		createMaterial(std::string(matName.C_Str()),&texturesInMaterial,isTransparent,glm::vec4(diffuse.r, diffuse.g, diffuse.b,0.0), glm::vec4(ambient.r,ambient.g,ambient.b,0.0), glm::vec4(specular.r,specular.g,specular.b, shininess),false);//false for not updating the buffer here we do it manually when all the scene materials ready
 	}
 }
 
@@ -717,7 +849,7 @@ void Scene::loadMeshes(const aiScene* i_aScene)
 			}
 		}
 
-    m_MeshMap.emplace(i, MeshWithView(&mesh, { iCurrentIndex, iNIndices, iVertexGeneralCount, aMesh->mNumVertices,aMesh->mMaterialIndex }));
+    m_MeshMap.emplace(i, MeshWithView(&mesh, { iCurrentIndex, iNIndices, iVertexGeneralCount, aMesh->mNumVertices,aMesh->mMaterialIndex+1 }));//TODO: This material index is offset 1 because of background material, not ideal..
     
   
     
@@ -749,9 +881,9 @@ void Scene::loadSceneRecursive(const aiNode* i_Node)
             auto meshWithView = m_MeshMap[i_Node->mMeshes[i]];
             m_Models.emplace_back(std::make_unique<Model>(*meshWithView.first, meshWithView.second,*this, std::string(i_Node->mName.C_Str())));
             auto& model = m_Models.back();
-            model->SetMaterial(&m_Materials[meshWithView.second.m_MaterialIndex]);
+            model->SetMaterial(m_Materials[meshWithView.second.m_MaterialIndex]);
 
-            if (m_Materials[meshWithView.second.m_MaterialIndex].isTransparent())
+            if (m_Materials[meshWithView.second.m_MaterialIndex]->isTransparent())
             {
                 m_TransparentModels.push_back(*model);
             }
@@ -860,10 +992,11 @@ void SceneManager::LoadScene(const std::string i_ScenePath)
         m_CurrentSceneIndex = m_LoadingSceneIndex;
         m_LoadingSceneIndex = oldCurrentSceneIndex;
 
-        ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main)->CenterAt(GetCurrentScene()->getSceneAABB().get_center());
+        ServiceLocator::GetCameraManager()->GetCamera("mainCamera")->CenterAt(GetCurrentScene()->getSceneAABB().get_center());
         LOGINFO("Scene finished loading!");
         m_SceneSubject.Notify(Subject::Message::SCENELOADED);
         GetCurrentScene()->SetInit();
+        GetCurrentScene()->createLight(glm::vec4(1, 1, 1, 0), glm::vec4(1.0f, 1.0f, 1.0f, 0.01f), 0.01f, LightType::LightType_Directional);
        
     });
     

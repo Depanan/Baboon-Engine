@@ -18,6 +18,7 @@ public:
     void submit(const CommandBuffer& command_buffer);
     void end(VkSemaphore semaphore);
     RenderFrame& getActiveFrame()const;
+    bool isFrameActive() { return m_FrameActive; }
     Device& getDevice() const{ return m_DeviceRef; }
     VkExtent2D getSurfaceExtent()const { return m_Surface_extent; }
     RenderFrame& getCurrentFrame() const{ return *m_Frames[m_FrameIndex]; }

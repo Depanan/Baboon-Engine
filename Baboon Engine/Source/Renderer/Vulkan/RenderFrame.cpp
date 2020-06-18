@@ -35,6 +35,7 @@ RenderFrame::RenderFrame(Device& device, std::unique_ptr<RenderTarget>&& renderT
     }
 
     m_CameraUniformBuffer = (VulkanBuffer*) ServiceLocator::GetRenderer()->CreateStaticUniformBuffer(nullptr, sizeof(UBOCamera));
+    m_ShadowsUniformBuffer = (VulkanBuffer*)ServiceLocator::GetRenderer()->CreateStaticUniformBuffer(nullptr, sizeof(UBOShadows));
 }
 
 
@@ -85,9 +86,14 @@ void RenderFrame::reset()
     
     if (m_IsCameraUniformDirty)
     {
-        auto camera = ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main);
+        auto camera = ServiceLocator::GetCameraManager()->GetCamera("mainCamera");
         camera->UpdateUniformBuffer(*m_CameraUniformBuffer);
         m_IsCameraUniformDirty = false;
+    }
+    if (m_IsShadowsUniformDirty)
+    {
+        ServiceLocator::GetCameraManager()->FetchShadowsUBO(*m_ShadowsUniformBuffer);
+        m_IsShadowsUniformDirty = false;
     }
 
     //reset command pools here 

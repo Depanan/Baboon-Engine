@@ -2,12 +2,16 @@
 
 #include "CameraQuaternion.h"
 #include "Core/Observer.h"
+#include <unordered_map>
+#include <string>
+#include "Renderer/Common/GLMInclude.h"
 
-struct CameraUniforms {
-	glm::mat4 view;
-	glm::mat4 proj;
+struct alignas(16) UBOShadows  {
+    glm::mat4 viewprojections[32];
+   
 };
 
+class Buffer;
 class CameraManager
 {
 public:
@@ -18,30 +22,28 @@ public:
 		eCameraType_NCameras
 	};
   void Update();
-  void EndFrame();
 	void Init();
 	
 	void OnWindowResize(int width, int height);
 
  
+  void AddCamera(std::string camId);
+  void AddShadowCamera(std::string camId);
+  
 
-	 Camera* GetCamera(eCameraType i_camType)
-	{
-		if (i_camType >= eCameraType_NCameras)
-			return nullptr;
+  Camera* GetCamera(std::string camId);
+	
 
-		return &m_Cameras[i_camType];
-	}
+  void FetchShadowsUBO(Buffer& buffer) ;
+  UBOShadows& GetShadowsUBO() { return m_UboShadows; }
 
-	const CameraUniforms* GetCamUniforms() { return &m_CameraUniforms; }
-
-	void BindCameraUniforms(eCameraType i_camType);
 	
 
   Subject& GetSubject() { return m_SceneSubject; }
 private:
   Subject m_SceneSubject;
-	CameraQuaternion m_Cameras[eCameraType_NCameras];
-	CameraUniforms m_CameraUniforms;
+  std::unordered_map<std::string, Camera*> m_Cameras;
+
+  UBOShadows m_UboShadows;
 
 };

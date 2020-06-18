@@ -19,11 +19,20 @@ const RenderTarget::CreateFunc RenderTarget::DEFAULT_CREATE_FUNC = [](VulkanImag
 
    
 };
+const RenderTarget::CreateFunc RenderTarget::SHADOWMAP_CREATE_FUNC = [](VulkanImage&& image) -> std::unique_ptr<RenderTarget> {
+
+
+    std::vector<VulkanImage> images;
+    images.push_back(std::move(image));
+    return  std::make_unique<RenderTarget>(std::move(images));
+
+
+};
 const RenderTarget::CreateFunc RenderTarget::DEFERRED_CREATE_FUNC = [](VulkanImage&& swapChainImage) -> std::unique_ptr<RenderTarget> {
 
 
     const VkFormat          albedo_format{ VK_FORMAT_R8G8B8A8_UNORM };
-    const VkFormat          normal_format{ VK_FORMAT_A2B10G10R10_UNORM_PACK32 };
+    const VkFormat          normal_format{ VK_FORMAT_R16G16B16A16_SFLOAT };
     const VkImageUsageFlags rt_usage_flags{ VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT };
 
 

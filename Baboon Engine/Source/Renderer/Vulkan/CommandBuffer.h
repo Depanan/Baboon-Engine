@@ -74,7 +74,7 @@ public:
 
     void nextSubpass(VkSubpassContents contents);
 
-    void imageBarrier(VulkanImageView& image_view, const ImageMemoryBarrier& memory_barrier);
+    void imageBarrier(const VulkanImageView& image_view, const ImageMemoryBarrier& memory_barrier);
 
     inline bool isRecording() { return m_State == State::Recording; }
     const inline VkCommandBuffer& getHandle()const { return m_CommandBuffer; }
@@ -103,6 +103,7 @@ public:
 
 
     void bindPipelineLayout(PipelineLayout& pipeline_layout);
+    const PipelineLayout& getPipelineLayout() { return m_PipelineState.getPipelineLayout(); }
     inline void setVertexInputState(const VertexInputState& vertState) { m_PipelineState.setVertexInputState(vertState); }
     inline void setColorBlendState(const ColorBlendState& state_info){m_PipelineState.setColorBlendState(state_info);}
     inline void setRasterState(const RasterizationState& state_info) { m_PipelineState.setRasterizationState(state_info); }

@@ -211,7 +211,7 @@ void CommandBuffer::nextSubpass(VkSubpassContents contents)
 }
 
 
-void CommandBuffer::imageBarrier(VulkanImageView& image_view, const ImageMemoryBarrier& memory_barrier)
+void CommandBuffer::imageBarrier(const VulkanImageView& image_view, const ImageMemoryBarrier& memory_barrier)
 {
     // Adjust barrier's subresource range for depth images
     auto subresource_range = image_view.getSubResourceRange();
@@ -466,6 +466,9 @@ void CommandBuffer::flushDescriptorState()
             }
 
             auto& descriptor_set_layout = pipeline_layout.getDescriptorSetLayout(descriptor_set_id);
+
+            if (descriptor_set_layout.getBindings().empty())
+                continue;
 
             // Make descriptor set layout bound for current set
             m_DescriptorSetLayout_BindingState[descriptor_set_id] = &descriptor_set_layout;

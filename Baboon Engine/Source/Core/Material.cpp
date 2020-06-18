@@ -98,7 +98,7 @@ void ShaderVariant::update_id()
 
 
 
-void Material::Init(std::string i_sMaterialName, std::vector<std::pair<std::string, Texture*>>* i_Textures, bool isTransparent)
+void Material::Init(std::string i_sMaterialName, std::vector<std::pair<std::string, Texture*>>* i_Textures, bool isTransparent, MaterialParameters* parameters,uint8_t materialIndex)
 {
     m_IsTransparent = isTransparent;
     m_sMaterialName = i_sMaterialName;
@@ -109,7 +109,8 @@ void Material::Init(std::string i_sMaterialName, std::vector<std::pair<std::stri
             m_Textures[nameAndTexture.first] = nameAndTexture.second;
         }
     }
-    
+    m_MaterialParameters = parameters;
+    m_MaterialIndex = materialIndex;
 }
 
 Texture* Material::GetTextureByName(std::string name)

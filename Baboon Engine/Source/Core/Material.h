@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <unordered_map>
+#include "Renderer/Common/GLMInclude.h"
 
 class Texture;
 
@@ -66,10 +67,23 @@ private:
 };
 
 
+
+struct MaterialParameters {
+  glm::vec4 m_Ambient;
+  glm::vec4 m_Diffuse;
+  glm::vec4 m_Specular;
+};
+#define MAX_MATERIALS 128
+struct   alignas(16) UBOMaterial
+{
+  MaterialParameters m_Materials[MAX_MATERIALS];
+};
+
+
 class Material
 {
 public:
-    void Init(std::string i_sMaterialName, std::vector<std::pair<std::string, Texture*>>*, bool isTransparent);
+    void Init(std::string i_sMaterialName, std::vector<std::pair<std::string, Texture*>>*, bool isTransparent, MaterialParameters* parameters, uint8_t materialIndex);
 	
 	const std::string& GetMaterialName()
 	{
@@ -78,11 +92,13 @@ public:
   Texture* GetTextureByName(std::string name );
 
   bool isTransparent() { return m_IsTransparent; }
-
+  uint8_t getMaterialIndex() { return m_MaterialIndex; }
 
   std::unordered_map<std::string, Texture*>* getTextures() { return &m_Textures; }
 private:
 	std::string m_sMaterialName;
   std::unordered_map<std::string, Texture*> m_Textures;
   bool m_IsTransparent{ false };
+  MaterialParameters* m_MaterialParameters;
+  uint8_t m_MaterialIndex = 0;
 };

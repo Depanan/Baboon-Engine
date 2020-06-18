@@ -27,7 +27,7 @@ void RenderPath::draw(CommandBuffer& command_buffer, RenderTarget& render_target
     for(int i = 0; i<m_Subpasses.size(); i++)
     {
         auto& subpass = m_Subpasses[i];
-        subpass->updateRenderTargetAttachments();
+        subpass->updateRenderTargetAttachments(render_target);
         if (i == 0)
             command_buffer.beginRenderPass(render_target, m_LoadStore, m_ClearValue,m_Subpasses,contents);
         else

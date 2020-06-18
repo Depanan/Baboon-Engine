@@ -141,25 +141,24 @@ public:
 		ServiceLocator::GetCameraManager()->Init();
 		//ServiceLocator::GetSceneManager()->GetScene()->Init();
 
+
     
-   
-
-
-    LOGINFO("LOLO");
 	}
+
+
 
 	void mainLoop()
 	{
 
     // Create a FileWatcher instance that will check the current folder for changes every 1 seconds
     FileWatcher fileWatcherShaders{ "./Shaders", std::chrono::milliseconds(1000),checkShaderChangesFunction };
-      
     
 
 		RendererAbstract* pRenderer = ServiceLocator::GetRenderer();
 		SceneManager* pSceneManager = ServiceLocator::GetSceneManager();
 		Input* pInput = ServiceLocator::GetInput();
     CameraManager* pCameraMan = ServiceLocator::GetCameraManager();
+    pCameraMan->AddCamera("mainCamera");
     GUI* pGui = ServiceLocator::GetGUI();
 		while (!glfwWindowShouldClose(m_window)) {
 			auto tStart = std::chrono::high_resolution_clock::now();
@@ -204,7 +203,7 @@ private:
 
 
 	void initWindow()
-	{
+  {
 		glfwInit();
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -228,7 +227,7 @@ private:
 
     
 
-		return ServiceLocator::GetRenderer()->Init(extensions,m_window,ServiceLocator::GetCameraManager()->GetCamera(CameraManager::eCameraType_Main));
+		return ServiceLocator::GetRenderer()->Init(extensions,m_window,ServiceLocator::GetCameraManager()->GetCamera("mainCamera"));
 
 	}
 	

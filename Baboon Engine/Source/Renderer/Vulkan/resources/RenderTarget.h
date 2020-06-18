@@ -30,6 +30,7 @@ public:
     using CreateFunc = std::function<std::unique_ptr<RenderTarget>(VulkanImage&&)>;
     static const CreateFunc DEFAULT_CREATE_FUNC;
     static const CreateFunc DEFERRED_CREATE_FUNC;
+    static const CreateFunc SHADOWMAP_CREATE_FUNC;
 
     RenderTarget(std::vector<VulkanImage>&& images);
 

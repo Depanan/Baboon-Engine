@@ -26,6 +26,7 @@ VulkanImage::VulkanImage(const Device& device, VkImage handle, const VkExtent3D&
     m_Format{ format},
     m_Usage{ image_usage}
 {
+    m_Type = VK_IMAGE_TYPE_2D;
     m_SampleCount = VK_SAMPLE_COUNT_1_BIT;
     m_Subresource.mipLevel = 1;
     m_Subresource.arrayLayer = 1;
@@ -117,9 +118,11 @@ VulkanImage::VulkanImage(const Device& device,
     m_Tiling(tiling)
 {
 
+    m_Type = VK_IMAGE_TYPE_2D;//TODO: Support non 2d as well
+
     VkImageCreateInfo imageInfo = {};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.imageType = VK_IMAGE_TYPE_2D;//TODO: Support non 2d as well
+    imageInfo.imageType = m_Type;
     imageInfo.extent = extent;
     imageInfo.mipLevels = mip_levels;
     imageInfo.arrayLayers = array_layers;

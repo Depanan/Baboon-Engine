@@ -21,6 +21,9 @@ layout(set = 0, binding = 1) uniform UniformBufferObject {
 	vec3 camPos;
 } ubo;
 
+layout (push_constant) uniform PushConstantMaterialId {
+	layout(offset = 64) vec4 info;
+} pushConstantMaterialId;
 
 
 layout(location = 3) in vec3 fragPos;
@@ -50,7 +53,7 @@ void main() {
 
 	#ifdef HAS_INNORMAL
 		vec4 texColor = vec4(1.0);
-		vec3 ambient = vec3(0.1);
+		vec3 ambient = vec3(0.2);
 		vec4 opacity = vec4(1.0);
 		vec3 spec = vec3(0.1);
 		
@@ -78,14 +81,14 @@ void main() {
 		
 
 		outColor = vec4(texColor.rgb,spec.r);
-		vec3 normalTransformed = 0.5 * N + 0.5;
-		outNormal = vec4(normalTransformed,ambient.r);
+		
+		outNormal = vec4(N,pushConstantMaterialId.info.x/128.0f);//w is material id
 	#elif defined HAS_INCOLOR
 	outColor = vec4(fragColor,0.5);
 	outNormal = vec4(1.0);
 	#else
 	outColor = vec4(1.0);
-	outNormal = vec4(1.0);
+	outNormal = vec4(0.5);
 	#endif
 	
 	

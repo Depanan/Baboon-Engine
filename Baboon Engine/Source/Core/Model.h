@@ -8,9 +8,10 @@
 
 
 class Scene;
-struct InstanceUBO {
-	glm::mat4 model;
 
+struct alignas(16) InstanceUBO {
+	glm::mat4 model;
+  uint8_t matId;
 };
 
 
@@ -42,6 +43,7 @@ public:
 
 
   const glm::mat4& getModelMatrix()const { return m_InstanceUniforms.model; }
+  const InstanceUBO& getInstanceUBO()const { return m_InstanceUniforms; }
   const AABB& getAABB() { return m_AABB; }
 
   const ShaderVariant& getShaderVariant()const { return m_Variant; }

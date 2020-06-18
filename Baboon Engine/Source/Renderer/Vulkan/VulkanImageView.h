@@ -17,9 +17,9 @@ public:
 
    void setImage(VulkanImage& img);
 
-    inline VkImageSubresourceRange getSubResourceRange() { return m_SubresourceRange; }
+    inline VkImageSubresourceRange getSubResourceRange() const{ return m_SubresourceRange; }
     inline VkFormat getFormat() const { return m_Format; }
-    inline VulkanImage* getImage() { return m_Image; }
+    inline VulkanImage* getImage()const  { return m_Image; }
     inline VkImageView getHandle() const { return m_ImageView; }
 
     VkImageSubresourceLayers getSubresourceLayers() const;

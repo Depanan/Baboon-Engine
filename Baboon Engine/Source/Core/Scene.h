@@ -12,15 +12,19 @@ struct aiScene;
 struct aiNode;
 class SceneManager;
 
-#define MAX_DEFERRED_LIGHTS 32
+#define MAX_DEFERRED_POINT_LIGHTS 15
+#define MAX_DEFERRED_SPOT_LIGHTS 15
+#define MAX_DEFERRED_DIR_LIGHTS 2
+
 struct alignas(16)Light {
     glm::vec4 lightPos;
     glm::vec4 lightColor;
 };
 struct alignas(16) UBODeferredLights
 {
-    size_t lightCount;
-    Light lights[MAX_DEFERRED_LIGHTS];
+    Light pointLights[MAX_DEFERRED_POINT_LIGHTS];
+    Light spotLights[MAX_DEFERRED_SPOT_LIGHTS];
+    Light dirLights[MAX_DEFERRED_DIR_LIGHTS];
 } ;
 enum class LightType {
     LightType_Point = 0,
@@ -35,6 +39,7 @@ enum class BatchType {
 struct RenderBatch {
     BatchType m_BatchType;
     std::string m_Name;
+    uint8_t m_MaterialIndex;
     std::multimap<float, std::reference_wrapper<Model>> m_ModelsByDistance;
 };
 
@@ -60,6 +65,7 @@ public:
 	bool IsInit() { return m_bIsInit; }
 
   Buffer* getLightsUniformBuffer() const { return m_LightsUniformBuffer; }
+  Buffer* getMaterialsUniformBuffer() const { return m_MaterialsUniformBuffer; }
 
 	std::vector <std::unique_ptr<Model>>* GetModels() { return &m_Models; }
   std::vector <std::reference_wrapper<Model>>* GetOpaqueModels() { return &m_OpaqueModels; }
@@ -70,17 +76,22 @@ public:
   std::vector<RenderBatch>& GetOpaqueBatches() { return m_OpaqueBatch; }
   const AABB& getSceneAABB()const { return m_SceneAABB; }
 
-  const Light& getLight(size_t index)const { return m_DeferredLights.lights[index]; }
-  void setLightPosition(size_t index,glm::vec3 position);
+  //const Light& getLight(size_t index)const { return m_DeferredLights.lights[index]; }
+  size_t getDirLightCount() { return m_DirLightCount; }
+  size_t getSpotLightCount() { return m_SpotLightCount; }
+  size_t getPointLightCount() { return m_PointLightCount; }
+  /*void setLightPosition(size_t index,glm::vec3 position);
   void setLightColor(size_t index,glm::vec3 position);
-  void setLightAttenuation(size_t index, float attenuation);
+  void setLightAttenuation(size_t index, float attenuation);*/
   void updateLightsBuffer();
+  void updateMaterialsBuffer();
 
 
   void createBox(const glm::vec3& position);
   void createLight(const glm::vec3& position, const glm::vec3& color,float attenuation, LightType lightType);
 
   //UI functions
+  void DoLightUI(Light& light, std::string& lightName);
   void DoLightsUI(bool* pOpen);
   void DoModelsUI(bool* pOpen);
 
@@ -109,7 +120,10 @@ private:
 
 
 	std::vector <std::unique_ptr<Mesh>> m_Meshes;
-	std::vector <Material> m_Materials;
+	std::vector <Material*> m_Materials;
+  UBOMaterial m_MaterialParametersUBO;
+  Buffer* m_MaterialsUniformBuffer;
+
 
 	//Global data for indexed meshes
 	std::vector<Vertex> m_Vertices;
@@ -118,6 +132,11 @@ private:
 
   Buffer* m_LightsUniformBuffer;
   UBODeferredLights m_DeferredLights;
+  size_t m_DirLightCount = 0;
+  size_t m_SpotLightCount = 0;
+  size_t m_PointLightCount = 0;
+
+
 
   void prepareBatches();
   void getBatches(std::vector<RenderBatch>& batchList, BatchType batchType);
@@ -128,6 +147,12 @@ private:
   void Init(const std::string i_ScenePath);
   void SetInit(){ m_bIsInit = true; }
   void Free();
+
+  void createPointLight(const glm::vec3& position, const glm::vec3& color, float attenuation);
+  void createSpotLight(const glm::vec3& position, const glm::vec3& color, float attenuation);
+  void createDirLight(const glm::vec3& position, const glm::vec3& color);
+
+  Material* createMaterial(std::string i_sMaterialName, std::vector<std::pair<std::string, Texture*>>* i_Textures, bool isTransparent, glm::vec4 diffuse, glm::vec4  ambient, glm::vec4 specular, bool updateBuffer = true);
 
 };
 

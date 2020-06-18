@@ -27,9 +27,9 @@ Subpass::Subpass(VulkanContext& render_context, std::string vertex_shader, std::
     delete m_ThreadPool;
 }
 
- void Subpass::updateRenderTargetAttachments()
+ void Subpass::updateRenderTargetAttachments(RenderTarget& render_target)
  {
-     auto& render_target = m_RenderContext.getActiveFrame().getRenderTarget();
+  
 
      render_target.setOutputAttachments(m_OutputAttachments);
      render_target.setInputAttachments(m_InputAttachments);
@@ -47,6 +47,9 @@ void Subpass::setReRecordCommands()
 
 std::shared_ptr<ShaderSource> Subpass::getVertexShader()
 {
+
+    if (m_VertexShaderPath.empty())
+        return nullptr;
     auto renderer = (RendererVulkan*)ServiceLocator::GetRenderer();
 
     auto pVertexShader = m_VertexShader.lock();
@@ -60,6 +63,8 @@ std::shared_ptr<ShaderSource> Subpass::getVertexShader()
 
 std::shared_ptr<ShaderSource> Subpass::getFragmentShader()
 {
+    if (m_FragmentShaderPath.empty())
+        return nullptr;
     auto renderer = (RendererVulkan*)ServiceLocator::GetRenderer();
     auto pFragmentShader = m_FragmentShader.lock();
     if (!pFragmentShader)
@@ -118,6 +123,12 @@ void Subpass::recordBatches(CommandBuffer* command_buffer, CommandBuffer* primar
     for (int i = 0; i < (endIndex - beginIndex); i++)
     {
         auto& batch = batches[beginIndex + i];
+
+        if(batch.m_ModelsByDistance.size() == 0)
+          continue;
+       
+        bindModelPipelineLayout(command_buffer, batch.m_ModelsByDistance.begin()->second);//Here all the models in the batch same the same material so we can call this out here
+     
         for (auto node_it = batch.m_ModelsByDistance.begin(); node_it != batch.m_ModelsByDistance.end(); node_it++)
         {
             const Model& model = node_it->second;
@@ -177,21 +188,16 @@ void Subpass::drawModel(const Model& model, CommandBuffer* command_buffer)
     auto& device = m_RenderContext.getDevice();
     auto renderVulkan =(RendererVulkan*) ServiceLocator::GetRenderer();
 
-    auto pVertexShader = getVertexShader();
-    auto pFragmentShader = getFragmentShader();
+    
 
-    auto& vert_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader, model.getShaderVariant());
-    auto& frag_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader, model.getShaderVariant());
-    std::vector<ShaderModule*> shader_modules{ &vert_module, &frag_module };
-
-    auto& pipeline_layout = device.getResourcesCache().request_pipeline_layout(shader_modules);
-
-    command_buffer->bindPipelineLayout(pipeline_layout);
+    auto& pipeline_layout = command_buffer->getPipelineLayout();
 
     RasterizationState rasterState{};
     rasterState.m_CullMode = VK_CULL_MODE_NONE;
     rasterState.m_FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     command_buffer->setRasterState(rasterState);
+
+
 
     auto vertex_input_resources = pipeline_layout.getResources(ShaderResourceType::Input, VK_SHADER_STAGE_VERTEX_BIT);
 
@@ -240,7 +246,7 @@ void Subpass::drawModel(const Model& model, CommandBuffer* command_buffer)
             command_buffer->bind_vertex_buffer(input_resource.location, *vBuff, { 0 });
         }
     }
-
+    
     auto& descriptor_set_layout = pipeline_layout.getDescriptorSetLayout(0);
 
     auto textures = model.GetMaterial()->getTextures();
@@ -271,6 +277,25 @@ void Subpass::drawModel(const Model& model, CommandBuffer* command_buffer)
     command_buffer->pushConstants(0, model.getModelMatrix());
   
     command_buffer->draw_indexed(nIndices, 1, indexStart, model.GetVertexStartPosition(), 0);
+}
+
+void Subpass::bindModelPipelineLayout(CommandBuffer* commandBuffer, const Model& model)
+{
+    auto pVertexShader = getVertexShader();
+    auto pFragmentShader = getFragmentShader();
+    auto& device = m_RenderContext.getDevice();
+    std::vector<ShaderModule*> shader_modules;
+    if (!m_VertexShaderPath.empty())
+        shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader, model.getShaderVariant()));
+    if (!m_FragmentShaderPath.empty())
+        shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader, model.getShaderVariant()));
+    
+    
+   
+    auto& pipeline_layout = device.getResourcesCache().request_pipeline_layout(shader_modules);
+    commandBuffer->bindPipelineLayout(pipeline_layout);
+    
+    
 }
 
 
@@ -338,6 +363,15 @@ void GeometrySubpass::draw(CommandBuffer& primary_commandBuffer)
 }
 
 
+void GeometrySubpass::bindModelPipelineLayout(CommandBuffer* commandBuffer,const Model& model)
+{
+  Subpass::bindModelPipelineLayout(commandBuffer,model);
+  glm::vec4 matIndexVector;//Its a vector cause I couldn't make it work with a single float.. Probably the extra space will be useful at some point
+  matIndexVector.x = model.GetMaterial()->getMaterialIndex();
+  commandBuffer->pushConstants(sizeof(InstanceUBO::model), matIndexVector);//sizeof(InstanceUBO::model) is the offset since thats what you need to do with pushconstants
+
+}
+
 
 LightSubpass::LightSubpass(VulkanContext& render_context,  std::string vertex_shader, std::string fragment_shader):
      Subpass(render_context, vertex_shader, fragment_shader) 
@@ -356,70 +390,86 @@ void LightSubpass::draw(CommandBuffer& primary_command)
     auto renderVulkan = (RendererVulkan*)ServiceLocator::GetRenderer();
     auto& render_target = m_RenderContext.getActiveFrame().getRenderTarget();
 
-    std::vector<CommandBuffer*>& recordedCommands = m_PersistentCommandsPerFrame.startRecording(m_RenderContext.getActiveFrame().getHashId());
-    auto persistentCommands = m_PersistentCommandsPerFrame.getPersistentCommands(m_RenderContext.getActiveFrame().getHashId(), 0, device, m_RenderContext.getActiveFrame());
-    auto& command_buffers = persistentCommands->getCommandBuffers(1);
-    auto& command_buffer = *command_buffers[0];
-    
-    //Set viewport and scissors
-    /*auto& extent = render_target.getExtent();
-    VkViewport viewport{};
-    viewport.width = static_cast<float>(extent.width);
-    viewport.height = static_cast<float>(extent.height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    VkRect2D scissor{};
-    scissor.extent = extent;*/
-    command_buffer.begin(VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT, &primary_command);
+    auto& activeFrame = m_RenderContext.getActiveFrame();
+    if (m_PersistentCommandsPerFrame.getDirty(activeFrame.getHashId())) {
 
-    /*command_buffer.setViewport(0, { viewport });
-    command_buffer.setScissor(0, { scissor });*/
+      std::vector<CommandBuffer*>& recordedCommands = m_PersistentCommandsPerFrame.startRecording(m_RenderContext.getActiveFrame().getHashId());
+      auto persistentCommands = m_PersistentCommandsPerFrame.getPersistentCommands(m_RenderContext.getActiveFrame().getHashId(), 0, device, m_RenderContext.getActiveFrame());
+      auto& command_buffers = persistentCommands->getCommandBuffers(1);
+      auto& command_buffer = *command_buffers[0];
 
-    auto pVertexShader = getVertexShader();
-    auto pFragmentShader = getFragmentShader();
-    ShaderVariant emptyVariant;
-    auto& vert_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader, emptyVariant);
-    auto& frag_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader, emptyVariant);
-    std::vector<ShaderModule*> shader_modules{ &vert_module, &frag_module };
+      //Set viewport and scissors
+      /*auto& extent = render_target.getExtent();
+      VkViewport viewport{};
+      viewport.width = static_cast<float>(extent.width);
+      viewport.height = static_cast<float>(extent.height);
+      viewport.minDepth = 0.0f;
+      viewport.maxDepth = 1.0f;
+      VkRect2D scissor{};
+      scissor.extent = extent;*/
+      command_buffer.begin(VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT, &primary_command);
 
-    auto& pipeline_layout = device.getResourcesCache().request_pipeline_layout(shader_modules);
-    command_buffer.bindPipelineLayout(pipeline_layout);
+      /*command_buffer.setViewport(0, { viewport });
+      command_buffer.setScissor(0, { scissor });*/
 
-    // Get image views of the attachments
-   
-    auto& target_views = render_target.getViews();
-
-    // Bind depth, albedo, and normal as input attachments
-    auto& depth_view = target_views.at(1);
-    command_buffer.bind_input(depth_view, 0, 0, 0);
-
-    auto& albedo_view = target_views.at(2);
-    command_buffer.bind_input(albedo_view, 0, 1, 0);
-
-    auto& normal_view = target_views.at(3);
-    command_buffer.bind_input(normal_view, 0, 2, 0);
+      auto pVertexShader = getVertexShader();
+      auto pFragmentShader = getFragmentShader();
+      ShaderVariant lightVariant;
+      if (scene->getDirLightCount())
+        lightVariant.add_define("DIRLIGHTS " + std::to_string(scene->getDirLightCount()));
+      if (scene->getSpotLightCount())
+        lightVariant.add_define("SPOTLIGHTS " + std::to_string(scene->getSpotLightCount()));
+      if (scene->getPointLightCount())
+        lightVariant.add_define("POINTLIGHTS " + std::to_string(scene->getPointLightCount()));
 
 
+      auto& vert_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader, lightVariant);
+      auto& frag_module = device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader, lightVariant);
+      std::vector<ShaderModule*> shader_modules{ &vert_module, &frag_module };
 
-    //Bind matrices
-    command_buffer.bind_buffer(*(m_RenderContext.getActiveFrame().getCameraUniformBuffer()), 0, sizeof(UBOCamera), 0, 3, 0);
+      auto& pipeline_layout = device.getResourcesCache().request_pipeline_layout(shader_modules);
+      command_buffer.bindPipelineLayout(pipeline_layout);
 
-    //Bind the lights uniform buffer
-    command_buffer.bind_buffer(*((VulkanBuffer*)(scene->getLightsUniformBuffer())), 0, sizeof(UBODeferredLights), 0, 4, 0);
+      // Get image views of the attachments
 
-    // Set cull mode to front as full screen triangle is clock-wise
-    RasterizationState rasterization_state;
-    rasterization_state.m_CullMode = VK_CULL_MODE_FRONT_BIT;
-    command_buffer.setRasterState(rasterization_state);
+      auto& target_views = render_target.getViews();
+
+      // Bind depth, albedo, and normal as input attachments
+      auto& depth_view = target_views.at(1);
+      command_buffer.bind_input(depth_view, 0, 0, 0);
+
+      auto& albedo_view = target_views.at(2);
+      command_buffer.bind_input(albedo_view, 0, 1, 0);
+
+      auto& normal_view = target_views.at(3);
+      command_buffer.bind_input(normal_view, 0, 2, 0);
 
 
-    // Draw full screen triangle triangle
-    command_buffer.draw(3, 1, 0, 0);
+
+      //Bind matrices
+      command_buffer.bind_buffer(*(m_RenderContext.getActiveFrame().getCameraUniformBuffer()), 0, sizeof(UBOCamera), 0, 3, 0);
+
+      //Bind the lights uniform buffer
+      command_buffer.bind_buffer(*((VulkanBuffer*)(scene->getLightsUniformBuffer())), 0, sizeof(UBODeferredLights), 0, 4, 0);
+
+      command_buffer.bind_buffer(*((VulkanBuffer*)(scene->getMaterialsUniformBuffer())), 0, sizeof(UBOMaterial), 0, 5, 0);
 
 
-    command_buffer.end();
-    std::vector<CommandBuffer*> commands = { &command_buffer };
-    primary_command.execute_commands(commands);
+      // Set cull mode to front as full screen triangle is clock-wise
+      RasterizationState rasterization_state;
+      rasterization_state.m_CullMode = VK_CULL_MODE_FRONT_BIT;
+      command_buffer.setRasterState(rasterization_state);
+
+
+      // Draw full screen triangle triangle
+      command_buffer.draw(3, 1, 0, 0);
+
+
+      command_buffer.end();
+      recordedCommands.push_back(&command_buffer);
+      m_PersistentCommandsPerFrame.clearDirty(activeFrame.getHashId());
+    }
+    primary_command.execute_commands(m_PersistentCommandsPerFrame.getPreRecordedCommands(activeFrame.getHashId()));
 
 }
 
@@ -432,8 +482,7 @@ TransparentSubpass::TransparentSubpass(VulkanContext& render_context, std::strin
     Subpass{ render_context,vertex_shader,fragment_shader }
 
 {
-    auto renderer = ServiceLocator::GetRenderer();
-    auto& device = render_context.getDevice();
+    
 
     m_ThreadPool = new ThreadPool();
     m_ThreadPool->setThreadCount(nThreads);
@@ -463,7 +512,7 @@ void TransparentSubpass::prepare()//setup shaders, To be called when adding subp
 }
 
 
-void TransparentSubpass::draw(CommandBuffer& primary_commandBuffer)
+void TransparentSubpass::draw(CommandBuffer& primary_commandBuffer)//TODO: Fix shader to match the new light types cause thats probably the cause of the crash
 {
 
     auto scene = ServiceLocator::GetSceneManager()->GetCurrentScene();
@@ -478,6 +527,8 @@ void TransparentSubpass::draw(CommandBuffer& primary_commandBuffer)
         std::vector<RenderBatch>& batchesTransparent = scene->GetTransparentBatches();
         primary_commandBuffer.bind_buffer(*(m_RenderContext.getActiveFrame().getCameraUniformBuffer()), 0, sizeof(UBOCamera), 0, 1, 0);
         primary_commandBuffer.bind_buffer(*((VulkanBuffer*)(scene->getLightsUniformBuffer())), 0, sizeof(UBODeferredLights), 0, 4, 0);
+        primary_commandBuffer.bind_buffer(*((VulkanBuffer*)(scene->getMaterialsUniformBuffer())), 0, sizeof(UBOMaterial), 0, 6, 0);
+
 
         // Enable alpha blending
         ColorBlendAttachmentState color_blend_attachment{};
@@ -504,5 +555,115 @@ void TransparentSubpass::draw(CommandBuffer& primary_commandBuffer)
 
     primary_commandBuffer.execute_commands(m_PersistentCommandsPerFrame.getPreRecordedCommands(activeFrame.getHashId()));
 
+}
+
+
+void TransparentSubpass::bindModelPipelineLayout(CommandBuffer* commandBuffer, const Model& model)
+{
+  auto pVertexShader = getVertexShader();
+  auto pFragmentShader = getFragmentShader();
+
+  
+  auto scene = ServiceLocator::GetSceneManager()->GetCurrentScene();
+  ShaderVariant lightVariant = model.getShaderVariant();
+  if (scene->getDirLightCount())
+    lightVariant.add_define("DIRLIGHTS " + std::to_string(scene->getDirLightCount()));
+  if (scene->getSpotLightCount())
+    lightVariant.add_define("SPOTLIGHTS " + std::to_string(scene->getSpotLightCount()));
+  if (scene->getPointLightCount())
+    lightVariant.add_define("POINTLIGHTS " + std::to_string(scene->getPointLightCount()));
+
+
+
+  auto& device = m_RenderContext.getDevice();
+  std::vector<ShaderModule*> shader_modules;
+  if (!m_VertexShaderPath.empty())
+    shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader, lightVariant));
+  if (!m_FragmentShaderPath.empty())
+    shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader, lightVariant));
+
+ 
+
+  PipelineLayout& pipeline_layout = device.getResourcesCache().request_pipeline_layout(shader_modules);
+  commandBuffer->bindPipelineLayout(pipeline_layout);
+
+  glm::vec4 matIndexVector;//Its a vector cause I couldn't make it work with a single float.. Probably the extra space will be useful at some point
+  matIndexVector.x = model.GetMaterial()->getMaterialIndex();
+  commandBuffer->pushConstants(sizeof(InstanceUBO::model), matIndexVector);//sizeof(InstanceUBO::model) is the offset since thats what you need to do with pushconstants
+
+}
+
+ShadowSubpass::ShadowSubpass(VulkanContext& render_context, std::string vertex_shader, std::string geo_shader, size_t nThreads /* = 1 */):
+    Subpass(render_context,vertex_shader,""),
+    m_GeoShaderPath(geo_shader)
+{
+    getGeoShader();
+}
+
+void ShadowSubpass::prepare()
+{
+
+}
+
+void ShadowSubpass::draw(CommandBuffer& command_buffer)
+{
+
+    auto scene = ServiceLocator::GetSceneManager()->GetCurrentScene();
+    if (!scene->IsInit())
+        return;
+
+    command_buffer.bind_buffer(*(m_RenderContext.getActiveFrame().getShadowsUniformBuffer()), 0, sizeof(UBOShadows), 0, 0, 0);
+
+    auto& batches = scene->GetOpaqueBatches();
+    for (int i = 0; i < batches.size(); i++)
+    {
+        auto& batch = batches[i];
+        if (batch.m_ModelsByDistance.size() == 0)
+          continue;
+        bindModelPipelineLayout(&command_buffer, batch.m_ModelsByDistance.begin()->second);//Here all the models in the batch same the same material so we can call this out here
+        for (auto node_it = batch.m_ModelsByDistance.begin(); node_it != batch.m_ModelsByDistance.end(); node_it++)
+        {
+            const Model& model = node_it->second;
+            drawModel(model, &command_buffer);
+        }
+    }
+}
+
+std::shared_ptr<ShaderSource> ShadowSubpass::getGeoShader()
+{
+    if (m_GeoShaderPath.empty())
+        return nullptr;
+    auto renderer = (RendererVulkan*)ServiceLocator::GetRenderer();
+
+    auto pGeoShader = m_GeoShader.lock();
+    if (!pGeoShader)
+    {
+        m_GeoShader = renderer->getShaderSourcePool().getShaderSource(m_GeoShaderPath);
+        pGeoShader = m_GeoShader.lock();
+    }
+    return pGeoShader;
+}
+
+
+void ShadowSubpass::bindModelPipelineLayout(CommandBuffer* commandBuffer, const Model& model)
+{
+    auto pVertexShader = getVertexShader();
+    auto pFragmentShader = getFragmentShader();
+    auto pGeoShader = getGeoShader();
+
+    ShaderVariant emptyVariant;
+
+    auto& device = m_RenderContext.getDevice();
+    std::vector<ShaderModule*> shader_modules;
+    if (!m_VertexShaderPath.empty())
+        shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_VERTEX_BIT, pVertexShader, emptyVariant));
+    if (!m_FragmentShaderPath.empty())
+        shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_FRAGMENT_BIT, pFragmentShader, emptyVariant));
+    
+    if (!m_GeoShaderPath.empty())
+        shader_modules.push_back(&device.getResourcesCache().request_shader_module(VK_SHADER_STAGE_GEOMETRY_BIT, pGeoShader, emptyVariant));
+        
+    PipelineLayout& pipeline_layout = device.getResourcesCache().request_pipeline_layout(shader_modules);
+    commandBuffer->bindPipelineLayout(pipeline_layout);
 }
 

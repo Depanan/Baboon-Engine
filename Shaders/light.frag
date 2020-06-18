@@ -1,20 +1,5 @@
 #version 450
-/* Copyright (c) 2019-2020, Arm Limited and Contributors
- *
- * SPDX-License-Identifier: Apache-2.0
- *
- * Licensed under the Apache License, Version 2.0 the "License";
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 precision highp float;
 
 layout(input_attachment_index = 0, binding = 0) uniform subpassInput i_depth;
@@ -34,16 +19,59 @@ layout(set = 0, binding = 3) uniform UniformBufferObject {
 
 struct Light
 {
-    vec4 lightPos;         // position.w represents type of light
+    vec4 lightPos;         
     vec4 lightColor;            // color.w represents light intensity
    
 };
 layout(set = 0, binding = 4) uniform LightsInfo
 {
-    uint  count;
-    Light lights[32];
+    Light pointLights[15];
+	Light spotLights[15];
+	Light dirLights[2];
 }lightUniform;
 
+struct Material
+{
+	vec4 ambient;
+	vec4 diffuse;
+	vec4 specular;
+};
+layout(set = 0, binding = 5) uniform MaterialsInfo
+{
+    Material materials[128];
+}materialUniform;
+
+
+vec3 pointLight(uint lightIndex,uint matIndex, vec3 position, vec3 N, vec3 world_to_cam,vec3 albedo,float spec)
+{
+	Material theMaterial = materialUniform.materials[int(matIndex)];
+	vec3 lightPos =lightUniform.pointLights[lightIndex].lightPos.xyz;
+	vec3 world_to_light = lightPos.xyz - position;
+	float dist = length(world_to_light);
+	float atten = 1.0 / (dist *lightUniform.pointLights[lightIndex].lightColor.w);
+	world_to_light = normalize(world_to_light);
+	float ndotl = clamp(dot(N, world_to_light), 0.0, 1.0);
+	vec3 R = normalize(reflect(-world_to_light, N));
+	float specular = pow(max(dot(R, world_to_cam), 0.0), theMaterial.specular.a);
+	return max(vec3(0.0),(ndotl * albedo.rgb* theMaterial.diffuse.rgb + specular * spec* theMaterial.specular.rgb) *atten * lightUniform.pointLights[lightIndex].lightColor.rgb);
+}
+vec3 spotLight(uint lightIndex,uint matIndex, vec3 position, vec3 N, vec3 world_to_cam, vec3 albedo,float spec)
+{
+	return vec3(0.0);
+
+}
+vec3 dirLight(uint lightIndex,uint matIndex, vec3 N, vec3 world_to_cam,vec3 albedo,float spec)
+{
+	Material theMaterial = materialUniform.materials[int(matIndex)];
+    vec3 world_to_light =normalize(-lightUniform.dirLights[lightIndex].lightPos.xyz);
+	float ndotl = clamp(dot(N, -world_to_light), 0.0, 1.0);	
+	
+	vec3 R = normalize(reflect(world_to_light, N));
+	float specular = pow(max(dot(R, world_to_cam), 0.0), theMaterial.specular.a);
+
+	return max(vec3(0.0),(ndotl * albedo.rgb * theMaterial.diffuse.rgb+ specular * spec * theMaterial.specular.rgb)  * lightUniform.dirLights[lightIndex].lightColor.rgb);
+	//return vec3(specular);
+}
 
 void main()
 {
@@ -52,9 +80,8 @@ void main()
     vec4 albedoLoad = subpassLoad(i_albedo);
 	vec4 normalLoad = subpassLoad(i_normal);
 	
-	vec3 N = normalLoad.xyz;
-	N   = normalize(2.0 * N - 1.0);
-	float ambient = normalLoad.w;
+	vec3 N = normalize(normalLoad.xyz);
+	float matIndex = round(normalLoad.w * 128.0f);
 	vec3 albedo = albedoLoad.xyz;
 	float spec = albedoLoad.w;
 
@@ -63,22 +90,29 @@ void main()
     highp vec3 fragPos     = world_w.xyz/world_w.w ;
 	vec3 world_to_cam = normalize(ubo.camPos-fragPos.xyz);
 	
-	vec3 lightContribution =ambient * albedo.rgb;
 	
-	for(int i = 0;i<lightUniform.count;i++)
+	Material theMaterial = materialUniform.materials[int(matIndex)];
+	
+	vec3 lightContribution =theMaterial.ambient.rgb;
+	//vec3 lightContribution = vec3(0.4);
+	
+#ifdef DIRLIGHTS
+	for(int i = 0;i<DIRLIGHTS;i++)
 	{
-		vec3 lightPos =lightUniform.lights[i].lightPos.xyz;
-		vec3 world_to_light = lightPos.xyz - fragPos.xyz;
-		float dist = length(world_to_light);
-		float atten = 1.0 / (dist *lightUniform.lights[i].lightColor.w);
-		world_to_light = normalize(world_to_light);
-		float ndotl = clamp(dot(N, world_to_light), 0.0, 1.0);
-		vec3 R = normalize(reflect(-world_to_light, N));
-		float specular = pow(max(dot(R, world_to_cam), 0.0), 64.0);
-		lightContribution += (ndotl * albedo.rgb + specular * spec) *atten * lightUniform.lights[i].lightColor.rgb;
+		lightContribution += dirLight(i,int(matIndex),N, world_to_cam, albedo,spec);
 	}
-	
-	
-   
+#endif
+#ifdef SPOTLIGHTS
+	for(int i = 0;i<SPOTLIGHTS;i++)
+	{
+		lightContribution += spotLight(i,int(matIndex),fragPos.xyz,N, world_to_cam, albedo,spec);
+	}
+#endif
+#ifdef POINTLIGHTS
+	for(int i = 0;i<POINTLIGHTS;i++)
+	{
+		lightContribution += pointLight(i,int(matIndex),fragPos.xyz,N, world_to_cam, albedo,spec);
+	}
+#endif
     o_color = vec4(lightContribution, 1.0);
 }
